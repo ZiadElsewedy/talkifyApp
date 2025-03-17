@@ -1,0 +1,2 @@
+# talkifyApp
+social madeia platform 
