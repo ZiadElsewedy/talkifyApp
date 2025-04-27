@@ -10,8 +10,8 @@ class TalkifyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
+    return const MaterialApp(
+      debugShowCheckedModeBanner: true,
       home: Homepage()
       
     );
