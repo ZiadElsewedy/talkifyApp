@@ -1,16 +1,18 @@
+import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
+
 // all opration for auth
 abstract class AuthRepo {
-  Future<void> loginWithEmailPassword({
+  Future<AppUser> loginWithEmailPassword({
     required String email,
     required String password,
   });
 
-  Future<void> registerWithEmailPassword({
+  Future<AppUser> registerWithEmailPassword({
     required String email,
     required String password,
   });
 
   Future<void> LogOut();
 
-Future<void> GetCurrentUser();
+  Future<AppUser> GetCurrentUser();
 }
