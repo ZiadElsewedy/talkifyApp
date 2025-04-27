@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:talkifyapp/firebase_options.dart';
-import 'package:talkifyapp/screens/HomePage.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/HomePage.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
