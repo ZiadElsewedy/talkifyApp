@@ -33,7 +33,7 @@ class Homepage extends StatelessWidget {
               onPressed: () {
                 // Navigate to the chat screen
               },
-              child: const Text(' Chatting'),
+              child: const Text(' start  Chatting'),
             ),
           ],
         ),

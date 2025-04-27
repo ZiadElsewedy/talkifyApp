@@ -1,17 +1,27 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:talkifyapp/firebase_options.dart';
 import 'package:talkifyapp/screens/HomePage.dart';
 
-void main() {
-  runApp(const TalkifyAp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // fire base setup 
+  // Initialize any necessary services or plugins here
+  // For example, if you're using Firebase, you might want to initialize it:
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+    // This is where you can set up Firebase options for different platforms
+  );
+  runApp(const TalkifyApp());
 }
 
-class TalkifyAp extends StatelessWidget {
-  const TalkifyAp({super.key});
+class TalkifyApp extends StatelessWidget {
+  const TalkifyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      debugShowCheckedModeBanner: true,
+      debugShowCheckedModeBanner: false,
       home: Homepage()
       
     );
