@@ -10,10 +10,37 @@ class Homepage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
 
-      body: Column(
-        children: [
-          Icon(Icons.lock_open_rounded, size : 90 )
-        ],
+      body: Center(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 50),
+              child: Icon(
+                Icons.lock_open_rounded,
+                 size : 70 ,
+                  color: Theme.of(context).colorScheme.primary,
+                  ),
+            
+            ),
+             SizedBox(height: 20),
+            Text(
+              'Welcome to Talkify !',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+                letterSpacing: 1.2,
+                shadows: [
+                  Shadow(
+                    offset: Offset(1, 1),
+                    blurRadius: 2,
+                    color: Colors.black.withOpacity(0.2),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       )
 
 
