@@ -1,7 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:talkifyapp/firebase_options.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/HomePage.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/LoginPage.dart';
+import 'package:talkifyapp/theme/LightMode.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,8 +21,9 @@ class TalkifyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return  MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: lightmode ,
       home: Homepage()
       
     );
