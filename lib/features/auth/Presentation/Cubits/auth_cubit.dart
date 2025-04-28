@@ -29,11 +29,16 @@ class AuthCubit extends Cubit<AuthStates> {
   AuthCubit(this.authRepo) : super(AuthInitialState());
   // check if the user is authenticated
   void checkAuth() async {
-    emit(AuthLoadingState());
-    final AppUser? user = await authRepo.GetCurrentUser();
-    if (user != null) {
-      emit(Authanticated('User is authenticated'));
-    } else {
+    try {
+      emit(AuthLoadingState());
+      final AppUser? user = await authRepo.GetCurrentUser();
+      if (user != null) {
+        this.user = user;
+        emit(Authanticated('User is authenticated'));
+      } else {
+        emit(UnAuthanticated());
+      }
+    } catch (e) {
       emit(UnAuthanticated());
     }
   }
