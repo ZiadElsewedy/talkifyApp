@@ -16,13 +16,16 @@ void togglePages() {
   setState(() {
     showLogin = !showLogin;
   });
-  @override
-  Widget build(BuildContext context) {
-    if (showLogin) {
-      return LoginPage(togglePages: togglePages);
-    } else {
-      return RegisterPage(togglePages: togglePages);
-    }
+}
+
+@override
+Widget build(BuildContext context) {
+  if (showLogin) {
+    return LoginPage(togglePages: togglePages);
+  } else {
+    return Registerpage(togglePages: togglePages);
   }
 }
+}
+
 

@@ -36,12 +36,12 @@ class _LoginPageState extends State<LoginPage> {
                 child: Icon(
                   Icons.lock_open_rounded,
                   size: 70,
-                  color: Color(0xFF123458), // dark blue
+                  color: Colors.grey, // dark blue
                 ),
               ),
               const SizedBox(height: 20),
               Text(
-                'Welcome to Talkify!',
+                'Talkify!',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w600,
@@ -57,11 +57,19 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(height: 20),
+              Text(
+                'Welcome back ! to our community :)',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey, // light grey text
+                ),
+              ),const SizedBox(height: 20),
               MyTextField(
                 controller: EmailController,
                 hintText: "Email",
                 obsecureText: false,
               ),
+              
               const SizedBox(height: 20),
               MyTextField(
                 controller: PwController,
@@ -71,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 20),
               MyButton(
                 onTap: (){
-                    
+
                 },
                 text: "Login",
                 // deep black text
@@ -81,9 +89,10 @@ class _LoginPageState extends State<LoginPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Not a member? ',
+                    'Not a member ? ',
                     style: TextStyle(
-                      color: Color(0xFF123458), // dark blue
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold // dark blue
                     ),
                   ),
                   GestureDetector(
@@ -92,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
                       'Register now',
                       style: TextStyle(
                         fontSize: 18,
-                        color: Color(0xFF123458), // dark blue
+                        color: Color.fromARGB(255, 0, 0, 0), // dark blue
                         fontWeight: FontWeight.bold,
                       ),
                     ),

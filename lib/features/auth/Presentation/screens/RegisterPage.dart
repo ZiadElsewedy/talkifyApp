@@ -32,7 +32,7 @@ class _RegisterpageState extends State<Registerpage> {
                 child: Icon(
                   Icons.lock_open_rounded,
                   size: 70,
-                  color: Color(0xFF123458), // dark blue
+                  color: Colors.grey, // dark blue
                 ),
               ),
               const SizedBox(height: 20),
@@ -89,7 +89,7 @@ class _RegisterpageState extends State<Registerpage> {
                   Text(
                     'Already have an account ! ',
                     style: TextStyle(
-                      color: Color(0xFF123458), // dark blue
+                      color: Colors.grey, // dark blue
                       fontWeight: FontWeight.bold
                     ),
                   ),
@@ -99,7 +99,7 @@ class _RegisterpageState extends State<Registerpage> {
                       'Login now',
                       style: TextStyle(
                         fontSize: 18,
-                        color: Color(0xFF123458), // dark blue
+                        color: Color.fromARGB(255, 0, 0, 0), // dark blue
                         fontWeight: FontWeight.bold,
                       ),
                     ),
