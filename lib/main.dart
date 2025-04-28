@@ -24,7 +24,7 @@ class TalkifyApp extends StatelessWidget {
     return  MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: lightmode ,
-      home: Homepage()
+      home: const LoginPage(togglePages: null)
       
     );
   }
