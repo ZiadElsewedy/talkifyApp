@@ -1,4 +1,8 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyTextField.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/Mybutton.dart';
 
@@ -12,6 +16,8 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   // Text Controller
+  // to manage the text input for email and password fields
+  // these controllers will be used to get the text input from the user
   final EmailController = TextEditingController();
   final PwController = TextEditingController();
 
@@ -19,7 +25,38 @@ class _LoginPageState extends State<LoginPage> {
   void login() {
     final String Email = EmailController.text;
     final String Pw = PwController.text;
+    // auth cubit 
+    // get access to the auth cubit
+    // this cubit will handle the authentication process
+    final authcubit = context.read<AuthCubit>(); 
+    // ensure that the email and password are not empty 
+    if (Email.isNotEmpty && Pw.isNotEmpty) {
+      // call the login function from the auth cubit
+      // this function will handle the login process
+      authcubit.login(
+        EMAIL: Email , 
+        PASSWORD: Pw,
+       
+      );
+        
+      return;
+    } else {
+      // show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in all fields'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    
   }
+
+  void dispose() {
+    super.dispose();
+    EmailController.dispose();
+    PwController.dispose();
+  }}
+  
 
   @override
   Widget build(BuildContext context) {
