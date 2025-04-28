@@ -52,6 +52,7 @@ class AuthCubit extends Cubit<AuthStates> {
     required String NAME,
     required String EMAIL,
     required String PASSWORD,
+    required String CONFIRMPASSWORD,
   }) async {
     try {
       emit(AuthLoadingState()); // Show loading during registration
@@ -59,7 +60,7 @@ class AuthCubit extends Cubit<AuthStates> {
         email: EMAIL,
         password: PASSWORD,
       );
-      emit(Authanticated('User is authenticated')); // Emit success after registration
+      emit(Authanticated('Registration successful! Welcome to Talkify!')); // Emit success message
     } catch (e) {
       emit(AuthErrorState(e.toString())); // Emit error if registration fails
     }

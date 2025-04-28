@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyTextField.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/Mybutton.dart';
 
@@ -8,15 +10,61 @@ class Registerpage extends StatefulWidget {
 
   @override
   State<Registerpage> createState() => _RegisterpageState();
+ 
 }
 
 class _RegisterpageState extends State<Registerpage> {
   // Text Controllers
+  
   final NameController = TextEditingController();
   final EmailController = TextEditingController();
   final PwController = TextEditingController();
   final ConfirmPwController = TextEditingController();
 
+
+void register(){
+    final String Name = NameController.text;
+    final String Email = EmailController.text;
+    final String Pw = PwController.text;
+    final String ConfirmPw = ConfirmPwController.text;
+
+    // auth cubit 
+    // get
+    final authcubit = context.read<AuthCubit>(); 
+    
+    // ensure that the email and password are not empty
+    // and the password and confirm password are the same
+    if (Pw != ConfirmPw) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password and Confirm Password do not match'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if (Name.isNotEmpty && Email.isNotEmpty && Pw.isNotEmpty && ConfirmPw.isNotEmpty) {
+      // call the login function from the auth cubit
+      // this function will handle the login process
+      authcubit.register(
+        NAME: Name,
+        EMAIL: Email , 
+        PASSWORD: Pw,
+        CONFIRMPASSWORD: ConfirmPw,
+      );
+        
+      return;
+    } else {
+      // show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in all fields'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    
+  }
+ }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -78,7 +126,11 @@ class _RegisterpageState extends State<Registerpage> {
               ),
               const SizedBox(height: 20),
               MyButton(
-                onTap: () {},
+                onTap: () {
+                  // Register logic here
+                   register();
+                   
+                },
                 text: "Register",
  // deep black text
               ),

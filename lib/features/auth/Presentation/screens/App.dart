@@ -42,7 +42,15 @@ class MyApp extends StatelessWidget {
               SnackBar(
                 content: Text("Invalid Password or Email ! "),
                 backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3)
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          } else if (state is Authanticated) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
               ),
             );
           }
