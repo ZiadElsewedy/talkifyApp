@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/RegisterPage.dart';
 import 'package:talkifyapp/firebase_options.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/LoginPage.dart';
 import 'package:talkifyapp/theme/LightMode.dart';
@@ -24,7 +25,7 @@ class TalkifyApp extends StatelessWidget {
     return  MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: lightmode ,
-      home: const LoginPage(togglePages: null)
+      home: const Registerpage(togglePages: null)
       
     );
   }
