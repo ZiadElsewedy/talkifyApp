@@ -87,9 +87,10 @@ class _RegisterpageState extends State<Registerpage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Already have an account ',
+                    'Already have an account ! ',
                     style: TextStyle(
                       color: Color(0xFF123458), // dark blue
+                      fontWeight: FontWeight.bold
                     ),
                   ),
                   GestureDetector(
