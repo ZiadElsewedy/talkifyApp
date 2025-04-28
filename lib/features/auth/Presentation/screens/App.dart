@@ -33,7 +33,20 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Talkify',
-      home: BlocBuilder<AuthCubit, AuthStates>(
+      home: BlocConsumer<AuthCubit, AuthStates>(
+        // listen to the auth cubit state changes
+        // this will be used to show the snackbar when there is an error
+        listener: (context, state) {
+          if (state is AuthErrorState) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Invalid Password or Email ! "),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3)
+              ),
+            );
+          }
+        },
         builder: (context, state) {
           if (state is Authanticated) {
             return const HomePage();
@@ -46,11 +59,7 @@ class MyApp extends StatelessWidget {
               ),
             );
           } else if (state is AuthErrorState) {
-            return Scaffold(
-              body: Center(
-                child: Text(state.error),
-              ),
-            );
+            return AuthPage(); // Return to auth page on error
           }
           print('state is $state');
           return const Scaffold(
@@ -58,8 +67,11 @@ class MyApp extends StatelessWidget {
               child: CircularProgressIndicator(),
             ),
           );
-        },
+          
+        }
+        
       )
+      
     ),
     );
   }

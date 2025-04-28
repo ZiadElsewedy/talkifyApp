@@ -22,7 +22,7 @@ class HomePage extends StatelessWidget {
             },
           ),
         ],
-        backgroundColor: Colors.black,
+        
       ),
       body: Center(
         child: Text(

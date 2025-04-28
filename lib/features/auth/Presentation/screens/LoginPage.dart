@@ -26,8 +26,7 @@ class _LoginPageState extends State<LoginPage> {
     final String Email = EmailController.text;
     final String Pw = PwController.text;
     // auth cubit 
-    // get access to the auth cubit
-    // this cubit will handle the authentication process
+    // get
     final authcubit = context.read<AuthCubit>(); 
     // ensure that the email and password are not empty 
     if (Email.isNotEmpty && Pw.isNotEmpty) {
@@ -117,7 +116,6 @@ class _LoginPageState extends State<LoginPage> {
               MyButton(
                 onTap: (){
                   login();
-
                 },
                 text: "Login",
                 // deep black text
