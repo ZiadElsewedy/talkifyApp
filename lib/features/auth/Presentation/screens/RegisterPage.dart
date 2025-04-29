@@ -80,10 +80,10 @@ void register(){
                 SizedBox(height: 100,),
                 Padding(
                   padding: const EdgeInsets.only(top: 50),
-                  child: Icon(
-                    Icons.lock_open_rounded,
-                    size: 70,
-                    color: Colors.grey, // dark blue
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    height: 100,
+                    width: 100,
                   ),
                 ),
                 const SizedBox(height: 20),
