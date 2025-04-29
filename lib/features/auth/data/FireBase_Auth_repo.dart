@@ -1,10 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:talkifyapp/features/auth/domain/repo/authrepo.dart';
 
 class FirebaseAuthRepo implements AuthRepo {
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
-
+  final FirebaseFirestore  firestore = FirebaseFirestore.instance;
 
   @override
   Future<AppUser> loginWithEmailPassword({required String email, required String password}) async {
@@ -52,6 +53,9 @@ class FirebaseAuthRepo implements AuthRepo {
         profilePictureUrl: userCredential.user!.photoURL ?? '',
 
       );
+      // save the user details to the database
+      // you can use Firestore or Realtime Database for this
+      await firestore.collection('users').doc(user.id).set(user.toJson());
     return user;
     } catch (e) {
       // handle error
