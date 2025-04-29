@@ -72,6 +72,7 @@ class AuthCubit extends Cubit<AuthStates> {
     try {
       emit(AuthLoadingState()); // Show loading during logout
       await authRepo.LogOut();
+
       emit(UnAuthanticated()); // Emit unauthenticated after logout
     } catch (e) {
       emit(AuthErrorState(e.toString())); // Emit error if logout fails
