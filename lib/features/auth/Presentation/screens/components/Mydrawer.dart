@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
+import 'package:talkifyapp/features/Profile/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyDrawerTile.dart';
 
 class MyDrawer extends StatelessWidget {
@@ -37,6 +38,9 @@ class MyDrawer extends StatelessWidget {
             icon: Icons.person,
             title: 'P R O F I L E',
             onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).push( MaterialPageRoute(builder: (context) => const ProfilePage()),
+              );
               // Handle profile tap
             },
           ),
