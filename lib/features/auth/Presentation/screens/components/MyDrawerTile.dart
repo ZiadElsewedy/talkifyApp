@@ -13,7 +13,7 @@ class MyDrawerTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.onTap,
-    this.iconColor = Colors.black87,
+    this.iconColor = const Color.fromARGB(221, 88, 88, 88),
     this.textColor = Colors.black87,
     this.fontWeight = FontWeight.w500,
   });

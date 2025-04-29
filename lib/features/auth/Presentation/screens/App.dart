@@ -4,6 +4,7 @@ import 'package:talkifyapp/features/auth/Presentation/Cubits/AuthStates.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/AuthPage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/HomePage.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 // things need to do ! 
 // 1. add firebase options
@@ -63,7 +64,9 @@ class MyApp extends StatelessWidget {
           } else if (state is AuthLoadingState) {
             return const Scaffold(
               body: Center(
-                child: CircularProgressIndicator(),
+                child: ProfessionalCircularProgress(
+                  
+                ),
               ),
             );
           } else if (state is AuthErrorState) {
@@ -72,7 +75,10 @@ class MyApp extends StatelessWidget {
           print('state is $state');
           return const Scaffold(
             body: Center(
-              child: CircularProgressIndicator(),
+              child: ProfessionalCircularProgress(
+                // This is a custom loading widget
+                // You can replace it with your own loading widget
+              ),
             ),
           );
           
