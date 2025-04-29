@@ -36,10 +36,13 @@ class FirebaseAuthRepo implements AuthRepo {
 
 
   @override
-  Future<AppUser> registerWithEmailPassword({required String email, required String password}) async {
+  Future<AppUser> registerWithEmailPassword({
+    required String email, 
+    required String password,
+    required String name,
+  }) async {
    try {
       // attempt to sign up the user with email and password
-
       UserCredential userCredential = await firebaseAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
@@ -47,20 +50,17 @@ class FirebaseAuthRepo implements AuthRepo {
      
       AppUser user = AppUser(
         id: userCredential.user!.uid,
-        name: '',
-        email: email , 
+        name: name,
+        email: email, 
         phoneNumber: userCredential.user!.phoneNumber ?? '',
         profilePictureUrl: userCredential.user!.photoURL ?? '',
-
       );
       // save the user details to the database
-      // you can use Firestore or Realtime Database for this
       await firestore.collection('users').doc(user.id).set(user.toJson());
-    return user;
+      return user;
     } catch (e) {
       // handle error
-      throw Exception('Failed to login: $e');
-      
+      throw Exception('Failed to register: $e');
     }
   }
   @override

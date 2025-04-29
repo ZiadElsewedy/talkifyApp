@@ -59,6 +59,7 @@ class AuthCubit extends Cubit<AuthStates> {
       user = await authRepo.registerWithEmailPassword(
         email: EMAIL,
         password: PASSWORD,
+        name: NAME,
       );
       emit(Authanticated('Registration successful! Welcome to Talkify!')); // Emit success message
     } catch (e) {
