@@ -77,13 +77,13 @@ void register(){
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(height: 100,),
+                SizedBox(height: 60,),
                 Padding(
                   padding: const EdgeInsets.only(top: 50),
                   child: Image.asset(
-                    'assets/images/logo.png',
-                    height: 100,
-                    width: 100,
+                    'lib/assets/Logo1.png',
+                    height: 120,
+ 
                   ),
                 ),
                 const SizedBox(height: 20),
