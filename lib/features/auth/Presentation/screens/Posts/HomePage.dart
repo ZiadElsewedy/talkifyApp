@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/AuthPage.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});

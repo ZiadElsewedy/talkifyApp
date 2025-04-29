@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
@@ -69,10 +67,9 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               Padding(
                 padding: const EdgeInsets.only(top: 50),
-                child: Icon(
-                  Icons.lock_open_rounded,
-                  size: 70,
-                  color: Colors.grey, // dark blue
+                child: Image.asset(
+                  'lib/assets/Logo3.png',
+                  height: 100,
                 ),
               ),
               const SizedBox(height: 20),
