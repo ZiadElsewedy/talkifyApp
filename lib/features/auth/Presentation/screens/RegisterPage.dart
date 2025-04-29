@@ -70,12 +70,14 @@ void register(){
     return Scaffold(
       backgroundColor: Color(0xFFF1EFEC), // light background
       body: SingleChildScrollView(
+
         child: Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 22),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                SizedBox(height: 100,),
                 Padding(
                   padding: const EdgeInsets.only(top: 50),
                   child: Icon(
