@@ -78,4 +78,8 @@ class AuthCubit extends Cubit<AuthStates> {
       emit(AuthErrorState(e.toString())); // Emit error if logout fails
     }
   }
+  /// Get the currently authenticated user
+  AppUser? GetCurrentUser() {
+    return user; // Return the current user
+  }
 }
