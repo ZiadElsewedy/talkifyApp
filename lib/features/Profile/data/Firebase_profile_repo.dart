@@ -1,16 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:talkifyapp/features/Profile/domain/Profile%20repo/ProfileRepo.dart';
 import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
-import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 
 class FirebaseProfileRepo implements ProfileRepo {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   @override
-  Future<AppUser?> FetchUserProfile() async {
+  Future<ProfileUser?> fetchUserProfile(String id) async {
     try {
       // Get the current user's ID from Firebase Auth
-      final userDoc = await firestore.collection('users').doc("id").get();
+      final userDoc = await firestore.collection('users').doc(id).get();
       // Fetch the user document from Firestore
       // Replace "id" with the actual user ID you want to fetch
       // For example, if you are using Firebase Auth, you can get the current user's ID like this:
@@ -21,7 +20,7 @@ class FirebaseProfileRepo implements ProfileRepo {
         final userData = userDoc.data();
         if (userData != null) {
           return ProfileUser(
-            id: userDoc.id,
+            id: id,
             name: userData['name'],
             email: userData['email'] ,
             phoneNumber: userData['phoneNumber'] ,
@@ -53,7 +52,9 @@ class FirebaseProfileRepo implements ProfileRepo {
         
       });
 } on Exception catch (e) {
-  
+    print('Error updating user profile: $e');
+    // Handle the error as needed
+
 }
   }
 }
