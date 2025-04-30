@@ -43,8 +43,8 @@ ProfileUser copywith ({
       id: json['id'] as String,
       name: json['name'] as String,
       email: json['email'] as String,
-      phoneNumber: json['phoneNumber'] as String,
-      profilePictureUrl: json['profilePictureUrl'] as String,
+      phoneNumber: json['phoneNumber'] ?? '',
+      profilePictureUrl: json['profilePictureUrl']  ?? '',
       bio: json['bio'] as String,
     );
   }
