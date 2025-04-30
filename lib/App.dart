@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Profile/data/Firebase_profile_repo.dart';
+import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/AuthStates.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/AuthPage.dart';
@@ -23,15 +25,21 @@ import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 class MyApp extends StatelessWidget {
    MyApp({super.key});
   final authRepo = FirebaseAuthRepo();
+  final profileRepo =  FirebaseProfileRepo();// Initialize the ProfileRepo
+  // Initialize the AuthRepo
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      // provide the auth cubit to the widget tree
-      // this cubit will handle the authentication process
-
-      create: (context) => AuthCubit(authRepo)..checkAuth(),
-
-      child: MaterialApp(
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<AuthCubit>(
+          create: (context) => AuthCubit(authRepo),
+        ),
+        BlocProvider<ProfileCubit>(
+          create: (context) => ProfileCubit(profileRepo), // Pass the authRepo to ProfileCubit
+        ),
+      ],
+    
+     child: MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Talkify',
       home: BlocConsumer<AuthCubit, AuthStates>(
@@ -87,6 +95,7 @@ class MyApp extends StatelessWidget {
       )
       
     ),
-    );
+     
+     );
   }
 }

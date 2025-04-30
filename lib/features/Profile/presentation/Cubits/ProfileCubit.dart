@@ -15,14 +15,28 @@ class ProfileCubit extends Cubit<ProfileStates> {
         emit(ProfileLoadedState(user)); // Emit the loaded state with the user profile
         // Emit the loaded state with the user profile
       } else {
-        emit(ProfileErrorState("Failed to load user profile"));
+        emit(ProfileErrorState("Failed to find the  user profile"));
       }
     } catch (e) {
       emit(ProfileErrorState(e.toString()));
     }
   }
   // Using the repo to fetch the user profile
-  // and update the bio and Profile picture
-
-  
-}
+  // and update the bio or Profile picture
+  void updateUserProfile(String id, String newBio, String newProfilePictureUrl) async {
+    emit(ProfileLoadingState());
+    try {
+      final currentUser = await profileRepo.fetchUserProfile(id);
+      if (currentUser != null) {
+        final updatedUser = currentUser.copywith(
+          newBio: newBio,
+          newprofilePictureUrl: newProfilePictureUrl,
+        );
+        await profileRepo.updateUserProfile(updatedUser);
+        emit(ProfileLoadedState(updatedUser));
+      } else {
+        emit(ProfileErrorState("Failed to update the user profile"));
+      }
+    }catch (e) {
+      emit(ProfileErrorState(e.toString()));
+  }}}

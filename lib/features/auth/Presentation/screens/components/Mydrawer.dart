@@ -38,8 +38,13 @@ class MyDrawer extends StatelessWidget {
             icon: Icons.person,
             title: 'P R O F I L E',
             onTap: () {
+              // we need to get the current user id
+              final User = context.read<AuthCubit>().GetCurrentUser();
+              final uid = User?.id;
               Navigator.of(context).pop();
-              Navigator.of(context).push( MaterialPageRoute(builder: (context) => const ProfilePage()),
+              // Navigate to the profile page
+              // You can pass the user ID if needed
+              Navigator.of(context).push( MaterialPageRoute(builder: (context) => ProfilePage( userId:uid , )),
               );
               // Handle profile tap
             },
