@@ -5,8 +5,8 @@ abstract class ProfileStates {}
 class ProfileInitialState extends ProfileStates {}
 class ProfileLoadingState extends ProfileStates {}
 class ProfileLoadedState extends ProfileStates {
-  final ProfileUser user;
-  ProfileLoadedState(this.user);
+  final ProfileUser profileuser;
+  ProfileLoadedState(this.profileuser);
 }
 class ProfileErrorState extends ProfileStates {
   final String error;

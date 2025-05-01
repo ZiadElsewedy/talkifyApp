@@ -24,18 +24,21 @@ import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 
 class MyApp extends StatelessWidget {
    MyApp({super.key});
+  final profileRepo =  FirebaseProfileRepo();
   final authRepo = FirebaseAuthRepo();
-  final profileRepo =  FirebaseProfileRepo();// Initialize the ProfileRepo
+  // Initialize the ProfileRepo
   // Initialize the AuthRepo
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthCubit>(
-          create: (context) => AuthCubit(authRepo),
+          create: (context) => AuthCubit(authRepo)..checkAuth(),
         ),
         BlocProvider<ProfileCubit>(
-          create: (context) => ProfileCubit(profileRepo), // Pass the authRepo to ProfileCubit
+          create: (context) => ProfileCubit(profileRepo),
+          
+           // Pass the authRepo to ProfileCubit
         ),
       ],
     
