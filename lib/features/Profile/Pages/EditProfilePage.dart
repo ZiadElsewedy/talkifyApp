@@ -49,7 +49,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
               obsecureText:false ),
             
              SizedBox(height: 20),
-            
+             Text('Mohamed'),
+             Text('Mohamed'),
       ])
         ),
       );
