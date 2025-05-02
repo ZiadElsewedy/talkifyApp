@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Profile/Pages/EditProfilePage.dart';
+import 'package:talkifyapp/features/Profile/Pages/components/Bio.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Profile_states.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
@@ -37,15 +39,45 @@ class _ProfilePageState extends State<ProfilePage> {
           return Scaffold(
             appBar: AppBar(
               title:  Text(user.name , style: const TextStyle(color: Color.fromARGB(255, 95, 95, 95)),),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings, color: Color.fromARGB(255, 95, 95, 95),),
+                  onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (context) =>  EditProfilePage( user: user,)));
+                    // Handle edit button press
+                  },
+                ),
+              ],
               centerTitle: true,
               
             ),
-            body: Column(
-              children: [
-                Center(
-                  child: Text(user.email , style: const TextStyle(color: Color.fromARGB(255, 95, 95, 95), fontSize: 20 , ) ,),
-                )
-              ],
+            body: Center(
+              child: Column(
+                children: [
+                     Text(user.email , style: const TextStyle(color: Color.fromARGB(255, 95, 95, 95), fontSize: 20 , ) ,),
+                      const SizedBox(height: 20,),
+                     Container( 
+                      height: 120,
+                      width: 120,
+                      decoration: BoxDecoration(
+                      color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        image: DecorationImage(
+                          image: NetworkImage(user.profilePictureUrl),
+                          fit: BoxFit.cover,
+                        ),
+
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.person , size: 70 , color: Color.fromARGB(255, 95, 95, 95), ),)
+                      ), 
+                      const SizedBox(height: 20,),
+                      Text('Bio' , style: TextStyle(color: Color.fromARGB(255, 95, 95, 95), fontSize: 20 , ) ,),
+                      Mybio(bioText: user.bio),          
+                      Text('Posts' , style: TextStyle(color: Color.fromARGB(255, 95, 95, 95), fontSize: 20 , ) ,),
+                ],
+              ),
             ) ,
           );
         } else if (state is ProfileLoadingState) {
