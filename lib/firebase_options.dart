@@ -41,48 +41,49 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAGCeFgv1LatH5HwobhhQoLEQ8QFTJbQ94',
-    appId: '1:76330742329:web:5c9c1d5b0e73757ee353e8',
-    messagingSenderId: '76330742329',
-    projectId: 'talkify-4ddbd',
-    authDomain: 'talkify-4ddbd.firebaseapp.com',
-    storageBucket: 'talkify-4ddbd.firebasestorage.app',
-    measurementId: 'G-7TST3HV82N',
+    apiKey: 'AIzaSyCH8r_-5WvOYUFtgUGOOu40Ce94eFDZJI4',
+    appId: '1:898874309624:web:a0905d9462ab14ace6340d',
+    messagingSenderId: '898874309624',
+    projectId: 'talkify-edited',
+    authDomain: 'talkify-edited.firebaseapp.com',
+    storageBucket: 'talkify-edited.firebasestorage.app',
+    measurementId: 'G-PRNYD66NZ1',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCzW-QT1OTYCW3BCW_3cWESjyth1HLmJ_g',
-    appId: '1:76330742329:android:be58a096d56ede36e353e8',
-    messagingSenderId: '76330742329',
-    projectId: 'talkify-4ddbd',
-    storageBucket: 'talkify-4ddbd.firebasestorage.app',
+    apiKey: 'AIzaSyBOFAO7CoEjoq61gHP7DnHUdDUTJZZ8jso',
+    appId: '1:898874309624:android:6e9c77a9aabc645ae6340d',
+    messagingSenderId: '898874309624',
+    projectId: 'talkify-edited',
+    storageBucket: 'talkify-edited.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAM6n8CIhujtz_zXQ4VXd_ItDOyMWBy9fY',
-    appId: '1:76330742329:ios:e28e5af869bc131ce353e8',
-    messagingSenderId: '76330742329',
-    projectId: 'talkify-4ddbd',
-    storageBucket: 'talkify-4ddbd.firebasestorage.app',
+    apiKey: 'AIzaSyBBv-ImP9L6Be-qcfNwxwT0NjKO25RM6gY',
+    appId: '1:898874309624:ios:f2045b3a9998c676e6340d',
+    messagingSenderId: '898874309624',
+    projectId: 'talkify-edited',
+    storageBucket: 'talkify-edited.firebasestorage.app',
     iosBundleId: 'com.example.talkifyapp',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyAM6n8CIhujtz_zXQ4VXd_ItDOyMWBy9fY',
-    appId: '1:76330742329:ios:e28e5af869bc131ce353e8',
-    messagingSenderId: '76330742329',
-    projectId: 'talkify-4ddbd',
-    storageBucket: 'talkify-4ddbd.firebasestorage.app',
+    apiKey: 'AIzaSyBBv-ImP9L6Be-qcfNwxwT0NjKO25RM6gY',
+    appId: '1:898874309624:ios:f2045b3a9998c676e6340d',
+    messagingSenderId: '898874309624',
+    projectId: 'talkify-edited',
+    storageBucket: 'talkify-edited.firebasestorage.app',
     iosBundleId: 'com.example.talkifyapp',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAGCeFgv1LatH5HwobhhQoLEQ8QFTJbQ94',
-    appId: '1:76330742329:web:9d3e9f636100f7e7e353e8',
-    messagingSenderId: '76330742329',
-    projectId: 'talkify-4ddbd',
-    authDomain: 'talkify-4ddbd.firebaseapp.com',
-    storageBucket: 'talkify-4ddbd.firebasestorage.app',
-    measurementId: 'G-WMQPZP4279',
+    apiKey: 'AIzaSyCH8r_-5WvOYUFtgUGOOu40Ce94eFDZJI4',
+    appId: '1:898874309624:web:0f8818cdbe9f46d4e6340d',
+    messagingSenderId: '898874309624',
+    projectId: 'talkify-edited',
+    authDomain: 'talkify-edited.firebaseapp.com',
+    storageBucket: 'talkify-edited.firebasestorage.app',
+    measurementId: 'G-PR15J43D9C',
   );
+
 }

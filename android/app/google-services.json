@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "76330742329",
-    "project_id": "talkify-4ddbd",
-    "storage_bucket": "talkify-4ddbd.firebasestorage.app"
+    "project_number": "898874309624",
+    "project_id": "talkify-edited",
+    "storage_bucket": "talkify-edited.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:76330742329:android:be58a096d56ede36e353e8",
+        "mobilesdk_app_id": "1:898874309624:android:6e9c77a9aabc645ae6340d",
         "android_client_info": {
           "package_name": "com.example.talkifyapp"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCzW-QT1OTYCW3BCW_3cWESjyth1HLmJ_g"
+          "current_key": "AIzaSyBOFAO7CoEjoq61gHP7DnHUdDUTJZZ8jso"
         }
       ],
       "services": {
