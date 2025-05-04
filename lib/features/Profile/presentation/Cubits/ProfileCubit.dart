@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,51 +6,54 @@ import 'package:talkifyapp/features/Profile/domain/Profile%20repo/ProfileRepo.da
 import 'package:talkifyapp/features/Profile/presentation/Profile_states.dart';
 
 class ProfileCubit extends Cubit<ProfileStates> {
-  final StorageRepo Storage;
-  final ProfileRepo profileRepo;
+  final StorageRepo Storage; // Interface to upload images (web or mobile)
+  final ProfileRepo profileRepo; // Interface to handle user profile data
   ProfileCubit({ required this.profileRepo, required this.Storage}) : super(ProfileInitialState());
+  
   // Fetch user profile
   void fetchUserProfile( String id ) async {
-    emit(ProfileLoadingState());
+    emit(ProfileLoadingState()); // Emit loading state
     try {
-      final user = await profileRepo.fetchUserProfile(id);
+      final user = await profileRepo.fetchUserProfile(id); // Fetch user profile by ID
       // Fetch the user profile from the repository
       if (user != null) {
         emit(ProfileLoadedState(user)); // Emit the loaded state with the user profile
         // Emit the loaded state with the user profile
       } else {
-        emit(ProfileErrorState("Failed to find the  user profile"));
+        emit(ProfileErrorState("Failed to find the  user profile")); // Emit error if user not found
       }
     } catch (e) {
-      emit(ProfileErrorState(e.toString()));
+      emit(ProfileErrorState(e.toString())); // Emit error if exception occurs
     }
   }
+
   // Using the repo to fetch the user profile
   // and update the bio or Profile picture
   void updateUserProfile({ required String id,  String? newBio, Uint8List? ImageWebByter , String? imageMobilePath}) async {
-    emit(ProfileLoadingState());
+    emit(ProfileLoadingState()); // Emit loading state while updating
     try {
-      final currentUser = await profileRepo.fetchUserProfile(id);
-      String? imageDowloadUrl;
+      final currentUser = await profileRepo.fetchUserProfile(id); // Get the current user profile
+      String? imageDowloadUrl; // Will hold the download URL of the uploaded image
+
       if (ImageWebByter != null) {
-        imageDowloadUrl = await Storage.uploadProfileImageWeb(ImageWebByter, id);
+        imageDowloadUrl = await Storage.uploadProfileImageWeb(ImageWebByter, id); // Upload image from web
       } else if (imageMobilePath != null) {
-        imageDowloadUrl = await Storage.uploadProfileImageMobile(imageMobilePath, id);
+        imageDowloadUrl = await Storage.uploadProfileImageMobile(imageMobilePath, id); // Upload image from mobile
       } else if  ( imageDowloadUrl == null) {
-        emit(ProfileErrorState("Failed to upload the image"));
+        emit(ProfileErrorState("Failed to upload the image")); // If image upload failed
         return;
-        
       }
 
       if (currentUser != null) {
         final updatedUser = currentUser.copywith(
-          newBio: newBio,
+          newBio: newBio, // Update bio
+          newprofilePictureUrl: imageDowloadUrl ?? currentUser.profilePictureUrl, // Update image URL
         );
-        await profileRepo.updateUserProfile(updatedUser);
-        emit(ProfileLoadedState(updatedUser));
+        await profileRepo.updateUserProfile(updatedUser); // Save updated profile
+        emit(ProfileLoadedState(updatedUser)); // Emit updated state
       } else {
-        emit(ProfileErrorState("Failed to update the user profile"));
+        emit(ProfileErrorState("Failed to update the user profile")); // Emit error if user not found
       }
     }catch (e) {
-      emit(ProfileErrorState(e.toString()));
+      emit(ProfileErrorState(e.toString())); // Emit error if exception occurs
   }}}

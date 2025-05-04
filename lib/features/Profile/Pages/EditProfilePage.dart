@@ -1,4 +1,8 @@
 
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
@@ -17,15 +21,48 @@ class EditProfilePage extends StatefulWidget {
 }
 
 class _EditProfilePageState extends State<EditProfilePage> {
+ // mobile image pick 
+ PlatformFile? imagePickedFile; // For mobile image pick
+Uint8List ? webImage; // For web image pick
+
+Future<void> pickImage() async {
+    // For mobile image pick
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: kIsWeb,
+    );
+    if (result != null && result.files.isNotEmpty) {
+      setState(() {
+        imagePickedFile = result.files.first;
+        if (kIsWeb) {
+          webImage = result.files.first.bytes; // Get the bytes for web
+        }
+      });
+    }
+  }
+  // web image pick
+
+
   final BioTextcontroller = TextEditingController();
   void UpdateProfilePage () async{
      final profilecubit = context.read<ProfileCubit>();
+     final String id = widget.user.id;
+     final imageMoilePath = kIsWeb ? null : imagePickedFile?.path;
+     // Call the pickImage method to select an image
+    final ImageWebBytes = kIsWeb ? imagePickedFile?.bytes : null;
+    final String newBio = BioTextcontroller.text.isNotEmpty ? BioTextcontroller.text : widget.user.bio;
+
+
+
+
+
     // Call the updateProfile method from the ProfileCubit
-   if (BioTextcontroller.text.isNotEmpty) {
+   if ( imagePickedFile != null || newBio != null ) {
   profilecubit.updateUserProfile(
-   widget.user.id , BioTextcontroller.text , 
-    widget.user.profilePictureUrl
-     
+    id: widget.user.id,
+    newBio: BioTextcontroller.text,
+    ImageWebByter: ImageWebBytes,
+    imageMobilePath: imageMoilePath,
       
    );
 }
