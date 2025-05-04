@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/Storage/Data/Filebase_Storage_repo.dart';
+import 'package:talkifyapp/Storage/Domain/Storage_repo.dart';
 import 'package:talkifyapp/features/Profile/data/Firebase_profile_repo.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/AuthStates.dart';
@@ -24,8 +26,9 @@ import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 
 class MyApp extends StatelessWidget {
    MyApp({super.key});
-  final profileRepo =  FirebaseProfileRepo();
-  final authRepo = FirebaseAuthRepo();
+  final FirebaseprofileRepo =  FirebaseProfileRepo();
+  final FirebasestorageRepo = FirebaseStorageRepo();
+  final FirebaseauthRepo = FirebaseAuthRepo();
   // Initialize the ProfileRepo
   // Initialize the AuthRepo
   @override
@@ -33,10 +36,12 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthCubit>(
-          create: (context) => AuthCubit(authRepo)..checkAuth(),
+          create: (context) => AuthCubit(FirebaseauthRepo)..checkAuth(),
         ),
         BlocProvider<ProfileCubit>(
-          create: (context) => ProfileCubit(profileRepo),
+          create: (context) => ProfileCubit(
+            profileRepo: FirebaseprofileRepo,
+            Storage: FirebasestorageRepo ) // Pass the StorageRepo to ProfileCubit),
           
            // Pass the authRepo to ProfileCubit
         ),
