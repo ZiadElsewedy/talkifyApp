@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Profile/Pages/EditProfilePage.dart';
@@ -57,21 +58,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                      Text(user.email , style: const TextStyle(color: Color.fromARGB(255, 95, 95, 95), fontSize: 20 , ) ,),
                       const SizedBox(height: 20,),
-                     Container( 
-                      height: 120,
-                      width: 120,
-                      decoration: BoxDecoration(
-                      color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        image: DecorationImage(
-                          image: NetworkImage(user.profilePictureUrl),
-                          fit: BoxFit.cover,
-                        ),
-
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.person , size: 70 , color: Color.fromARGB(255, 95, 95, 95), ),)
-                      ), 
+                     CachedNetworkImage(
+                            imageUrl: user.profilePictureUrl,
+                            placeholder: (context, url) => const Center(child: ProfessionalCircularProgress()),
+                            errorWidget: (context, url, error) => const Icon(Icons.person, size: 72),
+                            imageBuilder: (context, imageProvider) => CircleAvatar(
+                              radius: 100,
+                              backgroundImage: imageProvider,
+                            ),
+                          ) 
+                    , 
                       const SizedBox(height: 20,),
                       Text('Bio' , style: TextStyle(color: Color.fromARGB(255, 95, 95, 95), fontSize: 20 , ) ,),
                       Mybio(bioText: user.bio),          
