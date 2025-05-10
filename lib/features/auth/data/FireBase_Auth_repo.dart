@@ -2,8 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:talkifyapp/features/auth/domain/repo/authrepo.dart';
-
+// step 2 : implement the auth repo interface
+// all operations in the interface will be implemented here 
 class FirebaseAuthRepo implements AuthRepo {
+  //Get me the one and only object (singleton instance) of this class
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore  firestore = FirebaseFirestore.instance;
 

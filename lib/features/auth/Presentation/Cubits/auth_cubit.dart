@@ -2,10 +2,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/AuthStates.dart';
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:talkifyapp/features/auth/domain/repo/authrepo.dart';
-
+// step 3 : create the auth cubit
+// the cubit will manage the authentication-related states and actions
 /// AuthCubit: Manages authentication-related states and actions
 class AuthCubit extends Cubit<AuthStates> {
   // Auth repository to perform backend operations (login, register, etc.)
+  // ana baklm el auth repo bl cubit 
   final AuthRepo authRepo;
 
   // The currently authenticated user, if any

@@ -1,3 +1,5 @@
+// step 4 : create the auth states
+// the states will define the different states of the authentication process
 // auth states
 abstract class AuthStates {}
 // initial state

@@ -3,7 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyTextField.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/Mybutton.dart';
-
+// step 5 : create the login page
+// the login page will be the page that the user will use to login to the app
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.togglePages});
   final void Function()? togglePages;

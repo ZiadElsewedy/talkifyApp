@@ -4,12 +4,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Profile/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyDrawerTile.dart';
+import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
+import 'package:talkifyapp/features/Profile/presentation/Profile_states.dart';
 
 class MyDrawer extends StatelessWidget {
   const MyDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Get the current user ID
+    final currentUser = context.read<AuthCubit>().GetCurrentUser();
+    if (currentUser != null) {
+      // Fetch the user profile when drawer is built
+      context.read<ProfileCubit>().fetchUserProfile(currentUser.id);
+    }
+
     return Drawer(
       backgroundColor: Theme.of(context).colorScheme.surface,
       child: SafeArea(
@@ -20,7 +29,64 @@ class MyDrawer extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 40),
-                Icon(Icons.person, size: 80, color: const Color.fromARGB(255, 92, 89, 89)),
+                BlocBuilder<ProfileCubit, ProfileStates>(
+                  builder: (context, state) {
+                    if (state is ProfileLoadedState) {
+                      return Container(
+                        width: 150,
+                        height: 150,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.grey[200],
+                        ),
+                        child: ClipOval(
+                          child: state.profileuser.profilePictureUrl.isNotEmpty
+                              ? Image.network(
+                                  state.profileuser.profilePictureUrl,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded /
+                                                loadingProgress.expectedTotalBytes!
+                                            : null,
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Icon(Icons.person, size: 50, color: Colors.grey[400]);
+                                  },
+                                )
+                              : Icon(Icons.person, size: 50, color: Colors.grey[400]),
+                        ),
+                      );
+                    } else if (state is ProfileLoadingState) {
+                      return Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.grey[200],
+                        ),
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    } else {
+                      return Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.grey[200],
+                        ),
+                        child: Icon(Icons.person, size: 50, color: Colors.grey[400]),
+                      );
+                    }
+                  },
+                ),
                 const SizedBox(height: 30),
                 Divider(
                   color:Color.fromARGB(255, 92, 89, 89),
