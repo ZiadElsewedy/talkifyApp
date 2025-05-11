@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/components/ConfirmLogOut.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/Mydrawer.dart';
 
 class HomePage extends StatelessWidget {
@@ -11,9 +10,7 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(
         title: Text('Home Page'),
         centerTitle: true,
-        actions: [
-          ConfirmLogout(),
-        ],
+        
         
       ),
       drawer: MyDrawer()
