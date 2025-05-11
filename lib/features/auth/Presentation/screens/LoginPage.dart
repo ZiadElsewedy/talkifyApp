@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/ForgotPasswordPage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyTextField.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/Mybutton.dart';
 // step 5 : create the login page
@@ -101,6 +102,24 @@ class _LoginPageState extends State<LoginPage> {
                   controller: PwController,
                   hintText: "Password",
                   obsecureText: true,
+                ),
+                SizedBox(height: 10,),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    GestureDetector(
+                      onTap: (){
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => ForgotPasswordPage()));
+                      },
+                      child: Text(
+                        'Forgot Password ?',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 MyButton(
