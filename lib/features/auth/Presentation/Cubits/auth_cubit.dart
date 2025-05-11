@@ -55,10 +55,12 @@ class AuthCubit extends Cubit<AuthStates> {
     required String EMAIL,
     required String PASSWORD,
     required String CONFIRMPASSWORD,
+    required String PHONENUMBER,
   }) async {
     try {
       emit(AuthLoadingState()); // Show loading during registration
       user = await authRepo.registerWithEmailPassword(
+        phoneNumber: PHONENUMBER,
         email: EMAIL,
         password: PASSWORD,
         name: NAME,

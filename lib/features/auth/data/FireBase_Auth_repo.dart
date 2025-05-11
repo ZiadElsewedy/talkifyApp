@@ -39,6 +39,7 @@ class FirebaseAuthRepo implements AuthRepo {
 
   @override
   Future<AppUser> registerWithEmailPassword({
+    required String phoneNumber,
     required String email, 
     required String password,
     required String name,

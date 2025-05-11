@@ -20,6 +20,7 @@ class _RegisterpageState extends State<Registerpage> {
   final EmailController = TextEditingController();
   final PwController = TextEditingController();
   final ConfirmPwController = TextEditingController();
+  final PHONENUMBERController = TextEditingController();
 
 
 void register(){
@@ -27,6 +28,7 @@ void register(){
     final String Email = EmailController.text;
     final String Pw = PwController.text;
     final String ConfirmPw = ConfirmPwController.text;
+    final String PHONENUMBER = PHONENUMBERController.text;
 
     // auth cubit 
     // get
@@ -47,6 +49,7 @@ void register(){
       // call the login function from the auth cubit
       // this function will handle the login process
       authcubit.register(
+        PHONENUMBER: PHONENUMBER,
         NAME: Name,
         EMAIL: Email , 
         PASSWORD: Pw,
@@ -113,6 +116,12 @@ void register(){
                 MyTextField(
                   controller: EmailController,
                   hintText: "Email",
+                  obsecureText: false,
+                ),
+                const SizedBox(height: 20),
+                MyTextField(
+                  controller: PHONENUMBERController,
+                  hintText: "Phone Number",
                   obsecureText: false,
                 ),
                 const SizedBox(height: 20),
