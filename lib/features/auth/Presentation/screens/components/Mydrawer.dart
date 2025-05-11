@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Profile/Pages/ProfilePage.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/components/ConfirmLogOut.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyDrawerTile.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Profile_states.dart';
-
+ 
 class MyDrawer extends StatelessWidget {
   const MyDrawer({super.key});
 
@@ -46,13 +48,8 @@ class MyDrawer extends StatelessWidget {
                                   fit: BoxFit.cover,
                                   loadingBuilder: (context, child, loadingProgress) {
                                     if (loadingProgress == null) return child;
-                                    return Center(
-                                      child: CircularProgressIndicator(
-                                        value: loadingProgress.expectedTotalBytes != null
-                                            ? loadingProgress.cumulativeBytesLoaded /
-                                                loadingProgress.expectedTotalBytes!
-                                            : null,
-                                      ),
+                                    return const Center(
+                                      child: ProfessionalCircularProgress(),
                                     );
                                   },
                                   errorBuilder: (context, error, stackTrace) {
@@ -71,7 +68,7 @@ class MyDrawer extends StatelessWidget {
                           color: Colors.grey[200],
                         ),
                         child: const Center(
-                          child: CircularProgressIndicator(),
+                          child: ProfessionalCircularProgress(),
                         ),
                       );
                     } else {
@@ -135,16 +132,22 @@ class MyDrawer extends StatelessWidget {
           MyDrawerTile(
             icon: Icons.logout,
             title: 'L O G O U T',
-            onTap: () {
-              context.read<AuthCubit>().logout();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Logged out successfully'),
-                  backgroundColor: Colors.green,
-                ));
-              // Handle logout tap
+            onTap: () async {
+              final shouldLogout = await showConfirmLogoutDialog(context);
+              if (shouldLogout == true) {
+                context.read<AuthCubit>().logout();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Logged out successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
             },
           ),
+          
+
+          
            ],
             ),
           ),

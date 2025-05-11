@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/components/ConfirmLogOut.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/Mydrawer.dart';
 
 class HomePage extends StatelessWidget {
@@ -13,20 +12,7 @@ class HomePage extends StatelessWidget {
         title: Text('Home Page'),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () {
-              context.read<AuthCubit>().logout();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Logged out successfully'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-              // Optionally, you can navigate to the login page after logout
-              
-            },
-          ),
+          ConfirmLogout(),
         ],
         
       ),
@@ -34,3 +20,4 @@ class HomePage extends StatelessWidget {
     );
   }
 }
+
