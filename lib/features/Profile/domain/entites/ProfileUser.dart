@@ -16,10 +16,11 @@ class ProfileUser extends AppUser {
 ProfileUser copywith ({
   String? newprofilePictureUrl,
   String? newBio,
+  String? newName,
 }) {
   return ProfileUser(
     id: id,
-    name: name,
+    name: newName ?? name,
     email: email,
     phoneNumber: phoneNumber,
     profilePictureUrl: newprofilePictureUrl ?? profilePictureUrl,

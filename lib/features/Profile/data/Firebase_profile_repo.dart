@@ -41,9 +41,10 @@ class FirebaseProfileRepo implements ProfileRepo {
   @override
   Future<void> updateUserProfile (ProfileUser updateProfile) async {
     try {
-  await firestore.collection('users').doc(updateProfile.id).update({
+      await firestore.collection('users').doc(updateProfile.id).update({
         'profilePictureUrl': updateProfile.profilePictureUrl,
         'bio': updateProfile.bio,
+        'name': updateProfile.name,
       })
       .then((_) {
         print('User profile updated successfully');

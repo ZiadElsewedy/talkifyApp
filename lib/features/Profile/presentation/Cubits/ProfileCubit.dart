@@ -29,25 +29,23 @@ class ProfileCubit extends Cubit<ProfileStates> {
 
   // Using the repo to fetch the user profile
   // and update the bio or Profile picture
-  void updateUserProfile({ required String id,  String? newBio, Uint8List? ImageWebByter , String? imageMobilePath}) async {
+  void updateUserProfile({ required String id,  String? newBio, Uint8List? ImageWebByter , String? imageMobilePath , String? newName }) async {
     emit(ProfileLoadingState()); // Emit loading state while updating
     try {
       final currentUser = await profileRepo.fetchUserProfile(id); // Get the current user profile
       String? imageDowloadUrl; // Will hold the download URL of the uploaded image
 
       if (ImageWebByter != null) {
-        imageDowloadUrl = await Storage.uploadProfileImageWeb(ImageWebByter, id); // Upload image from web
+        imageDowloadUrl = await Storage.uploadProfileImageWeb(ImageWebByter, id);
       } else if (imageMobilePath != null) {
-        imageDowloadUrl = await Storage.uploadProfileImageMobile(imageMobilePath, id); // Upload image from mobile
-      } else if  ( imageDowloadUrl == null) {
-        emit(ProfileErrorState("Failed to upload the image")); // If image upload failed
-        return;
+        imageDowloadUrl = await Storage.uploadProfileImageMobile(imageMobilePath, id);
       }
 
       if (currentUser != null) {
         final updatedUser = currentUser.copywith(
-          newBio: newBio, // Update bio
-          newprofilePictureUrl: imageDowloadUrl ?? currentUser.profilePictureUrl, // Update image URL
+          newName: newName,
+          newBio: newBio,
+          newprofilePictureUrl: imageDowloadUrl ?? currentUser.profilePictureUrl,
         );
         await profileRepo.updateUserProfile(updatedUser); // Save updated profile
         emit(ProfileLoadedState(updatedUser)); // Emit updated state

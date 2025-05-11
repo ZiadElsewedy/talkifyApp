@@ -12,6 +12,6 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
     // This is where you can set up Firebase options for different platforms
   );
-  runApp( MyApp());
+  runApp(MyApp());
 }
 

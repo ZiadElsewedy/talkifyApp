@@ -43,6 +43,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   final BioTextcontroller = TextEditingController();
+  final nameController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    nameController.text = widget.user.name; // Pre-fill with current name
+    BioTextcontroller.text = widget.user.bio; // Initialize the text controller with the current bio
+  }
 
   void UpdateProfilePage() async {
     final profilecubit = context.read<ProfileCubit>();
@@ -51,11 +59,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
     // Call the pickImage method to select an image
     final ImageWebBytes = kIsWeb ? imagePickedFile?.bytes : null;
     final String newBio = BioTextcontroller.text.isNotEmpty ? BioTextcontroller.text : widget.user.bio;
+    final String newName = nameController.text.isNotEmpty ? nameController.text : widget.user.name;
 
     // Call the updateProfile method from the ProfileCubit
     if (imagePickedFile != null || newBio != null) {
       profilecubit.updateUserProfile(
         id: id,
+        newName: newName,
         newBio: newBio,
         ImageWebByter: ImageWebBytes,
         imageMobilePath: imageMoilePath,
@@ -85,61 +95,70 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(children: [
-          Center(
-            child: Container(
-              height: 200,
-              width: 200,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-              ),
-              child: ClipOval(
-                child: kIsWeb
-                    ? (webImage != null
-                        ? Image.memory(webImage!, fit: BoxFit.cover)
-                        : CachedNetworkImage(
-                            imageUrl: widget.user.profilePictureUrl,
-                            placeholder: (context, url) => const Center(child: ProfessionalCircularProgress()),
-                            errorWidget: (context, url, error) => const Icon(Icons.person, size: 72),
-                            imageBuilder: (context, imageProvider) => CircleAvatar(
-                              radius: 100,
-                              backgroundImage: imageProvider,
-                            ),
-                          ))
-                    : (imagePickedFile != null
-                        ? Image.file(File(imagePickedFile!.path!), fit: BoxFit.cover)
-                        : CachedNetworkImage(
-                            imageUrl: widget.user.profilePictureUrl,
-                            placeholder: (context, url) => const Center(child: ProfessionalCircularProgress()),
-                            errorWidget: (context, url, error) => const Icon(Icons.person, size: 72),
-                            imageBuilder: (context, imageProvider) => CircleAvatar(
-                              radius: 100,
-                              backgroundImage: imageProvider,
-                            ),
-                          )),
+      body: SingleChildScrollView(
+        
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(children: [
+            Center(
+              child: Container(
+                height: 200,
+                width: 200,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                ),
+                child: ClipOval(
+                  child: kIsWeb
+                      ? (webImage != null
+                          ? Image.memory(webImage!, fit: BoxFit.cover)
+                          : CachedNetworkImage(
+                              imageUrl: widget.user.profilePictureUrl,
+                              placeholder: (context, url) => const Center(child: ProfessionalCircularProgress()),
+                              errorWidget: (context, url, error) => const Icon(Icons.person, size: 72),
+                              imageBuilder: (context, imageProvider) => CircleAvatar(
+                                radius: 100,
+                                backgroundImage: imageProvider,
+                              ),
+                            ))
+                      : (imagePickedFile != null
+                          ? Image.file(File(imagePickedFile!.path!), fit: BoxFit.cover)
+                          : CachedNetworkImage(
+                              imageUrl: widget.user.profilePictureUrl,
+                              placeholder: (context, url) => const Center(child: ProfessionalCircularProgress()),
+                              errorWidget: (context, url, error) => const Icon(Icons.person, size: 72),
+                              imageBuilder: (context, imageProvider) => CircleAvatar(
+                                radius: 100,
+                                backgroundImage: imageProvider,
+                              ),
+                            )),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-          const Text('Bio', style: TextStyle(fontSize: 20)),
-          // pick image button 
-          Center(
-            child: ElevatedButton(
-              onPressed: pickImage,
-              child: const Text("Pick Image"),
+            const SizedBox(height: 20),
+            const Text('Bio', style: TextStyle(fontSize: 20)),
+            // pick image button 
+            Center(
+              child: ElevatedButton(
+                onPressed: pickImage,
+                child: const Text("Pick Image"),
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          MyTextField(
-            controller: BioTextcontroller,
-            hintText: widget.user.bio.isEmpty ? "Empty bio .." : widget.user.bio,
-            obsecureText: false,
-          ),
-          const SizedBox(height: 20),
-          // last update from ziad 
-        ]),
+            const SizedBox(height: 20),
+            MyTextField(
+              controller: BioTextcontroller,
+              hintText: widget.user.bio.isEmpty ? "Empty bio .." : widget.user.bio,
+              obsecureText: false,
+            ),
+            const SizedBox(height: 20),
+            MyTextField(
+              controller: nameController,
+              hintText: widget.user.name.isEmpty ? "Empty name .." : widget.user.name,
+              obsecureText: false,
+            ),
+            const SizedBox(height: 20),
+            // last update from ziad 
+          ]),
+        ),
       ),
     );
   }
