@@ -7,6 +7,7 @@ import 'package:talkifyapp/features/auth/Presentation/Cubits/AuthStates.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/AuthPage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/HomePage.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Posts/VerificationEmail.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 // things need to do ! 
@@ -54,11 +55,20 @@ class MyApp extends StatelessWidget {
         // listen to the auth cubit state changes
         // this will be used to show the snackbar when there is an error
         listener: (context, state) {
+
           if (state is AuthErrorState) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text("Invalid Password or Email ! "),
                 backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          } else if (state is UnverifiedState) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.orange,
                 duration: const Duration(seconds: 3),
               ),
             );
@@ -75,9 +85,14 @@ class MyApp extends StatelessWidget {
         builder: (context, state) {
           if (state is Authanticated) {
             return const HomePage();
+          } else if (state is UnverifiedState || state is EmailVerificationState) {
+            return const VerificationEmail();
+            
           } else if (state is UnAuthanticated) {
-            return AuthPage();
-          } else if (state is AuthLoadingState) {
+            return const AuthPage();
+          }
+          
+           else if (state is AuthLoadingState) {
             return const Scaffold(
               body: Center(
                 child: ProfessionalCircularProgress(
