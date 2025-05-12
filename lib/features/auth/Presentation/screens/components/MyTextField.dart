@@ -5,6 +5,7 @@ class MyTextField extends StatelessWidget {
   final String hintText;
   final bool obsecureText;
   final bool enabled;
+  final String? helperText;
   
 
   const MyTextField({
@@ -13,7 +14,7 @@ class MyTextField extends StatelessWidget {
     required this.hintText,
     required this.obsecureText,
     this.enabled = true,
-
+    this.helperText,
   });
 
   @override
@@ -29,6 +30,11 @@ class MyTextField extends StatelessWidget {
         filled: true,
         fillColor: Color(0xFFF7F7F7), // very light grey background
         hintText: hintText,
+        helperText: helperText,
+        helperStyle: TextStyle(
+          color: Colors.grey.shade600,
+          fontSize: 12,
+        ),
         hintStyle: TextStyle(
           color: Colors.grey.shade500, // light grey hint
         ),

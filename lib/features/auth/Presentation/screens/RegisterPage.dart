@@ -61,10 +61,54 @@ class _RegisterpageState extends State<Registerpage> {
     }
 
     // Validate password length
-    if (Pw.length < 6) {
+    if (Pw.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Password must be at least 6 characters long'),
+          content: Text('Password must be at least 8 characters long'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Check for uppercase letter
+    if (!Pw.contains(RegExp(r'[A-Z]'))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password must contain at least one uppercase letter'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Check for lowercase letter
+    if (!Pw.contains(RegExp(r'[a-z]'))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password must contain at least one lowercase letter'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Check for number
+    if (!Pw.contains(RegExp(r'[0-9]'))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password must contain at least one number'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Check for special character
+    if (!Pw.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password must contain at least one special character (!@#\$%^&*(),.?":{}|<>)'),
           backgroundColor: Colors.red,
         ),
       );
@@ -161,6 +205,7 @@ class _RegisterpageState extends State<Registerpage> {
                       controller: PwController,
                       hintText: "Password",
                       obsecureText: true,
+                      helperText: "Must be at least 8 characters with uppercase, lowercase, number & special character",
                     ),
                     const SizedBox(height: 20),
                     MyTextField(
