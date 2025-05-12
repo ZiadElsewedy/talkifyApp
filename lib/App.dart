@@ -5,9 +5,9 @@ import 'package:talkifyapp/features/Profile/data/Firebase_profile_repo.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/AuthStates.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/AuthPage.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/AuthPage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/HomePage.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/VerificationEmail.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/VerificationEmail.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 // things need to do ! 
