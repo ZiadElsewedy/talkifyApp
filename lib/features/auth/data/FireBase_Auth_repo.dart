@@ -45,6 +45,7 @@ class FirebaseAuthRepo implements AuthRepo {
     required String name,
   }) async {
    try {
+    await firebaseAuth.currentUser?.sendEmailVerification();
       // attempt to sign up the user with email and password
       UserCredential userCredential = await firebaseAuth.createUserWithEmailAndPassword(
         email: email,
