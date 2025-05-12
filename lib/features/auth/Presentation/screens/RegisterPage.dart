@@ -4,6 +4,8 @@ import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/AuthStates.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyTextField.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/Mybutton.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/components/PassReq.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/components/RegisterLogic.dart';
 
 class Registerpage extends StatefulWidget {
   const Registerpage({super.key, required this.togglePages});
@@ -21,106 +23,13 @@ class _RegisterpageState extends State<Registerpage> {
   final PHONENUMBERController = TextEditingController();
 
   void register() {
-    final String Name = NameController.text;
-    final String Email = EmailController.text;
-    final String Pw = PwController.text;
-    final String ConfirmPw = ConfirmPwController.text;
-    final String PHONENUMBER = PHONENUMBERController.text;
-
-    // Validate all fields
-    if (Name.isEmpty || Email.isEmpty || Pw.isEmpty || ConfirmPw.isEmpty || PHONENUMBER.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all fields'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // Validate password match
-    if (Pw != ConfirmPw) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password and Confirm Password do not match'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // Validate email format
-    if (!Email.contains('@') || !Email.contains('.')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a valid email address'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // Validate password length
-    if (Pw.length < 8) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password must be at least 8 characters long'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // Check for uppercase letter
-    if (!Pw.contains(RegExp(r'[A-Z]'))) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password must contain at least one uppercase letter'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // Check for lowercase letter
-    if (!Pw.contains(RegExp(r'[a-z]'))) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password must contain at least one lowercase letter'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // Check for number
-    if (!Pw.contains(RegExp(r'[0-9]'))) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password must contain at least one number'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // Check for special character
-    if (!Pw.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password must contain at least one special character (!@#\$%^&*(),.?":{}|<>)'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    context.read<AuthCubit>().register(
-      PHONENUMBER: PHONENUMBER,
-      NAME: Name,
-      EMAIL: Email,
-      PASSWORD: Pw,
-      CONFIRMPASSWORD: ConfirmPw,
+    RegisterLogic.register(
+      context: context,
+      name: NameController.text,
+      email: EmailController.text,
+      password: PwController.text,
+      confirmPassword: ConfirmPwController.text,
+      phoneNumber: PHONENUMBERController.text,
     );
   }
 
@@ -205,7 +114,14 @@ class _RegisterpageState extends State<Registerpage> {
                       controller: PwController,
                       hintText: "Password",
                       obsecureText: true,
-                      helperText: "Must be at least 8 characters with uppercase, lowercase, number & special character",
+                      helperText: "Tap the info icon to see password requirements",
+                      suffixIcon: GestureDetector(
+                        onTap: () => PasswordRequirementsDialog.show(context),
+                        child: Icon(
+                          Icons.info_outline,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 20),
                     MyTextField(

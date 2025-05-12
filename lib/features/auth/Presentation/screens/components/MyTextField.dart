@@ -6,6 +6,7 @@ class MyTextField extends StatelessWidget {
   final bool obsecureText;
   final bool enabled;
   final String? helperText;
+  final Widget? suffixIcon;
   
 
   const MyTextField({
@@ -15,6 +16,7 @@ class MyTextField extends StatelessWidget {
     required this.obsecureText,
     this.enabled = true,
     this.helperText,
+    this.suffixIcon,
   });
 
   @override
@@ -38,6 +40,7 @@ class MyTextField extends StatelessWidget {
         hintStyle: TextStyle(
           color: Colors.grey.shade500, // light grey hint
         ),
+        suffixIcon: suffixIcon,
         contentPadding: const EdgeInsets.symmetric(
           vertical: 20.0,
           horizontal: 16.0,
