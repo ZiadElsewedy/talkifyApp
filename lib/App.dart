@@ -55,11 +55,10 @@ class MyApp extends StatelessWidget {
         // listen to the auth cubit state changes
         // this will be used to show the snackbar when there is an error
         listener: (context, state) {
-
           if (state is AuthErrorState) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text("Invalid Password or Email ! "),
+                content: Text(state.error),
                 backgroundColor: Colors.red,
                 duration: const Duration(seconds: 3),
               ),
@@ -69,6 +68,14 @@ class MyApp extends StatelessWidget {
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          } else if (state is EmailVerificationState) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.blue,
                 duration: const Duration(seconds: 3),
               ),
             );
@@ -87,38 +94,18 @@ class MyApp extends StatelessWidget {
             return const HomePage();
           } else if (state is UnverifiedState || state is EmailVerificationState) {
             return const VerificationEmail();
-            
-          } else if (state is UnAuthanticated) {
+          } else if (state is UnAuthanticated || state is AuthErrorState) {
             return const AuthPage();
-          }
-          
-           else if (state is AuthLoadingState) {
+          } else if (state is AuthLoadingState) {
             return const Scaffold(
               body: Center(
-                child: ProfessionalCircularProgress(
-                  
-                ),
+                child: ProfessionalCircularProgress(),
               ),
             );
-          } else if (state is AuthErrorState) {
-            return AuthPage(); // Return to auth page on error
           }
-          print('state is $state');
-          return const Scaffold(
-            body: Center(
-              child: ProfessionalCircularProgress(
-                // This is a custom loading widget
-                // You can replace it with your own loading widget
-              ),
-            ),
-          );
-          
+          return const AuthPage();
         }
-        
       )
-      
-    ),
-     
-     );
+    ));
   }
 }

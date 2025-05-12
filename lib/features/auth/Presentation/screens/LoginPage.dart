@@ -53,7 +53,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF1EFEC), // light background
+      backgroundColor: Color(0xFFF1EFEC),
       body: BlocConsumer<AuthCubit, AuthStates>(
         listener: (context, state) {
           if (state is AuthErrorState) {
@@ -61,6 +61,7 @@ class _LoginPageState extends State<LoginPage> {
               SnackBar(
                 content: Text(state.error),
                 backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
               ),
             );
           } else if (state is UnverifiedState) {
@@ -68,11 +69,14 @@ class _LoginPageState extends State<LoginPage> {
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 3),
               ),
             );
           }
         },
         builder: (context, state) {
+          final isLoading = state is AuthLoadingState;
+          
           return SingleChildScrollView(
             child: Center(
               child: Padding(
@@ -80,7 +84,7 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SizedBox(height: 100,),
+                    SizedBox(height: 100),
                     Padding(
                       padding: const EdgeInsets.only(top: 50),
                       child: Container(
@@ -95,38 +99,42 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    
                     Text(
                       'Welcome back ! to our community :)',
                       style: TextStyle(
                         fontSize: 18,
-                        color: Colors.grey, // light grey text
+                        color: Colors.grey,
                       ),
-                    ),const SizedBox(height: 20),
+                    ),
+                    const SizedBox(height: 20),
                     MyTextField(
                       controller: EmailController,
                       hintText: "Email",
                       obsecureText: false,
+                      enabled: !isLoading,
                     ),
-                    
                     const SizedBox(height: 20),
                     MyTextField(
                       controller: PwController,
                       hintText: "Password",
                       obsecureText: true,
+                      enabled: !isLoading,
                     ),
-                    SizedBox(height: 10,),
+                    SizedBox(height: 10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         GestureDetector(
-                          onTap: (){
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => ForgotPasswordPage()));
+                          onTap: isLoading ? null : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => ForgotPasswordPage()),
+                            );
                           },
                           child: Text(
                             'Forgot Password ?',
                             style: TextStyle(
-                              color: Colors.blue,
+                              color: isLoading ? Colors.grey : Colors.blue,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -135,8 +143,8 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 20),
                     MyButton(
-                      onTap: state is AuthLoadingState ? null : login,
-                      text: state is AuthLoadingState ? "Logging in..." : "Login",
+                      onTap: isLoading ? null : login,
+                      text: isLoading ? "Logging in..." : "Login",
                     ),
                     const SizedBox(height: 20),
                     Row(
@@ -146,16 +154,16 @@ class _LoginPageState extends State<LoginPage> {
                           'Not a member ? ',
                           style: TextStyle(
                             color: Colors.grey,
-                            fontWeight: FontWeight.bold // dark blue
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                         GestureDetector(
-                          onTap: widget.togglePages,
+                          onTap: isLoading ? null : widget.togglePages,
                           child: Text(
                             'Register now',
                             style: TextStyle(
                               fontSize: 18,
-                              color: Color.fromARGB(255, 0, 0, 0), // dark blue
+                              color: isLoading ? Colors.grey : Color.fromARGB(255, 0, 0, 0),
                               fontWeight: FontWeight.bold,
                             ),
                           ),

@@ -48,13 +48,19 @@ class AuthCubit extends Cubit<AuthStates> {
         password: PASSWORD,
       );
       
+      if (user == null) {
+        emit(UnAuthanticated());
+        return;
+      }
+      
       if (authRepo.currentUser?.emailVerified == true) {
         emit(Authanticated('User is authenticated'));
       } else {
         emit(UnverifiedState('Please verify your email to continue'));
       }
     } catch (e) {
-      emit(AuthErrorState('Login failed: $e'));
+      emit(UnAuthanticated());
+      emit(AuthErrorState('Invalid email or password'));
     }
   }
 
@@ -83,8 +89,9 @@ class AuthCubit extends Cubit<AuthStates> {
       }
 
       // Send verification email
-      await authRepo.sendVerificationEmail();
-      emit(EmailVerificationState('Please check your email to verify your account. Click the verification link in the email.'));
+      
+      // Emit UnverifiedState instead of EmailVerificationState
+      emit(UnverifiedState('Please verify your email to continue. Check your inbox for the verification link.'));
 
     } catch (e) {
       emit(AuthErrorState('Registration failed: $e'));
