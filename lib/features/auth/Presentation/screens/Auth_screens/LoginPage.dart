@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/AuthStates.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/ForgotPasswordPage.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/ForgotPasswordPage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyTextField.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/Mybutton.dart';
 // step 5 : create the login page

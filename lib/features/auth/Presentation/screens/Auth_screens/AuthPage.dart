@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/LoginPage.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/RegisterPage.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/LoginPage.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/RegisterPage.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
