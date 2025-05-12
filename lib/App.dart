@@ -7,6 +7,7 @@ import 'package:talkifyapp/features/auth/Presentation/Cubits/AuthStates.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/AuthPage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/HomePage.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Posts/VerificationEmail.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 // things need to do ! 
@@ -57,8 +58,24 @@ class MyApp extends StatelessWidget {
           if (state is AuthErrorState) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text("Invalid Password or Email ! "),
+                content: Text(state.error),
                 backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          } else if (state is UnverifiedState) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          } else if (state is EmailVerificationState) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.blue,
                 duration: const Duration(seconds: 3),
               ),
             );
@@ -75,35 +92,20 @@ class MyApp extends StatelessWidget {
         builder: (context, state) {
           if (state is Authanticated) {
             return const HomePage();
-          } else if (state is UnAuthanticated) {
-            return AuthPage();
+          } else if (state is UnverifiedState || state is EmailVerificationState) {
+            return const VerificationEmail();
+          } else if (state is UnAuthanticated || state is AuthErrorState) {
+            return const AuthPage();
           } else if (state is AuthLoadingState) {
             return const Scaffold(
               body: Center(
-                child: ProfessionalCircularProgress(
-                  
-                ),
+                child: ProfessionalCircularProgress(),
               ),
             );
-          } else if (state is AuthErrorState) {
-            return AuthPage(); // Return to auth page on error
           }
-          print('state is $state');
-          return const Scaffold(
-            body: Center(
-              child: ProfessionalCircularProgress(
-                // This is a custom loading widget
-                // You can replace it with your own loading widget
-              ),
-            ),
-          );
-          
+          return const AuthPage();
         }
-        
       )
-      
-    ),
-     
-     );
+    ));
   }
 }

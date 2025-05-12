@@ -19,16 +19,20 @@ class AuthCubit extends Cubit<AuthStates> {
   /// Check if the user is currently authenticated
   void checkAuth() async {
     try {
-      emit(AuthLoadingState()); // Show loading while checking auth
-      final AppUser? user = await authRepo.GetCurrentUser(); // Get current user
+      emit(AuthLoadingState());
+      final AppUser? user = await authRepo.GetCurrentUser();
       if (user != null) {
         this.user = user;
-        emit(Authanticated('User is authenticated')); // Emit success if user exists
+        if (authRepo.currentUser?.emailVerified == true) {
+          emit(Authanticated('User is authenticated'));
+        } else {
+          emit(UnverifiedState('Please verify your email to continue'));
+        }
       } else {
-        emit(UnAuthanticated()); // Emit unauthenticated if no user
+        emit(UnAuthanticated());
       }
     } catch (e) {
-      emit(UnAuthanticated()); // Emit unauthenticated on error
+      emit(AuthErrorState('Failed to check authentication: $e'));
     }
   }
 
@@ -38,14 +42,25 @@ class AuthCubit extends Cubit<AuthStates> {
     required String PASSWORD,
   }) async {
     try {
-      emit(AuthLoadingState()); // Show loading during login
+      emit(AuthLoadingState());
       user = await authRepo.loginWithEmailPassword(
         email: EMAIL,
         password: PASSWORD,
       );
-      emit(Authanticated('User is authenticated')); // Emit success after login
+      
+      if (user == null) {
+        emit(UnAuthanticated());
+        return;
+      }
+      
+      if (authRepo.currentUser?.emailVerified == true) {
+        emit(Authanticated('User is authenticated'));
+      } else {
+        emit(UnverifiedState('Please verify your email to continue'));
+      }
     } catch (e) {
-      emit(AuthErrorState(e.toString())); // Emit error if login fails
+      emit(UnAuthanticated());
+      emit(AuthErrorState('Invalid email or password'));
     }
   }
 
@@ -58,28 +73,70 @@ class AuthCubit extends Cubit<AuthStates> {
     required String PHONENUMBER,
   }) async {
     try {
-      emit(AuthLoadingState()); // Show loading during registration
+      emit(AuthLoadingState());
+
+      // Register user
       user = await authRepo.registerWithEmailPassword(
         phoneNumber: PHONENUMBER,
         email: EMAIL,
         password: PASSWORD,
         name: NAME,
       );
-      emit(Authanticated('Registration successful! Welcome to Talkify!')); // Emit success message
+
+      // Save user data to Firestore immediately with isVerified = false
+      if (user != null) {
+        await authRepo.saveUserToFirestore(user!);
+      }
+
+      // Send verification email
+      
+      // Emit UnverifiedState instead of EmailVerificationState
+      emit(UnverifiedState('Please verify your email to continue. Check your inbox for the verification link.'));
+
     } catch (e) {
-      emit(AuthErrorState(e.toString())); // Emit error if registration fails
+      emit(AuthErrorState('Registration failed: $e'));
+    }
+  }
+
+  Future<void> checkEmailVerification() async {
+    try {
+      emit(AuthLoadingState());
+      await authRepo.checkEmailVerification();
+      
+      if (authRepo.currentUser?.emailVerified == true) {
+        // Update user data in Firestore to mark as verified
+        if (user != null) {
+          await authRepo.updateUserVerificationStatus(user!);
+        }
+        emit(EmailVerifiedState('Email verified successfully!'));
+        emit(Authanticated('Welcome to Talkify!'));
+      } else {
+        emit(UnverifiedState('Email not yet verified. Please check your inbox and click the verification link.'));
+      }
+    } catch (e) {
+      emit(AuthErrorState("Failed to check verification: $e"));
+    }
+  }
+
+  Future<void> sendVerificationEmail() async {
+    try {
+      emit(AuthLoadingState());
+      await authRepo.sendVerificationEmail();
+      emit(EmailVerificationState('Verification email resent. Please check your inbox.'));
+    } catch (e) {
+      emit(AuthErrorState("Failed to resend verification email: $e"));
     }
   }
 
   /// Log out the currently authenticated user
   Future<void> logout() async {
     try {
-      emit(AuthLoadingState()); // Show loading during logout
+      emit(AuthLoadingState());
       await authRepo.LogOut();
-
-      emit(UnAuthanticated()); // Emit unauthenticated after logout
+      user = null;
+      emit(UnAuthanticated());
     } catch (e) {
-      emit(AuthErrorState(e.toString())); // Emit error if logout fails
+      emit(AuthErrorState('Logout failed: $e'));
     }
   }
   /// Get the currently authenticated user
