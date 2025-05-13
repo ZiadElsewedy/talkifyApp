@@ -143,7 +143,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      user.email,
+                                      user.HintDescription,
                                       style: TextStyle(
                                         color: Colors.white.withOpacity(0.9),
                                         fontSize: 16,

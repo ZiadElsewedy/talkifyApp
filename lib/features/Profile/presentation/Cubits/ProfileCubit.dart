@@ -29,7 +29,7 @@ class ProfileCubit extends Cubit<ProfileStates> {
 
   // Using the repo to fetch the user profile
   // and update the bio or Profile picture
-  void updateUserProfile({ required String id,  String? newBio, Uint8List? ImageWebByter , String? imageMobilePath , String? newName , String? newbackgroundprofilePictureUrl , Uint8List? backgroundImageWebBytes , String? backgroundImageMobilePath }) async {
+  void updateUserProfile({ required String id,  String? newBio, Uint8List? ImageWebByter , String? imageMobilePath , String? newName , String? newbackgroundprofilePictureUrl , Uint8List? backgroundImageWebBytes , String? backgroundImageMobilePath , String? newHintDescription }) async {
     emit(ProfileLoadingState()); // Emit loading state while updating
     try {
       final currentUser = await profileRepo.fetchUserProfile(id); // Get the current user profile
@@ -56,6 +56,7 @@ class ProfileCubit extends Cubit<ProfileStates> {
           newBio: newBio,
           newprofilePictureUrl: imageDowloadUrl ?? currentUser.profilePictureUrl,
           newbackgroundprofilePictureUrl: backgroundImageDownloadUrl ?? currentUser.backgroundprofilePictureUrl,  
+          newHintDescription: newHintDescription ?? currentUser.HintDescription,
         );
         await profileRepo.updateUserProfile(updatedUser); // Save updated profile
         emit(ProfileLoadedState(updatedUser)); // Emit updated state

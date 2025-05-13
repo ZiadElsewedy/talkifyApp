@@ -54,12 +54,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   final BioTextcontroller = TextEditingController();
   final nameController = TextEditingController();
+  final hintDescriptionController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     nameController.text = widget.user.name;
     BioTextcontroller.text = widget.user.bio;
+    hintDescriptionController.text = widget.user.HintDescription;
   }
 
   void UpdateProfilePage() async {
@@ -76,6 +78,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     final String newBio = BioTextcontroller.text.isNotEmpty ? BioTextcontroller.text : widget.user.bio;
     final String newName = nameController.text.isNotEmpty ? nameController.text : widget.user.name;
+    final String newHintDescription = hintDescriptionController.text.isNotEmpty ? hintDescriptionController.text : widget.user.HintDescription;
 
     if (imagePickedFile != null || backgroundImagePickedFile != null || newBio != null) {
       profilecubit.updateUserProfile(
@@ -86,6 +89,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         imageMobilePath: imageMobilePath,
         backgroundImageWebBytes: backgroundImageWebBytes,
         backgroundImageMobilePath: backgroundImageMobilePath,
+        newHintDescription: newHintDescription,
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -263,6 +267,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
               const SizedBox(height: 20),
               // Bio Section
+
+              const Text('Name', style: TextStyle(fontSize: 20)),
+              const SizedBox(height: 10),
+              MyTextField(
+                controller: nameController,
+                hintText: widget.user.name.isEmpty ? "Empty name .." : widget.user.name,
+                obsecureText: false,
+              ),
+              const SizedBox(height: 20),
+              const Text('Hint Description', style: TextStyle(fontSize: 20)),
+              const SizedBox(height: 10),
+              MyTextField(
+                controller: hintDescriptionController,
+                hintText: widget.user.HintDescription.isEmpty ? "" : widget.user.HintDescription,
+                obsecureText: false,
+              ),
               const Text('Bio', style: TextStyle(fontSize: 20)),
               const SizedBox(height: 10),
               MyTextField(
@@ -272,13 +292,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
               const SizedBox(height: 20),
               // Name Section
-              const Text('Name', style: TextStyle(fontSize: 20)),
-              const SizedBox(height: 10),
-              MyTextField(
-                controller: nameController,
-                hintText: widget.user.name.isEmpty ? "Empty name .." : widget.user.name,
-                obsecureText: false,
-              ),
+
+              
               const SizedBox(height: 20),
             ],
           ),

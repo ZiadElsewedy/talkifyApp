@@ -24,9 +24,10 @@ class FirebaseProfileRepo implements ProfileRepo {
             name: userData['name'],
             email: userData['email'] ,
             phoneNumber: userData['phoneNumber'] ,
-            profilePictureUrl: userData['profilePictureUrl'].toString(),
             bio: userData['bio'] ?? '',
             backgroundprofilePictureUrl: userData['backgroundprofilePictureUrl'].toString(),
+            profilePictureUrl: userData['profilePictureUrl'].toString(),
+            HintDescription: userData['HintDescription'] ?? '',
           );
         }
       }
@@ -43,10 +44,11 @@ class FirebaseProfileRepo implements ProfileRepo {
   Future<void> updateUserProfile (ProfileUser updateProfile) async {
     try {
       await firestore.collection('users').doc(updateProfile.id).update({
-        'profilePictureUrl': updateProfile.profilePictureUrl,
         'bio': updateProfile.bio,
         'name': updateProfile.name,
         'backgroundprofilePictureUrl': updateProfile.backgroundprofilePictureUrl,
+        'profilePictureUrl': updateProfile.profilePictureUrl,
+        'HintDescription': updateProfile.HintDescription,
       })
       .then((_) {
         print('User profile updated successfully');
