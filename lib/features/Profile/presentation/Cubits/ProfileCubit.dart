@@ -29,16 +29,25 @@ class ProfileCubit extends Cubit<ProfileStates> {
 
   // Using the repo to fetch the user profile
   // and update the bio or Profile picture
-  void updateUserProfile({ required String id,  String? newBio, Uint8List? ImageWebByter , String? imageMobilePath , String? newName , String? newbackgroundprofilePictureUrl}) async {
+  void updateUserProfile({ required String id,  String? newBio, Uint8List? ImageWebByter , String? imageMobilePath , String? newName , String? newbackgroundprofilePictureUrl , Uint8List? backgroundImageWebBytes , String? backgroundImageMobilePath }) async {
     emit(ProfileLoadingState()); // Emit loading state while updating
     try {
       final currentUser = await profileRepo.fetchUserProfile(id); // Get the current user profile
       String? imageDowloadUrl; // Will hold the download URL of the uploaded image
+      String? backgroundImageDownloadUrl; // Will hold the download URL of the uploaded background image
 
+      // Handle profile picture upload
       if (ImageWebByter != null) {
         imageDowloadUrl = await Storage.uploadProfileImageWeb(ImageWebByter, id);
       } else if (imageMobilePath != null) {
         imageDowloadUrl = await Storage.uploadProfileImageMobile(imageMobilePath, id);
+      }
+
+      // Handle background image upload
+      if (backgroundImageWebBytes != null) {
+        backgroundImageDownloadUrl = await Storage.uploadProfileImageWeb(backgroundImageWebBytes, "${id}_background");
+      } else if (backgroundImageMobilePath != null) {
+        backgroundImageDownloadUrl = await Storage.uploadProfileImageMobile(backgroundImageMobilePath, "${id}_background");
       }
 
       if (currentUser != null) {
@@ -46,7 +55,7 @@ class ProfileCubit extends Cubit<ProfileStates> {
           newName: newName,
           newBio: newBio,
           newprofilePictureUrl: imageDowloadUrl ?? currentUser.profilePictureUrl,
-          newbackgroundprofilePictureUrl: newbackgroundprofilePictureUrl ?? currentUser.backgroundprofilePictureUrl,  
+          newbackgroundprofilePictureUrl: backgroundImageDownloadUrl ?? currentUser.backgroundprofilePictureUrl,  
         );
         await profileRepo.updateUserProfile(updatedUser); // Save updated profile
         emit(ProfileLoadedState(updatedUser)); // Emit updated state
@@ -55,4 +64,5 @@ class ProfileCubit extends Cubit<ProfileStates> {
       }
     }catch (e) {
       emit(ProfileErrorState(e.toString())); // Emit error if exception occurs
-  }}}
+  }}
+}

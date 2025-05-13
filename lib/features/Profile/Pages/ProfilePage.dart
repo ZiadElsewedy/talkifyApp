@@ -39,32 +39,131 @@ class _ProfilePageState extends State<ProfilePage> {
           return Scaffold(
             body: CustomScrollView(
               slivers: [
-                // Modern App Bar with gradient
+                // Modern App Bar with background image
                 SliverAppBar(
                   expandedHeight: 250,
                   pinned: true,
                   flexibleSpace: FlexibleSpaceBar(
-                    background: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.grey,
-                            Colors.grey.shade300,
-                          ],
+                    background: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Background Image
+                        CachedNetworkImage(
+                          imageUrl: user.backgroundprofilePictureUrl,
+                          placeholder: (context, url) => Container(
+                            color: Colors.grey[300],
+                            child: const Center(child: ProfessionalCircularProgress()),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.image, size: 50, color: Colors.grey),
+                          ),
+                          fit: BoxFit.cover,
                         ),
-                      ),
+                        // Gradient Overlay
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.black.withOpacity(0.3),
+                                Colors.black.withOpacity(0.1),
+                              ],
+                            ),
+                          ),
+                        ),
+                        // Profile Content
+                        Positioned(
+                          bottom: 20,
+                          left: 20,
+                          right: 20,
+                          child: Row(
+                            children: [
+                              // Profile Picture
+                              Hero(
+                                tag: 'profile_picture',
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 3,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 10,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: CachedNetworkImage(
+                                    imageUrl: user.profilePictureUrl,
+                                    placeholder: (context, url) => const Center(
+                                      child: ProfessionalCircularProgress(),
+                                    ),
+                                    errorWidget: (context, url, error) => Container(
+                                      width: 100,
+                                      height: 100,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.grey[200],
+                                      ),
+                                      child: const Icon(Icons.person, size: 50, color: Colors.grey),
+                                    ),
+                                    imageBuilder: (context, imageProvider) => CircleAvatar(
+                                      radius: 50,
+                                      backgroundColor: Colors.white,
+                                      backgroundImage: imageProvider,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+                              // User Info
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      user.name,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        shadows: [
+                                          Shadow(
+                                            offset: Offset(1, 1),
+                                            blurRadius: 3,
+                                            color: Colors.black45,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      user.email,
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontSize: 16,
+                                        shadows: const [
+                                          Shadow(
+                                            offset: Offset(1, 1),
+                                            blurRadius: 3,
+                                            color: Colors.black45,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    title: Text(
-                      user.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24,
-                      ),
-                    ),
-                    centerTitle: true,
                   ),
                   actions: [
                     IconButton(
@@ -85,58 +184,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Column(
                     children: [
                       const SizedBox(height: 20),
-                      // Profile Picture with shadow and border
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: CachedNetworkImage(
-                          imageUrl: user.profilePictureUrl,
-                          placeholder: (context, url) => const Center(
-                            child: ProfessionalCircularProgress(),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            width: 150,
-                            height: 150,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.grey[200],
-                              border: Border.all(
-                                color: Colors.white,
-                                width: 4,
-                              ),
-                            ),
-                            child: const Icon(Icons.person, size: 72, color: Colors.grey),
-                          ),
-                          imageBuilder: (context, imageProvider) => CircleAvatar(
-                            radius: 75,
-                            backgroundColor: Colors.white,
-                            backgroundImage: imageProvider,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Email with modern styling
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Text(
-                          user.email,
-                          style: const TextStyle(
-                            color: Color.fromARGB(255, 95, 95, 95),
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-                      // Bio Section with card design
+                      // Bio Section
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Column(
@@ -169,7 +217,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       ),
                       const SizedBox(height: 30),
-                      // Posts Section with modern card design
+                      // Posts Section
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Column(

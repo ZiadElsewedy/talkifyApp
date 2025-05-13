@@ -22,21 +22,31 @@ class EditProfilePage extends StatefulWidget {
 }
 
 class _EditProfilePageState extends State<EditProfilePage> {
-  // mobile image pick 
-  PlatformFile? imagePickedFile; // For mobile image pick
-  Uint8List? webImage; // For web image pick
+  // Profile image pick
+  PlatformFile? imagePickedFile;
+  Uint8List? webImage;
+  
+  // Background image pick
+  PlatformFile? backgroundImagePickedFile;
+  Uint8List? webBackgroundImage;
 
-  Future<void> pickImage() async {
-    // For mobile and web image pick
+  Future<void> pickImage({bool isBackground = false}) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       withData: kIsWeb,
     );
     if (result != null && result.files.isNotEmpty) {
       setState(() {
-        imagePickedFile = result.files.first;
-        if (kIsWeb) {
-          webImage = result.files.first.bytes; // Get the bytes for web
+        if (isBackground) {
+          backgroundImagePickedFile = result.files.first;
+          if (kIsWeb) {
+            webBackgroundImage = result.files.first.bytes;
+          }
+        } else {
+          imagePickedFile = result.files.first;
+          if (kIsWeb) {
+            webImage = result.files.first.bytes;
+          }
         }
       });
     }
@@ -48,27 +58,34 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   void initState() {
     super.initState();
-    nameController.text = widget.user.name; // Pre-fill with current name
-    BioTextcontroller.text = widget.user.bio; // Initialize the text controller with the current bio
+    nameController.text = widget.user.name;
+    BioTextcontroller.text = widget.user.bio;
   }
 
   void UpdateProfilePage() async {
     final profilecubit = context.read<ProfileCubit>();
     final String id = widget.user.id;
-    final imageMoilePath = kIsWeb ? null : imagePickedFile?.path;
-    // Call the pickImage method to select an image
+    
+    // Profile image paths
+    final imageMobilePath = kIsWeb ? null : imagePickedFile?.path;
     final ImageWebBytes = kIsWeb ? imagePickedFile?.bytes : null;
+    
+    // Background image paths
+    final backgroundImageMobilePath = kIsWeb ? null : backgroundImagePickedFile?.path;
+    final backgroundImageWebBytes = kIsWeb ? backgroundImagePickedFile?.bytes : null;
+
     final String newBio = BioTextcontroller.text.isNotEmpty ? BioTextcontroller.text : widget.user.bio;
     final String newName = nameController.text.isNotEmpty ? nameController.text : widget.user.name;
 
-    // Call the updateProfile method from the ProfileCubit
-    if (imagePickedFile != null || newBio != null) {
+    if (imagePickedFile != null || backgroundImagePickedFile != null || newBio != null) {
       profilecubit.updateUserProfile(
         id: id,
         newName: newName,
         newBio: newBio,
         ImageWebByter: ImageWebBytes,
-        imageMobilePath: imageMoilePath,
+        imageMobilePath: imageMobilePath,
+        backgroundImageWebBytes: backgroundImageWebBytes,
+        backgroundImageMobilePath: backgroundImageMobilePath,
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -80,7 +97,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Widget buildEditPage() {
-    // Initialize the text controller with the current bio
     return Scaffold(
       appBar: AppBar(
         title: const Text("Edit Profile"),
@@ -88,93 +104,167 @@ class _EditProfilePageState extends State<EditProfilePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.check),
-            onPressed: () {
-              // Call the updateProfile method when the check icon is pressed
-              UpdateProfilePage();
-            },
+            onPressed: UpdateProfilePage,
           ),
         ],
       ),
       body: SingleChildScrollView(
-        
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(children: [
-            Center(
-              child: Container(
+          child: Column(
+            children: [
+              // Background Image Section
+              Container(
                 height: 200,
-                width: 200,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    ),
+                  ],
                 ),
-                child: ClipOval(
-                  child: kIsWeb
-                      ? (webImage != null
-                          ? Image.memory(webImage!, fit: BoxFit.cover)
-                          : CachedNetworkImage(
-                              imageUrl: widget.user.profilePictureUrl,
-                              placeholder: (context, url) => const Center(child: ProfessionalCircularProgress()),
-                              errorWidget: (context, url, error) => const Icon(Icons.person, size: 72),
-                              imageBuilder: (context, imageProvider) => CircleAvatar(
-                                radius: 100,
-                                backgroundImage: imageProvider,
-                              ),
-                            ))
-                      : (imagePickedFile != null
-                          ? Image.file(File(imagePickedFile!.path!), fit: BoxFit.cover)
-                          : CachedNetworkImage(
-                              imageUrl: widget.user.profilePictureUrl,
-                              placeholder: (context, url) => const Center(child: ProfessionalCircularProgress()),
-                              errorWidget: (context, url, error) => const Icon(Icons.person, size: 72),
-                              imageBuilder: (context, imageProvider) => CircleAvatar(
-                                radius: 100,
-                                backgroundImage: imageProvider,
-                              ),
-                            )),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Background Image
+                      kIsWeb
+                          ? (webBackgroundImage != null
+                              ? Image.memory(webBackgroundImage!, fit: BoxFit.cover)
+                              : CachedNetworkImage(
+                                  imageUrl: widget.user.backgroundprofilePictureUrl,
+                                  placeholder: (context, url) => Container(
+                                    color: Colors.grey[300],
+                                    child: const Center(child: ProfessionalCircularProgress()),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    color: Colors.grey[300],
+                                    child: const Icon(Icons.image, size: 50, color: Colors.grey),
+                                  ),
+                                  fit: BoxFit.cover,
+                                ))
+                          : (backgroundImagePickedFile != null
+                              ? Image.file(File(backgroundImagePickedFile!.path!), fit: BoxFit.cover)
+                              : CachedNetworkImage(
+                                  imageUrl: widget.user.backgroundprofilePictureUrl,
+                                  placeholder: (context, url) => Container(
+                                    color: Colors.grey[300],
+                                    child: const Center(child: ProfessionalCircularProgress()),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    color: Colors.grey[300],
+                                    child: const Icon(Icons.image, size: 50, color: Colors.grey),
+                                  ),
+                                  fit: BoxFit.cover,
+                                )),
+                      // Upload Button Overlay
+                      Positioned(
+                        bottom: 10,
+                        right: 10,
+                        child: ElevatedButton.icon(
+                          onPressed: () => pickImage(isBackground: true),
+                          icon: const Icon(Icons.add_photo_alternate),
+                          label: const Text("Background"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black54,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            // pick image button 
-            Center(
-              child: ElevatedButton(
-                onPressed: pickImage,
-                child: const Text("Pick Image"),
+              const SizedBox(height: 20),
+              // Profile Picture Section
+              Center(
+                child: Container(
+                  height: 150,
+                  width: 150,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: kIsWeb
+                        ? (webImage != null
+                            ? Image.memory(webImage!, fit: BoxFit.cover)
+                            : CachedNetworkImage(
+                                imageUrl: widget.user.profilePictureUrl,
+                                placeholder: (context, url) => const Center(child: ProfessionalCircularProgress()),
+                                errorWidget: (context, url, error) => const Icon(Icons.person, size: 72),
+                                imageBuilder: (context, imageProvider) => CircleAvatar(
+                                  radius: 75,
+                                  backgroundImage: imageProvider,
+                                ),
+                              ))
+                        : (imagePickedFile != null
+                            ? Image.file(File(imagePickedFile!.path!), fit: BoxFit.cover)
+                            : CachedNetworkImage(
+                                imageUrl: widget.user.profilePictureUrl,
+                                placeholder: (context, url) => const Center(child: ProfessionalCircularProgress()),
+                                errorWidget: (context, url, error) => const Icon(Icons.person, size: 72),
+                                imageBuilder: (context, imageProvider) => CircleAvatar(
+                                  radius: 75,
+                                  backgroundImage: imageProvider,
+                                ),
+                              )),
+                  ),
+                ),
               ),
-              
-            ),
-            const Text('Bio', style: TextStyle(fontSize: 20)),
-            const SizedBox(height: 20),
-            MyTextField(
-              controller: BioTextcontroller,
-              hintText: widget.user.bio.isEmpty ? "Empty bio .." : widget.user.bio,
-              obsecureText: false,
-            ),
-            const SizedBox(height: 20),
-            MyTextField(
-              controller: nameController,
-              hintText: widget.user.name.isEmpty ? "Empty name .." : widget.user.name,
-              obsecureText: false,
-            ),
-            const SizedBox(height: 20),
-            // last update from ziad 
-          ]),
+              const SizedBox(height: 10),
+              // Profile Picture Upload Button
+              ElevatedButton.icon(
+                onPressed: () => pickImage(isBackground: false),
+                icon: const Icon(Icons.add_a_photo),
+                label: const Text("Profile Picture"),
+              ),
+              const SizedBox(height: 20),
+              // Bio Section
+              const Text('Bio', style: TextStyle(fontSize: 20)),
+              const SizedBox(height: 10),
+              MyTextField(
+                controller: BioTextcontroller,
+                hintText: widget.user.bio.isEmpty ? "Empty bio .." : widget.user.bio,
+                obsecureText: false,
+              ),
+              const SizedBox(height: 20),
+              // Name Section
+              const Text('Name', style: TextStyle(fontSize: 20)),
+              const SizedBox(height: 10),
+              MyTextField(
+                controller: nameController,
+                hintText: widget.user.name.isEmpty ? "Empty name .." : widget.user.name,
+                obsecureText: false,
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // build UI
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<ProfileCubit, ProfileStates>(
       listener: (context, state) {
         if (state is ProfileLoadedState) {
-          Navigator.pop(context); // Close the edit profile page
+          Navigator.pop(context);
         }
       },
       builder: (context, state) {
-        // profile loading state
         if (state is ProfileLoadingState) {
           return const Scaffold(
             body: Column(
@@ -187,7 +277,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ),
           );
         }
-        // profile loaded state
         return buildEditPage();
       },
     );
