@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/Storage/Domain/Storage_repo.dart';
 import 'package:talkifyapp/features/Profile/domain/Profile%20repo/ProfileRepo.dart';
-import 'package:talkifyapp/features/Profile/presentation/Profile_states.dart';
+import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
 
 class ProfileCubit extends Cubit<ProfileStates> {
   final StorageRepo Storage; // Interface to upload images (web or mobile)
@@ -29,7 +29,7 @@ class ProfileCubit extends Cubit<ProfileStates> {
 
   // Using the repo to fetch the user profile
   // and update the bio or Profile picture
-  void updateUserProfile({ required String id,  String? newBio, Uint8List? ImageWebByter , String? imageMobilePath , String? newName }) async {
+  void updateUserProfile({ required String id,  String? newBio, Uint8List? ImageWebByter , String? imageMobilePath , String? newName , String? newbackgroundprofilePictureUrl}) async {
     emit(ProfileLoadingState()); // Emit loading state while updating
     try {
       final currentUser = await profileRepo.fetchUserProfile(id); // Get the current user profile
@@ -46,6 +46,7 @@ class ProfileCubit extends Cubit<ProfileStates> {
           newName: newName,
           newBio: newBio,
           newprofilePictureUrl: imageDowloadUrl ?? currentUser.profilePictureUrl,
+          newbackgroundprofilePictureUrl: newbackgroundprofilePictureUrl ?? currentUser.backgroundprofilePictureUrl,  
         );
         await profileRepo.updateUserProfile(updatedUser); // Save updated profile
         emit(ProfileLoadedState(updatedUser)); // Emit updated state

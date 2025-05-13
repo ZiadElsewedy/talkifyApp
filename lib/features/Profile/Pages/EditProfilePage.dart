@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
-import 'package:talkifyapp/features/Profile/presentation/Profile_states.dart';
+import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyTextField.dart';
 
@@ -135,14 +135,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text('Bio', style: TextStyle(fontSize: 20)),
             // pick image button 
             Center(
               child: ElevatedButton(
                 onPressed: pickImage,
                 child: const Text("Pick Image"),
               ),
+              
             ),
+            const Text('Bio', style: TextStyle(fontSize: 20)),
             const SizedBox(height: 20),
             MyTextField(
               controller: BioTextcontroller,

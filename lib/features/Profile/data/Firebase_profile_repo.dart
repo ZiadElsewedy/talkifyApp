@@ -26,6 +26,7 @@ class FirebaseProfileRepo implements ProfileRepo {
             phoneNumber: userData['phoneNumber'] ,
             profilePictureUrl: userData['profilePictureUrl'].toString(),
             bio: userData['bio'] ?? '',
+            backgroundprofilePictureUrl: userData['backgroundprofilePictureUrl'].toString(),
           );
         }
       }
@@ -45,6 +46,7 @@ class FirebaseProfileRepo implements ProfileRepo {
         'profilePictureUrl': updateProfile.profilePictureUrl,
         'bio': updateProfile.bio,
         'name': updateProfile.name,
+        'backgroundprofilePictureUrl': updateProfile.backgroundprofilePictureUrl,
       })
       .then((_) {
         print('User profile updated successfully');

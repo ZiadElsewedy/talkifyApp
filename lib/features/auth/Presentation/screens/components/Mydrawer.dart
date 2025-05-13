@@ -7,7 +7,7 @@ import 'package:talkifyapp/features/auth/Presentation/screens/components/Confirm
 import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyDrawerTile.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
-import 'package:talkifyapp/features/Profile/presentation/Profile_states.dart';
+import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
  
 class MyDrawer extends StatelessWidget {
   const MyDrawer({super.key});
