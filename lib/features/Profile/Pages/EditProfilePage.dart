@@ -162,17 +162,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                   ),
                                   fit: BoxFit.cover,
                                 )),
-                      // Upload Button Overlay
+                      // Upload Button Overlay for Background
                       Positioned(
                         bottom: 10,
                         right: 10,
-                        child: ElevatedButton.icon(
-                          onPressed: () => pickImage(isBackground: true),
-                          icon: const Icon(Icons.add_photo_alternate),
-                          label: const Text("Background"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black54,
-                            foregroundColor: Colors.white,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          padding: const EdgeInsets.all(8),
+                          child: IconButton(
+                            onPressed: () => pickImage(isBackground: true),
+                            icon: const Icon(Icons.add_photo_alternate, color: Colors.white, size: 28),
+                            tooltip: "Change Background",
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
                           ),
                         ),
                       ),
@@ -196,39 +201,65 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                     ],
                   ),
-                  child: ClipOval(
-                    child: kIsWeb
-                        ? (webImage != null
-                            ? Image.memory(webImage!, fit: BoxFit.cover)
-                            : CachedNetworkImage(
-                                imageUrl: widget.user.profilePictureUrl,
-                                placeholder: (context, url) => const Center(child: ProfessionalCircularProgress()),
-                                errorWidget: (context, url, error) => const Icon(Icons.person, size: 72),
-                                imageBuilder: (context, imageProvider) => CircleAvatar(
-                                  radius: 75,
-                                  backgroundImage: imageProvider,
-                                ),
-                              ))
-                        : (imagePickedFile != null
-                            ? Image.file(File(imagePickedFile!.path!), fit: BoxFit.cover)
-                            : CachedNetworkImage(
-                                imageUrl: widget.user.profilePictureUrl,
-                                placeholder: (context, url) => const Center(child: ProfessionalCircularProgress()),
-                                errorWidget: (context, url, error) => const Icon(Icons.person, size: 72),
-                                imageBuilder: (context, imageProvider) => CircleAvatar(
-                                  radius: 75,
-                                  backgroundImage: imageProvider,
-                                ),
-                              )),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ClipOval(
+                        child: kIsWeb
+                            ? (webImage != null
+                                ? Image.memory(webImage!, fit: BoxFit.cover)
+                                : CachedNetworkImage(
+                                    imageUrl: widget.user.profilePictureUrl,
+                                    placeholder: (context, url) => const Center(child: ProfessionalCircularProgress()),
+                                    errorWidget: (context, url, error) => const Icon(Icons.person, size: 72),
+                                    imageBuilder: (context, imageProvider) => CircleAvatar(
+                                      radius: 75,
+                                      backgroundImage: imageProvider,
+                                    ),
+                                  ))
+                            : (imagePickedFile != null
+                                ? Image.file(File(imagePickedFile!.path!), fit: BoxFit.cover)
+                                : CachedNetworkImage(
+                                    imageUrl: widget.user.profilePictureUrl,
+                                    placeholder: (context, url) => const Center(child: ProfessionalCircularProgress()),
+                                    errorWidget: (context, url, error) => const Icon(Icons.person, size: 72),
+                                    imageBuilder: (context, imageProvider) => CircleAvatar(
+                                      radius: 75,
+                                      backgroundImage: imageProvider,
+                                    ),
+                                  )),
+                      ),
+                      // Profile Picture Upload Button
+                      Positioned(
+                        bottom: 15,
+                        right: 10,
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 1,
+                              style: BorderStyle.solid,
+                            ),
+                          ),
+                          child: IconButton(
+                            onPressed: () => pickImage(isBackground: false),
+                            icon: const Icon(Icons.add_a_photo, color: Colors.white, size: 14),
+                            tooltip: "Change Profile Picture",
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              // Profile Picture Upload Button
-              ElevatedButton.icon(
-                onPressed: () => pickImage(isBackground: false),
-                icon: const Icon(Icons.add_a_photo),
-                label: const Text("Profile Picture"),
               ),
               const SizedBox(height: 20),
               // Bio Section
