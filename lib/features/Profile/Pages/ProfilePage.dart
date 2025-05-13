@@ -41,7 +41,7 @@ class _ProfilePageState extends State<ProfilePage> {
               slivers: [
                 // Modern App Bar with background image
                 SliverAppBar(
-                  expandedHeight: 250,
+                  expandedHeight: 270,
                   pinned: true,
                   flexibleSpace: FlexibleSpaceBar(
                     background: Stack(
@@ -88,7 +88,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     shape: BoxShape.circle,
                                     border: Border.all(
                                       color: Colors.white,
-                                      width: 3,
+                                      width: 1.2,
                                     ),
                                     boxShadow: [
                                       BoxShadow(
