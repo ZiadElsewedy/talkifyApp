@@ -1,0 +1,2 @@
+C:/Users/Mohamed/Downloads/Compressed/talkifyApp-main_2/talkifyApp-main/android/app/.cxx/Debug/5e4b3s3c/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/Mohamed/Downloads/Compressed/talkifyApp-main_2/talkifyApp-main/android/app/.cxx/Debug/5e4b3s3c/armeabi-v7a/CMakeFiles/rebuild_cache.dir
