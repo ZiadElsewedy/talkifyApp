@@ -3,6 +3,8 @@ import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 class ProfileUser extends AppUser {
   // Constructor
   final String bio;
+  final String backgroundprofilePictureUrl;
+  final String HintDescription;
 
   ProfileUser({
     required super.id,
@@ -11,12 +13,16 @@ class ProfileUser extends AppUser {
     required super.phoneNumber,
     required super.profilePictureUrl,
     required this.bio,
+    required this.backgroundprofilePictureUrl,
+    required this.HintDescription,
   });
 // update the ProfileUser 
 ProfileUser copywith ({
   String? newprofilePictureUrl,
   String? newBio,
   String? newName,
+  String? newbackgroundprofilePictureUrl,
+  String? newHintDescription,
 }) {
   return ProfileUser(
     id: id,
@@ -25,6 +31,8 @@ ProfileUser copywith ({
     phoneNumber: phoneNumber,
     profilePictureUrl: newprofilePictureUrl ?? profilePictureUrl,
     bio: newBio ?? bio,
+    backgroundprofilePictureUrl: newbackgroundprofilePictureUrl ?? backgroundprofilePictureUrl,
+    HintDescription: newHintDescription ?? HintDescription,
   );
 }
 // convert ProfileUser to json
@@ -36,6 +44,8 @@ ProfileUser copywith ({
       'phoneNumber': phoneNumber,
       'profilePictureUrl': profilePictureUrl,
       'bio': bio,
+      'backgroundprofilePictureUrl': backgroundprofilePictureUrl,
+      'HintDescription': HintDescription,
     };
   }
 // convert json to ProfileUser
@@ -47,10 +57,12 @@ ProfileUser copywith ({
       phoneNumber: json['phoneNumber'] ?? '',
       profilePictureUrl: json['profilePictureUrl']  ?? '',
       bio: json['bio'] as String,
+      backgroundprofilePictureUrl: json['backgroundprofilePictureUrl'] ?? '',
+      HintDescription: json['HintDescription'] ?? '',
     );
   }
   @override
   String toString() {
-    return 'ProfileUser{id: $id, name: $name, email: $email, phoneNumber: $phoneNumber, profilePictureUrl: $profilePictureUrl, bio: $bio}';
+    return 'ProfileUser{id: $id, name: $name, email: $email, phoneNumber: $phoneNumber, profilePictureUrl: $profilePictureUrl, bio: $bio, HintDescription: $HintDescription}';
   }
 }

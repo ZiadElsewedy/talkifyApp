@@ -88,6 +88,7 @@ class FirebaseAuthRepo implements AuthRepo {
         'phoneNumber': user.phoneNumber,
         'isVerified': false,
         'createdAt': FieldValue.serverTimestamp(),
+        
       });
     } catch (e) {
       throw Exception('Failed to save user data: $e');
@@ -100,6 +101,7 @@ class FirebaseAuthRepo implements AuthRepo {
       await firestore.collection('users').doc(user.id).update({
         'isVerified': true,
         'verifiedAt': FieldValue.serverTimestamp(),
+
       });
     } catch (e) {
       throw Exception('Failed to update user verification status: $e');
