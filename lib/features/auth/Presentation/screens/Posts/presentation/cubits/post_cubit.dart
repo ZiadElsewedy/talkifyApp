@@ -56,5 +56,14 @@ postRepo.CreatePost(newPost);
     }
 }
 
+// delete a post 
+Future<void> deletePost(String postId) async{
+  try{
+    await postRepo.deletePost(postId);
+  }
+  catch(e){
+    emit(PostsError("Failed to delete post: $e"));
+  }
+} 
 
 }
