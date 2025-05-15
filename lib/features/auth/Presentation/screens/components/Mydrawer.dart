@@ -1,7 +1,7 @@
 // this code for drawer 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:talkifyapp/features/Profile/Pages/components/WhiteCircleIndicator.dart';
+import 'package:talkifyapp/features/Profile/Pages/components/ProfilePicFunction.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Profile/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/ConfirmLogOut.dart';
@@ -33,106 +33,10 @@ class MyDrawer extends StatelessWidget {
                 const SizedBox(height: 40),
                 BlocBuilder<ProfileCubit, ProfileStates>(
                   builder: (context, state) {
-                    if (state is ProfileLoadedState) {
-                      return Container(
-                        width: 150,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Theme.of(context).colorScheme.surface,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: ClipOval(
-                          child: state.profileuser.profilePictureUrl.isNotEmpty
-                              ? Image.network(
-                                  state.profileuser.profilePictureUrl,
-                                  fit: BoxFit.cover,
-                                  loadingBuilder: (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.surface,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Center(
-                                        child: WhiteCircleIndicator(
-                                          size: 45.0,
-                                          color: Colors.black,
-                                          backgroundColor: Colors.black.withOpacity(0.1),
-                                          progress: loadingProgress.expectedTotalBytes != null
-                                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                              : null,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.surface,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        Icons.person,
-                                        size: 50,
-                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-                                      ),
-                                    );
-                                  },
-                                )
-                              : Container(
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.surface,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.person,
-                                    size: 50,
-                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-                                  ),
-                                ),
-                        ),
-                      );
-                    } else if (state is ProfileLoadingState) {
-                      return Container(
-                        width: 150,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Theme.of(context).colorScheme.surface,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: WhiteCircleIndicator(
-                            size: 45.0,
-                            color: Colors.black,
-                            backgroundColor: Colors.black.withOpacity(0.1),
-                          ),
-                        ),
-                      );
-                    } else {
-                      return Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.grey[200],
-                        ),
-                        child: Icon(Icons.person, size: 50, color: Colors.grey[400]),
-                      );
-                    }
+                    return ProfilePicFunction(
+                      state: state,
+                      profilePictureUrl: state is ProfileLoadedState ? state.profileuser.profilePictureUrl : null,
+                    );
                   },
                 ),
                 const SizedBox(height: 30),
