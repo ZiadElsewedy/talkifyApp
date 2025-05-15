@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Profile/Pages/EditProfilePage.dart';
 import 'package:talkifyapp/features/Profile/Pages/components/Bio.dart';
+import 'package:talkifyapp/features/Profile/Pages/components/ProfilePicFunction.dart';
+import 'package:talkifyapp/features/Profile/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
@@ -52,7 +54,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           imageUrl: user.backgroundprofilePictureUrl,
                           placeholder: (context, url) => Container(
                             color: Colors.grey[300],
-                            child: const Center(child: ProfessionalCircularProgress()),
+                            child: const Center(child: PercentCircleIndicator()),
                           ),
                           errorWidget: (context, url, error) => Container(
                             color: Colors.grey[300],
@@ -83,41 +85,13 @@ class _ProfilePageState extends State<ProfilePage> {
                               // Profile Picture
                               Hero(
                                 tag: 'profile_picture',
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 1.2,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        blurRadius: 10,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                  child: CachedNetworkImage(
-                                    imageUrl: user.profilePictureUrl,
-                                    placeholder: (context, url) => const Center(
-                                      child: ProfessionalCircularProgress(),
-                                    ),
-                                    errorWidget: (context, url, error) => Container(
-                                      width: 100,
-                                      height: 100,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.grey[200],
-                                      ),
-                                      child: const Icon(Icons.person, size: 50, color: Colors.grey),
-                                    ),
-                                    imageBuilder: (context, imageProvider) => CircleAvatar(
-                                      radius: 50,
-                                      backgroundColor: Colors.white,
-                                      backgroundImage: imageProvider,
-                                    ),
-                                  ),
+                                child: ProfilePicFunction(
+                                  state: state,
+                                  profilePictureUrl: user.profilePictureUrl,
+                                  size: 100.0,
+                                  showBorder: true,
+                                  borderColor: Colors.white,
+                                  borderWidth: 1.2,
                                 ),
                               ),
                               const SizedBox(width: 20),

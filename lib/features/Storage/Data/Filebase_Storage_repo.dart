@@ -2,7 +2,7 @@ import 'dart:io'; // Needed for File operations on mobile
 
 import 'package:firebase_storage/firebase_storage.dart'; // Firebase Storage SDK
 import 'package:flutter/services.dart'; // For Uint8List (used in web image upload)
-import 'package:talkifyapp/Storage/Domain/Storage_repo.dart'; // Your interface
+import 'package:talkifyapp/features/Storage/Domain/Storage_repo.dart'; // Your interface
 
 // Implements the abstract StorageRepo class you defined earlier
 class FirebaseStorageRepo implements StorageRepo {
