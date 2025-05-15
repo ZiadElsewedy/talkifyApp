@@ -1,10 +1,10 @@
 // this code for drawer 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Profile/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Profile/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/ConfirmLogOut.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyDrawerTile.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
@@ -39,7 +39,14 @@ class MyDrawer extends StatelessWidget {
                         height: 150,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.grey[200],
+                          color: Theme.of(context).colorScheme.surface,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ],
                         ),
                         child: ClipOval(
                           child: state.profileuser.profilePictureUrl.isNotEmpty
@@ -48,27 +55,71 @@ class MyDrawer extends StatelessWidget {
                                   fit: BoxFit.cover,
                                   loadingBuilder: (context, child, loadingProgress) {
                                     if (loadingProgress == null) return child;
-                                    return const Center(
-                                      child: ProfessionalCircularProgress(),
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.surface,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child: WhiteCircleIndicator(
+                                          size: 45.0,
+                                          color: Colors.black,
+                                          backgroundColor: Colors.black.withOpacity(0.1),
+                                          progress: loadingProgress.expectedTotalBytes != null
+                                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                              : null,
+                                        ),
+                                      ),
                                     );
                                   },
                                   errorBuilder: (context, error, stackTrace) {
-                                    return Icon(Icons.person, size: 50, color: Colors.grey[400]);
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.surface,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.person,
+                                        size: 50,
+                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                                      ),
+                                    );
                                   },
                                 )
-                              : Icon(Icons.person, size: 50, color: Colors.grey[400]),
+                              : Container(
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.surface,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.person,
+                                    size: 50,
+                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                                  ),
+                                ),
                         ),
                       );
                     } else if (state is ProfileLoadingState) {
                       return Container(
-                        width: 100,
-                        height: 100,
+                        width: 150,
+                        height: 150,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.grey[200],
+                          color: Theme.of(context).colorScheme.surface,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ],
                         ),
-                        child: const Center(
-                          child: ProfessionalCircularProgress(),
+                        child: Center(
+                          child: WhiteCircleIndicator(
+                            size: 45.0,
+                            color: Colors.black,
+                            backgroundColor: Colors.black.withOpacity(0.1),
+                          ),
                         ),
                       );
                     } else {
