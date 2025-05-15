@@ -5,22 +5,34 @@ import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.d
 class ProfilePicFunction extends StatelessWidget {
   final ProfileStates state;
   final String? profilePictureUrl;
+  final double size;
+  final bool showBorder;
+  final Color borderColor;
+  final double borderWidth;
 
   const ProfilePicFunction({
     Key? key,
     required this.state,
     this.profilePictureUrl,
+    this.size = 150.0,
+    this.showBorder = false,
+    this.borderColor = Colors.white,
+    this.borderWidth = 1.2,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    if (state is ProfileLoadedState) {
+    Widget buildProfileContainer({required Widget child}) {
       return Container(
-        width: 150,
-        height: 150,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Theme.of(context).colorScheme.surface,
+          border: showBorder ? Border.all(
+            color: borderColor,
+            width: borderWidth,
+          ) : null,
           boxShadow: [
             BoxShadow(
               color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
@@ -29,6 +41,12 @@ class ProfilePicFunction extends StatelessWidget {
             ),
           ],
         ),
+        child: child,
+      );
+    }
+
+    if (state is ProfileLoadedState) {
+      return buildProfileContainer(
         child: ClipOval(
           child: profilePictureUrl?.isNotEmpty == true
               ? Image.network(
@@ -42,8 +60,8 @@ class ProfilePicFunction extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Center(
-                        child: WhiteCircleIndicator(
-                          size: 45.0,
+                        child: PercentCircleIndicator(
+                          size: size * 0.3,
                           color: Colors.black,
                           backgroundColor: Colors.black.withOpacity(0.1),
                           progress: loadingProgress.expectedTotalBytes != null
@@ -61,7 +79,7 @@ class ProfilePicFunction extends StatelessWidget {
                       ),
                       child: Icon(
                         Icons.person,
-                        size: 50,
+                        size: size * 0.4,
                         color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
                       ),
                     );
@@ -74,53 +92,27 @@ class ProfilePicFunction extends StatelessWidget {
                   ),
                   child: Icon(
                     Icons.person,
-                    size: 50,
+                    size: size * 0.4,
                     color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
                   ),
                 ),
         ),
       );
     } else if (state is ProfileLoadingState) {
-      return Container(
-        width: 150,
-        height: 150,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Theme.of(context).colorScheme.surface,
-          boxShadow: [
-            BoxShadow(
-              color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
-              blurRadius: 10,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
+      return buildProfileContainer(
         child: Center(
-          child: WhiteCircleIndicator(
-            size: 45.0,
+          child: PercentCircleIndicator(
+            size: size * 0.3,
             color: Colors.black,
             backgroundColor: Colors.black.withOpacity(0.1),
           ),
         ),
       );
     } else {
-      return Container(
-        width: 150,
-        height: 150,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Theme.of(context).colorScheme.surface,
-          boxShadow: [
-            BoxShadow(
-              color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
-              blurRadius: 10,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
+      return buildProfileContainer(
         child: Icon(
           Icons.person,
-          size: 50,
+          size: size * 0.4,
           color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
         ),
       );

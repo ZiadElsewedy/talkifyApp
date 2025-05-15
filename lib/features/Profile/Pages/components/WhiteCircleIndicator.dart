@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// A modern circular progress indicator that shows loading progress with percentage
-class WhiteCircleIndicator extends StatefulWidget {
+class PercentCircleIndicator extends StatefulWidget {
   /// The size of the circle indicator
   final double size;
 
@@ -17,7 +17,7 @@ class WhiteCircleIndicator extends StatefulWidget {
   /// The loading progress (0.0 to 1.0)
   final double? progress;
 
-  const WhiteCircleIndicator({
+  const PercentCircleIndicator({
     Key? key,
     this.size = 45.0,
     this.color = Colors.black,
@@ -27,10 +27,10 @@ class WhiteCircleIndicator extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<WhiteCircleIndicator> createState() => _WhiteCircleIndicatorState();
+  State<PercentCircleIndicator> createState() => _PercentCircleIndicatorState();
 }
 
-class _WhiteCircleIndicatorState extends State<WhiteCircleIndicator>
+class _PercentCircleIndicatorState extends State<PercentCircleIndicator>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
