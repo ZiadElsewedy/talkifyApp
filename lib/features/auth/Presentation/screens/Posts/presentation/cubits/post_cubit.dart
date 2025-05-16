@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Storage/Domain/Storage_repo.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Posts/domain/Entite/Posts.dart';
 
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/domain/repos/Post_repo.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/cubits/post_states.dart';

@@ -23,6 +23,19 @@ class FirebaseStorageRepo implements StorageRepo {
     return uploadfileWeb(fileBytes, fileName, "ProfileImages");
   }
 
+  // Upload post image from mobile device using file path
+  @override
+  Future<String?> uploadPostImageMobile(String imagePath, String fileName) {
+    // Calls the generic upload function for mobile
+    return uploadfile(imagePath, fileName, "PostImages");
+  }
+
+  // Upload post image from web using file bytes
+  @override
+  Future<String?> uploadPostImageWeb(Uint8List fileBytes, String fileName) {
+    return uploadfileWeb(fileBytes, fileName, "PostImages");
+  }
+    
   // Uploads a file from mobile device to Firebase Storage
   Future<String?> uploadfile(String path, String fileName, String folder) async {
     try {
