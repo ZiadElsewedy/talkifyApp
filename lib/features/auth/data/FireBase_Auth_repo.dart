@@ -17,9 +17,11 @@ class FirebaseAuthRepo implements AuthRepo {
     try {
       // attempt to sign in the user with email and password
       UserCredential userCredential = await firebaseAuth.signInWithEmailAndPassword(
-        email: email,
+        email: email, 
         password: password,
       );
+
+
       // check if the user is signed in
       if (userCredential.user?.emailVerified == true) {
         DocumentSnapshot doc = await firestore.collection('users').doc(userCredential.user!.uid).get();

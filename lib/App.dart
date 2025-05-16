@@ -6,7 +6,7 @@ import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dar
 import 'package:talkifyapp/features/auth/Presentation/Cubits/AuthStates.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/AuthPage.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/HomePage.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/HomePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/VerificationEmail.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/data/firebase_post_repo.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/cubits/post_cubit.dart';
@@ -98,7 +98,7 @@ class MyApp extends StatelessWidget {
         },
         builder: (context, state) {
           if (state is Authanticated) {
-            return const HomePage();
+            return  HomePage();
           } else if (state is UnverifiedState || state is EmailVerificationState) {
             return const VerificationEmail();
           } else if (state is UnAuthanticated || state is AuthErrorState) {

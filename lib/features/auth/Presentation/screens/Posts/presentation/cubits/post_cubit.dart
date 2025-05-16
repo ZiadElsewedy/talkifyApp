@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Storage/Domain/Storage_repo.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/Posts.dart';
+
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/domain/repos/Post_repo.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/cubits/post_states.dart';
 
@@ -23,14 +23,14 @@ try{
 // handle image upload for mobile platforms(using file path)
  if (imagePath != null) {
   emit(PostsUploading());
-  imageUrl = await storageRepo.uploadProfileImageMobile(imagePath, post.id);
+  imageUrl = await storageRepo.uploadPostImageMobile(imagePath, post.id);
  }
  
  
  // handle image upload for web platforms(using file bytes)
  else if (imageBytes != null) {
   emit(PostsUploading());
-  imageUrl = await storageRepo.uploadProfileImageWeb(imageBytes, post.id);
+  imageUrl = await storageRepo.uploadPostImageWeb(imageBytes, post.id);
  }
 
 // give image url to post 
@@ -53,9 +53,11 @@ fetechAllPosts();
     try{
       emit(PostsLoading());
       final posts = await postRepo.fetechAllPosts();
+      print('Fetched ${posts.length} posts'); // Debug print
       emit(PostsLoaded(posts));
     }
     catch (e){
+      print('Error fetching posts: $e'); // Debug print
       emit(PostsError("Failed to fetch posts: $e"));
     }
 }

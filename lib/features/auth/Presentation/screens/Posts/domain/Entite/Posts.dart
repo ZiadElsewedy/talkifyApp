@@ -7,7 +7,6 @@ class Post{
   final String Text;
   final String imageUrl;
   final DateTime timestamp;
-
   Post({
     required this.id,
     required this.UserId,

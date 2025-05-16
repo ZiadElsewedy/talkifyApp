@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/Posts.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/cubits/post_states.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyTextField.dart';
@@ -140,7 +140,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Upload Post'),
-        foregroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.black,
         actions: [
           // upload button 
           IconButton(
@@ -150,32 +150,75 @@ class _UploadPostPageState extends State<UploadPostPage> {
         ],
       ),
       body: Center(
-        child: Column(
-          children: [
-            // image perview for web 
-            if (kIsWeb)
-              Image.memory(webImage!),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              // Image preview section
+              Container(
+                height: 300,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: imagepickedfile != null
+                      ? kIsWeb
+                          ? Image.memory(
+                              webImage!,
+                              fit: BoxFit.cover,
+                            )
+                          : Image.file(
+                              File(imagepickedfile!.path!),
+                              fit: BoxFit.cover,
+                            )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.image,
+                              size: 50,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No image selected',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+              const SizedBox(height: 20),
 
-            // image picker for mobile 
-            if (!kIsWeb && webImage != null)
-              Image.file(File(imagepickedfile!.path!)),
+              // Pick image button
+              ElevatedButton.icon(
+                onPressed: pickImage,
+                icon: const Icon(Icons.add_photo_alternate , color: Colors.white,),
+                label: const Text('Pick Image' , style: TextStyle(color: Colors.white),),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
 
-            // pick image button 
-            MaterialButton(
-              onPressed: pickImage,
-              color: Colors.blue,
-              child: const Text('Pick Image'),
-            ),
-
-            // caption text box 
-            MyTextField(
-              controller: TextController,
-              hintText: "Caption",
-              obsecureText: false,
-            ),
-            
-            
-          ],
+              // Caption text box
+              MyTextField(
+                controller: TextController,
+                hintText: "Write a caption...",
+                obsecureText: false,
+              ),
+            ],
+          ),
         ),
       ),
     );
