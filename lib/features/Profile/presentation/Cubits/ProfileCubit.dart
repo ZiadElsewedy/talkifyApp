@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
 import 'package:talkifyapp/features/Storage/Domain/Storage_repo.dart';
 import 'package:talkifyapp/features/Profile/domain/Profile%20repo/ProfileRepo.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
@@ -11,7 +12,7 @@ class ProfileCubit extends Cubit<ProfileStates> {
   ProfileCubit({ required this.profileRepo, required this.Storage}) : super(ProfileInitialState());
   
   // Fetch user profile
-  void fetchUserProfile( String id ) async {
+  Future<void> fetchUserProfile( String id ) async {
     emit(ProfileLoadingState()); // Emit loading state
     try {
       final user = await profileRepo.fetchUserProfile(id); // Fetch user profile by ID
@@ -26,6 +27,12 @@ class ProfileCubit extends Cubit<ProfileStates> {
       emit(ProfileErrorState(e.toString())); // Emit error if exception occurs
     }
   }
+
+  Future<ProfileUser?> GetUserProfileByUsername ( String username ) async {
+      final user = await profileRepo.fetchUserProfile(username); // Fetch user profile by username
+      return user;
+  }
+
 
   // Using the repo to fetch the user profile
   // and update the bio or Profile picture

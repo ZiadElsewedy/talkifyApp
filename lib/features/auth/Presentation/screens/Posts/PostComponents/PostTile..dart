@@ -1,8 +1,16 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Profile/Pages/components/WhiteCircleIndicator.dart';
+import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
+import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/cubits/post_cubit.dart';
+import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
+
+import '../../../../../Profile/presentation/Cubits/ProfileCubit.dart';
 
 class PostTile extends StatefulWidget {
   final Post post;
@@ -13,7 +21,7 @@ class PostTile extends StatefulWidget {
     super.key,
     required this.post,
     this.onDelete,
-    this.isCurrentUser = false, 
+    this.isCurrentUser = true, 
   });
   
  
@@ -22,6 +30,74 @@ class PostTile extends StatefulWidget {
 }
 
 class _PostTileState extends State<PostTile> {
+  late final postCubit = context.read<PostCubit>();
+  late final profileCubit = context.read<ProfileCubit>();
+  AppUser? currentUser;
+  ProfileUser? PostUser;
+  bool isOwnPost = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    await GetCurrentUser();
+    await FetchPostUser();
+  }
+
+  Future<void> GetCurrentUser() async {
+    try {
+      final authCubit = context.read<AuthCubit>();
+      currentUser = authCubit.GetCurrentUser();
+      if (mounted) {
+        setState(() {
+          isOwnPost = (widget.post.UserId == currentUser?.id);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error getting current user: $e');
+    }
+  }
+
+  Future<void> FetchPostUser() async {
+    try {
+      final fetchedUser = await profileCubit.GetUserProfileByUsername(widget.post.UserName);
+      if (fetchedUser != null && mounted) {
+        setState(() {
+          PostUser = fetchedUser;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching post user: $e');
+    }
+  }
+
+
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Post'),
+        content: const Text('Are you sure you want to delete this post?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              widget.onDelete?.call();
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -49,7 +125,7 @@ class _PostTileState extends State<PostTile> {
                             height: 40,
                             width: 40,
                             fit: BoxFit.cover,
-                            placeholder: (context, url) => const ProfessionalCircularProgress(),
+                            placeholder: (context, url) => const PercentCircleIndicator(),
                             errorWidget: (context, url, error) => Text(
                               widget.post.UserName[0].toUpperCase(),
                               style: const TextStyle(
@@ -58,7 +134,7 @@ class _PostTileState extends State<PostTile> {
                               ),
                             ),
                           ),
-                        )
+                        )  
                       : Text(
                           widget.post.UserName[0].toUpperCase(),
                           style: const TextStyle(
@@ -91,27 +167,10 @@ class _PostTileState extends State<PostTile> {
                   ),
                 ),
                 // More options button
-                if (widget.isCurrentUser == true)
+                if (isOwnPost)
                   IconButton(
                     icon: const Icon(Icons.more_vert),
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        builder: (context) => Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ListTile(
-                              leading: const Icon(Icons.delete, color: Colors.red),
-                              title: const Text('Delete Post'),
-                              onTap: () {
-                                Navigator.pop(context);
-                                widget.onDelete?.call();
-                              },
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                    onPressed: _showDeleteConfirmation,
                   ),
               ],
             ),
@@ -127,7 +186,7 @@ class _PostTileState extends State<PostTile> {
               placeholder: (context, url) => Container(
                 height: 400,
                 color: Colors.grey[200],
-                child: const Center(child: ProfessionalCircularProgress()),
+                child: const Center(child: PercentCircleIndicator()),
               ),
               errorWidget: (context, url, error) => Container(
                 height: 400,
@@ -164,6 +223,11 @@ class _PostTileState extends State<PostTile> {
                   onPressed: () {},
                 ),
                 const Spacer(),
+                if (isOwnPost)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    onPressed: _showDeleteConfirmation,
+                  ),
                 IconButton(
                   icon: const Icon(Icons.bookmark_border),
                   onPressed: () {},
