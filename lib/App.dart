@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Profile/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Storage/Data/Filebase_Storage_repo.dart';
 import 'package:talkifyapp/features/Profile/data/Firebase_profile_repo.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
@@ -106,7 +107,7 @@ class MyApp extends StatelessWidget {
           } else if (state is AuthLoadingState) {
             return const Scaffold(
               body: Center(
-                child: ProfessionalCircularProgress(),
+                child: PercentCircleIndicator(),
               ),
             );
           }
