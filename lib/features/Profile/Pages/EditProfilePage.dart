@@ -11,6 +11,7 @@ import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dar
 import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyTextField.dart';
+import 'package:talkifyapp/features/Profile/Pages/components/ProfilePicFunction.dart';
 
 class EditProfilePage extends StatefulWidget {
   EditProfilePage({super.key, required this.user});
@@ -23,33 +24,27 @@ class EditProfilePage extends StatefulWidget {
 
 class _EditProfilePageState extends State<EditProfilePage> {
   // Profile image pick
-  PlatformFile? imagePickedFile;
-  Uint8List? webImage;
+  PlatformFile? ProfileimagePickedFile;
+  Uint8List? ProfilewebImage;
   
   // Background image pick
   PlatformFile? backgroundImagePickedFile;
   Uint8List? webBackgroundImage;
 
-  Future<void> pickImage({bool isBackground = false}) async {
+  // General image picker function
+  Future<Map<String, dynamic>?> pickImageGeneral() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       withData: kIsWeb,
     );
+    
     if (result != null && result.files.isNotEmpty) {
-      setState(() {
-        if (isBackground) {
-          backgroundImagePickedFile = result.files.first;
-          if (kIsWeb) {
-            webBackgroundImage = result.files.first.bytes;
-          }
-        } else {
-          imagePickedFile = result.files.first;
-          if (kIsWeb) {
-            webImage = result.files.first.bytes;
-          }
-        }
-      });
+      return {
+        'file': result.files.first,
+        'bytes': kIsWeb ? result.files.first.bytes : null,
+      };
     }
+    return null;
   }
 
   final BioTextcontroller = TextEditingController();
@@ -69,8 +64,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final String id = widget.user.id;
     
     // Profile image paths
-    final imageMobilePath = kIsWeb ? null : imagePickedFile?.path;
-    final ImageWebBytes = kIsWeb ? imagePickedFile?.bytes : null;
+    final imageMobilePath = kIsWeb ? null : ProfileimagePickedFile?.path;
+    final ImageWebBytes = kIsWeb ? ProfileimagePickedFile?.bytes : null;
     
     // Background image paths
     final backgroundImageMobilePath = kIsWeb ? null : backgroundImagePickedFile?.path;
@@ -80,7 +75,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final String newName = nameController.text.isNotEmpty ? nameController.text : widget.user.name;
     final String newHintDescription = hintDescriptionController.text.isNotEmpty ? hintDescriptionController.text : widget.user.HintDescription;
 
-    if (imagePickedFile != null || backgroundImagePickedFile != null || newBio != null) {
+    if (ProfileimagePickedFile != null || backgroundImagePickedFile != null || newBio != null) {
       profilecubit.updateUserProfile(
         id: id,
         newName: newName,
@@ -177,7 +172,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           ),
                           padding: const EdgeInsets.all(8),
                           child: IconButton(
-                            onPressed: () => pickImage(isBackground: true),
+                            onPressed: () async {
+                              final pickedImage = await pickImageGeneral();
+                              if (pickedImage != null) {
+                                setState(() {
+                                  backgroundImagePickedFile = pickedImage['file'];
+                                  if (kIsWeb) {
+                                    webBackgroundImage = pickedImage['bytes'];
+                                  }
+                                });
+                              }
+                            },
                             icon: const Icon(Icons.add_photo_alternate, color: Colors.white, size: 28),
                             tooltip: "Change Background",
                             padding: EdgeInsets.zero,
@@ -192,77 +197,57 @@ class _EditProfilePageState extends State<EditProfilePage> {
               const SizedBox(height: 20),
               // Profile Picture Section
               Center(
-                child: Container(
-                  height: 150,
-                  width: 150,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      ClipOval(
-                        child: kIsWeb
-                            ? (webImage != null
-                                ? Image.memory(webImage!, fit: BoxFit.cover)
-                                : CachedNetworkImage(
-                                    imageUrl: widget.user.profilePictureUrl,
-                                    placeholder: (context, url) => const Center(child: ProfessionalCircularProgress()),
-                                    errorWidget: (context, url, error) => const Icon(Icons.person, size: 72),
-                                    imageBuilder: (context, imageProvider) => CircleAvatar(
-                                      radius: 75,
-                                      backgroundImage: imageProvider,
-                                    ),
-                                  ))
-                            : (imagePickedFile != null
-                                ? Image.file(File(imagePickedFile!.path!), fit: BoxFit.cover)
-                                : CachedNetworkImage(
-                                    imageUrl: widget.user.profilePictureUrl,
-                                    placeholder: (context, url) => const Center(child: ProfessionalCircularProgress()),
-                                    errorWidget: (context, url, error) => const Icon(Icons.person, size: 72),
-                                    imageBuilder: (context, imageProvider) => CircleAvatar(
-                                      radius: 75,
-                                      backgroundImage: imageProvider,
-                                    ),
-                                  )),
-                      ),
-                      // Profile Picture Upload Button
-                      Positioned(
-                        bottom: 15,
-                        right: 10,
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 1,
-                              style: BorderStyle.solid,
-                            ),
+                child: Stack(
+                  children: [
+                    ProfilePicFunction(
+                      state: context.watch<ProfileCubit>().state,
+                      profilePictureUrl: widget.user.profilePictureUrl,
+                      pickedFile: ProfileimagePickedFile,
+                      webImage: ProfilewebImage,
+                      size: 150,
+                      showBorder: true,
+                      borderColor: Colors.white,
+                      borderWidth: 1.2,
+                    ),
+                    // Profile Picture Upload Button
+                    Positioned(
+                      bottom: 15,
+                      right: 10,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 1,
+                            style: BorderStyle.solid,
                           ),
-                          child: IconButton(
-                            onPressed: () => pickImage(isBackground: false),
-                            icon: const Icon(Icons.add_a_photo, color: Colors.white, size: 14),
-                            tooltip: "Change Profile Picture",
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 32,
-                              minHeight: 32,
-                            ),
+                        ),
+                        child: IconButton(
+                          onPressed: () async {
+                            final pickedImage = await pickImageGeneral();
+                            if (pickedImage != null) {
+                              setState(() {
+                                ProfileimagePickedFile = pickedImage['file'];
+                                if (kIsWeb) {
+                                  ProfilewebImage = pickedImage['bytes'];
+                                }
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.add_a_photo, color: Colors.white, size: 14),
+                          tooltip: "Change Profile Picture",
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 20),

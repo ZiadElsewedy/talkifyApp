@@ -1,10 +1,10 @@
 // this code for drawer 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Profile/Pages/components/ProfilePicFunction.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Profile/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/ConfirmLogOut.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyDrawerTile.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
@@ -33,55 +33,10 @@ class MyDrawer extends StatelessWidget {
                 const SizedBox(height: 40),
                 BlocBuilder<ProfileCubit, ProfileStates>(
                   builder: (context, state) {
-                    if (state is ProfileLoadedState) {
-                      return Container(
-                        width: 150,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.grey[200],
-                        ),
-                        child: ClipOval(
-                          child: state.profileuser.profilePictureUrl.isNotEmpty
-                              ? Image.network(
-                                  state.profileuser.profilePictureUrl,
-                                  fit: BoxFit.cover,
-                                  loadingBuilder: (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return const Center(
-                                      child: ProfessionalCircularProgress(),
-                                    );
-                                  },
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Icon(Icons.person, size: 50, color: Colors.grey[400]);
-                                  },
-                                )
-                              : Icon(Icons.person, size: 50, color: Colors.grey[400]),
-                        ),
-                      );
-                    } else if (state is ProfileLoadingState) {
-                      return Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.grey[200],
-                        ),
-                        child: const Center(
-                          child: ProfessionalCircularProgress(),
-                        ),
-                      );
-                    } else {
-                      return Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.grey[200],
-                        ),
-                        child: Icon(Icons.person, size: 50, color: Colors.grey[400]),
-                      );
-                    }
+                    return ProfilePicFunction(
+                      state: state,
+                      profilePictureUrl: state is ProfileLoadedState ? state.profileuser.profilePictureUrl : null,
+                    );
                   },
                 ),
                 const SizedBox(height: 30),
