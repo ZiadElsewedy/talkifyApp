@@ -8,6 +8,8 @@ import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/AuthPage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/HomePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/VerificationEmail.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Posts/data/firebase_post_repo.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 // things need to do ! 
@@ -30,6 +32,7 @@ class MyApp extends StatelessWidget {
   final FirebaseprofileRepo =  FirebaseProfileRepo();
   final FirebasestorageRepo = FirebaseStorageRepo();
   final FirebaseauthRepo = FirebaseAuthRepo();
+  final firebasePostRepo = FirebasePostRepo();
   // Initialize the ProfileRepo
   // Initialize the AuthRepo
   @override
@@ -43,9 +46,13 @@ class MyApp extends StatelessWidget {
           create: (context) => ProfileCubit(
             profileRepo: FirebaseprofileRepo,
             Storage: FirebasestorageRepo ) // Pass the StorageRepo to ProfileCubit),
-          
            // Pass the authRepo to ProfileCubit
         ),
+
+        // post cubit 
+        BlocProvider<PostCubit>(
+          create: (context) => PostCubit(postRepo: firebasePostRepo, storageRepo: FirebasestorageRepo)
+        )
       ],
     
      child: MaterialApp(

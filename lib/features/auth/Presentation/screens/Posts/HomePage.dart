@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Posts/pages/upload_post_page.dart' show UploadPostPage;
 import 'package:talkifyapp/features/auth/Presentation/screens/components/Mydrawer.dart';
 
 class HomePage extends StatelessWidget {
@@ -9,9 +10,15 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Home Page'),
-        centerTitle: true,
-        
-        
+        actions: [
+        // upload new post button
+        IconButton(
+          onPressed: () => Navigator.push(
+            context,
+             MaterialPageRoute(
+              builder: (context) => const UploadPostPage())),
+           icon: const Icon(Icons.add))
+        ],
       ),
       drawer: MyDrawer()
     );

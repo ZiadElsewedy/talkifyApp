@@ -39,6 +39,10 @@ final newPost = post.copyWith(imageUrl: imageUrl);
 
 // create this post in the backend 
 postRepo.CreatePost(newPost);
+
+// re-fetch all posts
+fetechAllPosts(); 
+
 }catch(e){
     emit(PostsError("Failed to create post: $e"));
   }
