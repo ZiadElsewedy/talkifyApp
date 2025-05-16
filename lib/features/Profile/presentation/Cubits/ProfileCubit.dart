@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:talkifyapp/Storage/Domain/Storage_repo.dart';
+import 'package:talkifyapp/features/Storage/Domain/Storage_repo.dart';
 import 'package:talkifyapp/features/Profile/domain/Profile%20repo/ProfileRepo.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
 
