@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Posts/PostComponents/PostTile..dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/pages/upload_post_page.dart' show UploadPostPage;
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/cubits/post_states.dart';
@@ -63,29 +64,7 @@ class _HomePageState extends State<HomePage> {
                 itemCount: allPosts.length,
                 itemBuilder: (context, index) {
                   final post = allPosts[index];
-                  return Card(
-                    margin: const EdgeInsets.all(8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // User info
-                        ListTile(
-                          title: Text(post.UserName),
-                          subtitle: Text(post.Text),
-                        ),
-                        // Post image
-                        if (post.imageUrl.isNotEmpty)
-                          CachedNetworkImage(
-                            imageUrl: post.imageUrl,
-                            placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                            errorWidget: (context, url, error) => const Icon(Icons.error),
-                            height: 200,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                      ],
-                    ),
-                  );
+                  return PostTile(post: post);
                 },
               );
             }
