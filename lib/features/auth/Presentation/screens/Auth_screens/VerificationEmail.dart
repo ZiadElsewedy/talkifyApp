@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/AuthStates.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/HomePage.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/HomePage.dart';
 
 class VerificationEmail extends StatefulWidget {
   const VerificationEmail({super.key});

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Storage/Domain/Storage_repo.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/Posts.dart';
+import 'package:talkifyapp/features/auth/Presentation/screens/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/domain/repos/Post_repo.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/cubits/post_states.dart';
 
@@ -53,9 +53,11 @@ fetechAllPosts();
     try{
       emit(PostsLoading());
       final posts = await postRepo.fetechAllPosts();
+      print('Fetched ${posts.length} posts'); // Debug print
       emit(PostsLoaded(posts));
     }
     catch (e){
+      print('Error fetching posts: $e'); // Debug print
       emit(PostsError("Failed to fetch posts: $e"));
     }
 }
