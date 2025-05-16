@@ -8,23 +8,19 @@ import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/domain/Entite/Posts.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 
 import '../../../../../Profile/presentation/Cubits/ProfileCubit.dart';
 
 class PostTile extends StatefulWidget {
   final Post post;
   final VoidCallback? onDelete;
-  final bool? isCurrentUser;
 
   const PostTile({
     super.key,
     required this.post,
     this.onDelete,
-    this.isCurrentUser = true, 
   });
   
- 
   @override
   State<PostTile> createState() => _PostTileState();
 }
@@ -39,10 +35,10 @@ class _PostTileState extends State<PostTile> {
   @override
   void initState() {
     super.initState();
-    _initializeData();
+    initializeData();
   }
 
-  Future<void> _initializeData() async {
+  Future<void> initializeData() async {
     await GetCurrentUser();
     await FetchPostUser();
   }
@@ -74,13 +70,13 @@ class _PostTileState extends State<PostTile> {
     }
   }
 
-
-  void _showDeleteConfirmation() {
+  void showDeleteConfirmation() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Post'),
         content: const Text('Are you sure you want to delete this post?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -100,50 +96,57 @@ class _PostTileState extends State<PostTile> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-      elevation: 0,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.zero,
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header with user info and options
           Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
                 // User avatar
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.grey[200],
-                  child: widget.post.UserProfilePic.isNotEmpty
-                      ? ClipOval(
-                          child: CachedNetworkImage(
-                            imageUrl: widget.post.UserProfilePic,
-                            height: 40,
-                            width: 40,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => const PercentCircleIndicator(),
-                            errorWidget: (context, url, error) => Text(
-                              widget.post.UserName[0].toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.black87,
-                                fontWeight: FontWeight.bold,
+                Hero(
+                  tag: 'profile_${widget.post.UserId}_${widget.post.id}',
+                  child: CircleAvatar(
+                    radius: 24,
+                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    child: widget.post.UserProfilePic.isNotEmpty
+                        ? ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: widget.post.UserProfilePic,
+                              height: 48,
+                              width: 48,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => const PercentCircleIndicator(),
+                              errorWidget: (context, url, error) => Text(
+                                widget.post.UserName[0].toUpperCase(),
+                                style: TextStyle(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
                               ),
                             ),
+                          )  
+                        : Text(
+                            widget.post.UserName[0].toUpperCase(),
+                            style: TextStyle(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
                           ),
-                        )  
-                      : Text(
-                          widget.post.UserName[0].toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.black87,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                  ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 // User name and time
                 Expanded(
                   child: Column(
@@ -152,15 +155,15 @@ class _PostTileState extends State<PostTile> {
                       Text(
                         widget.post.UserName,
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
                         ),
                       ),
                       Text(
                         timeago.format(widget.post.timestamp),
                         style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          fontSize: 13,
                         ),
                       ),
                     ],
@@ -169,8 +172,8 @@ class _PostTileState extends State<PostTile> {
                 // More options button
                 if (isOwnPost)
                   IconButton(
-                    icon: const Icon(Icons.more_vert),
-                    onPressed: _showDeleteConfirmation,
+                    icon: Icon(Icons.more_vert, color: theme.colorScheme.onSurface),
+                    onPressed: showDeleteConfirmation,
                   ),
               ],
             ),
@@ -178,58 +181,61 @@ class _PostTileState extends State<PostTile> {
 
           // Post image
           if (widget.post.imageUrl.isNotEmpty)
-            CachedNetworkImage(
-              imageUrl: widget.post.imageUrl,
-              height: 400,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+              child: CachedNetworkImage(
+                imageUrl: widget.post.imageUrl,
                 height: 400,
-                color: Colors.grey[200],
-                child: const Center(child: PercentCircleIndicator()),
-              ),
-              errorWidget: (context, url, error) => Container(
-                height: 400,
-                color: Colors.grey[200],
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, color: Colors.red[400], size: 40),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Failed to load image',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                  ],
+                width: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  height: 400,
+                  color: theme.colorScheme.surface,
+                  child: const Center(child: PercentCircleIndicator()),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  height: 400,
+                  color: theme.colorScheme.surface,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, color: theme.colorScheme.error, size: 40),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Failed to load image',
+                        style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
 
           // Post actions (like, comment, share)
           Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.favorite_border),
+                  icon: Icon(Icons.favorite_border, color: theme.colorScheme.onSurface),
                   onPressed: () {},
                 ),
                 IconButton(
-                  icon: const Icon(Icons.chat_bubble_outline),
+                  icon: Icon(Icons.chat_bubble_outline, color: theme.colorScheme.onSurface),
                   onPressed: () {},
                 ),
                 IconButton(
-                  icon: const Icon(Icons.send_outlined),
+                  icon: Icon(Icons.send_outlined, color: theme.colorScheme.onSurface),
                   onPressed: () {},
                 ),
                 const Spacer(),
                 if (isOwnPost)
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    onPressed: _showDeleteConfirmation,
+                    icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
+                    onPressed: showDeleteConfirmation,
                   ),
                 IconButton(
-                  icon: const Icon(Icons.bookmark_border),
+                  icon: Icon(Icons.bookmark_border, color: theme.colorScheme.onSurface),
                   onPressed: () {},
                 ),
               ],
@@ -241,9 +247,10 @@ class _PostTileState extends State<PostTile> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
               '0 likes',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
                 fontSize: 14,
+                color: theme.colorScheme.onSurface,
               ),
             ),
           ),
@@ -254,20 +261,19 @@ class _PostTileState extends State<PostTile> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: RichText(
                 text: TextSpan(
-                  style: DefaultTextStyle.of(context).style,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontSize: 14,
+                  ),
                   children: [
                     TextSpan(
                       text: '${widget.post.UserName} ',
                       style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     TextSpan(
                       text: widget.post.Text,
-                      style: const TextStyle(
-                        fontSize: 14,
-                      ),
                     ),
                   ],
                 ),
