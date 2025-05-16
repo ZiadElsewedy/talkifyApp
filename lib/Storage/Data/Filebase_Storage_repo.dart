@@ -9,6 +9,11 @@ class FirebaseStorageRepo implements StorageRepo {
   // Create a singleton instance of FirebaseStorage
   final FirebaseStorage storage = FirebaseStorage.instance;
 
+
+  /*
+  profile pictures - upload image to storage 
+  */
+
   // Upload profile image from mobile device using file path
   @override
   Future<String?> uploadProfileImageMobile(String imagePath, String fileName) {
@@ -22,6 +27,22 @@ class FirebaseStorageRepo implements StorageRepo {
     // Calls the generic upload function for web
     return uploadfileWeb(fileBytes, fileName, "ProfileImages");
   }
+
+
+  /*
+   post images - upload image to storage 
+  */
+
+  @override
+  Future<String?> uploadPostImageMobile(String imagePath, String fileName) {
+    return uploadfile(imagePath, fileName, "PostImages");
+  }
+
+  @override
+  Future<String?> uploadPostImageWeb(Uint8List fileBytes, String fileName) {
+    return uploadfileWeb(fileBytes, fileName, "PostImages");
+  }
+
 
   // Uploads a file from mobile device to Firebase Storage
   Future<String?> uploadfile(String path, String fileName, String folder) async {
