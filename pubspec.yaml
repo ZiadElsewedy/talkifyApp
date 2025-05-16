@@ -44,6 +44,7 @@ dependencies:
   firebase_storage: ^12.4.5
   file_picker: ^10.1.2
   cached_network_image: ^3.4.1
+  timeago: ^3.7.1
 
 dev_dependencies:
   flutter_test:

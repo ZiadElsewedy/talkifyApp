@@ -11,7 +11,6 @@ import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation
 import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/VerificationEmail.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/data/firebase_post_repo.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/cubits/post_cubit.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 // things need to do ! 
 // 1. add firebase options

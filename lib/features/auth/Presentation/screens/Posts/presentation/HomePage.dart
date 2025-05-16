@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Profile/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/PostComponents/PostTile..dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/pages/upload_post_page.dart' show UploadPostPage;
 import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/cubits/post_cubit.dart';
@@ -50,7 +51,7 @@ class _HomePageState extends State<HomePage> {
       body: BlocBuilder<PostCubit, PostState>(
         builder: (context, state) {
           if (state is PostsUploading || state is PostsLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: PercentCircleIndicator());
           } 
           else if (state is PostsLoaded) {
             final allPosts = state.posts;
