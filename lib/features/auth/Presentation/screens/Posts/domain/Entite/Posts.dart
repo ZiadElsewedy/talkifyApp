@@ -8,6 +8,7 @@ class Post{
   final String Text;
   final String imageUrl;
   final DateTime timestamp;
+  final List<String> likes; // store user id who liked the post
   Post({
     required this.id,
     required this.UserId,
@@ -16,6 +17,7 @@ class Post{
     required this.Text,
     required this.imageUrl,
     required this.timestamp,
+    required this.likes,
   });
 
   // if u need change anything in this post
@@ -28,6 +30,7 @@ class Post{
       Text: Text,
       imageUrl: imageUrl ?? this.imageUrl,
       timestamp: timestamp,
+      likes: likes,
     );
   }
 
@@ -41,13 +44,14 @@ class Post{
       "text": Text,
       "imageurl": imageUrl,
       "timestamp": timestamp,
+      "likes": likes,
     };
   }
 
 
   // convert json --> post
   factory Post.fromJson(Map<String, dynamic> json){
-    return Post(
+    return Post(  
       id: json["id"], 
       UserId: json["UserId"],
       UserName: json["name"],
@@ -55,6 +59,7 @@ class Post{
       Text: json["text"],
       imageUrl: json["imageurl"],
       timestamp: (json["timestamp"] as Timestamp).toDate(),
+      likes: List<String>.from(json["likes"] ?? []),
     );
   }
 }

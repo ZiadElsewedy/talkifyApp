@@ -6,5 +6,6 @@ abstract class PostRepo {
   Future <void> deletePost(String postId);
   // fetching posts foe a specific user 
   Future <List<Post>> fetechPostsByUserId(String UserId);
+  Future <void> toggleLikePost(String postId, String userId);
 
 }

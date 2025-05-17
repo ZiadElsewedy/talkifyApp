@@ -70,6 +70,40 @@ class _PostTileState extends State<PostTile> {
     }
   }
 
+/*
+Likes
+*/
+
+// user tapped like button 
+void toggleLikePost(){
+  // current like status 
+  final isLiked = widget.post.likes.contains(currentUser!.id);
+
+  // optimistically like & update UI 
+  setState(() {
+    if (isLiked){
+      widget.post.likes.remove(currentUser!.id); // unliked
+    }
+    else{
+      widget.post.likes.add(currentUser!.id); // liked
+    }
+  });
+
+  // update like
+  postCubit.toggleLikePost(widget.post.id, currentUser!.id).catchError((error){
+    // if there's an error, get back to original values
+    setState(() {
+    if (isLiked){
+      widget.post.likes.add(currentUser!.id); // revert unlike 
+    }
+    else{
+      widget.post.likes.remove(currentUser!.id); // revert like 
+    }
+  });
+  });
+ 
+}
+
   void showDeleteConfirmation() {
     showDialog(
       context: context,
@@ -216,9 +250,13 @@ class _PostTileState extends State<PostTile> {
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
             child: Row(
               children: [
-                IconButton(
-                  icon: Icon(Icons.favorite_border, color: theme.colorScheme.onSurface),
-                  onPressed: () {},
+                GestureDetector(
+                  onTap: toggleLikePost,
+                  child: Icon( widget.post.likes.contains(currentUser!.id) 
+                    ? Icons.favorite
+                    : Icons.favorite_border,
+                    color: widget.post.likes.contains(currentUser!.id) 
+                    ? Colors.red : theme.colorScheme.onSurface),
                 ),
                 IconButton(
                   icon: Icon(Icons.chat_bubble_outline, color: theme.colorScheme.onSurface),
@@ -246,7 +284,7 @@ class _PostTileState extends State<PostTile> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
-              '0 likes',
+              widget.post.likes.length.toString(), // likes count
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,

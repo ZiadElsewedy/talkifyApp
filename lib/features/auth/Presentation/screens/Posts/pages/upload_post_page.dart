@@ -85,6 +85,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
         Text: TextController.text,
         imageUrl: '',
         timestamp: DateTime.now(),
+        likes: [],
     );
 
 

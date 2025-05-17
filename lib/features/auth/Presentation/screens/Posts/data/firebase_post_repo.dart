@@ -22,6 +22,7 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
         Text: post.Text,
         imageUrl: post.imageUrl,
         timestamp: post.timestamp,
+        likes: post.likes,
       );
       // Set the document with the post data
       await docRef.set(postWithId.toJson());
@@ -94,4 +95,38 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
       throw Exception("Error fetching posts by user: $e");
     }
   }
+
+  @override
+  Future<void> toggleLikePost(String postId, String userId) async {
+    try {
+      // Get the post document from firestore
+      final postDoc = await postsCollection.doc(postId).get();
+      if (postDoc.exists) {
+        final post = Post.fromJson(postDoc.data() as Map<String, dynamic>);
+
+        // check if the user has already like this post
+        final HasLiked = post.likes.contains(userId);
+
+        // update the like list 
+        if (HasLiked){
+          // remove the like
+          post.likes.remove(userId); // unlike the post
+        }else{
+          // add the like
+          post.likes.add(userId); // like the post
+        }
+
+        // update the post document with the new like list
+        await postsCollection.doc(postId).update({
+          'likes': post.likes,
+        });
+      } else {
+        throw Exception("Post not found");
+      }
+    }
+catch (e){
+  throw Exception("Error toggling like: $e");
+}
+  }
+
 }
