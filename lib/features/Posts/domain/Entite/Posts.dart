@@ -39,7 +39,7 @@ class Post{
   }
 
   // convert post --> json
-  Map<String, dynamic>toJson(){
+  Map<String, dynamic> toJson() {
     return {
       "id": id,
       "UserId": UserId,
@@ -49,22 +49,24 @@ class Post{
       "imageurl": imageUrl,
       "timestamp": timestamp,
       "likes": likes,
-      "comments": comments,
+      "comments": comments.map((comment) => comment.toJson()).toList(),
     };
   }
 
-
   // convert json --> post
-  factory Post.fromJson(Map<String, dynamic> json){
+  factory Post.fromJson(Map<String, dynamic> json) {
+    // Handle null comments by providing an empty list
+    final List<Comments> comments = (json['comments'] as List<dynamic>?)?.map((commentJson) {
+      return Comments.fromJson(commentJson as Map<String, dynamic>);
+    }).toList() ?? [];
 
-    final List<Comments> comments = (json['comments'] as List).map((json) => Comments.fromJson(json)).toList();
     return Post(  
-      id: json["id"], 
-      UserId: json["UserId"],
-      UserName: json["name"],
-      UserProfilePic: json["UserProfilePic"] ?? '',
-      Text: json["text"],
-      imageUrl: json["imageurl"],
+      id: json["id"] as String, 
+      UserId: json["UserId"] as String,
+      UserName: json["name"] as String,
+      UserProfilePic: json["UserProfilePic"] as String? ?? '',
+      Text: json["text"] as String,
+      imageUrl: json["imageurl"] as String? ?? '',
       timestamp: (json["timestamp"] as Timestamp).toDate(),
       likes: List<String>.from(json["likes"] ?? []),
       comments: comments,

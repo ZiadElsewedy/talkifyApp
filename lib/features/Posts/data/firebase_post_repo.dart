@@ -101,34 +101,47 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
   @override
   Future<void> toggleLikePost(String postId, String userId) async {
     try {
+      // Validate parameters
+      if (postId.isEmpty || userId.isEmpty) {
+        throw Exception("Invalid parameters: postId or userId is empty");
+      }
+      
       // Get the post document from firestore
       final postDoc = await postsCollection.doc(postId).get();
       if (postDoc.exists) {
-        final post = Post.fromJson(postDoc.data() as Map<String, dynamic>);
-
-        // check if the user has already like this post
-        final HasLiked = post.likes.contains(userId);
-
-        // update the like list 
-        if (HasLiked){
-          // remove the like
-          post.likes.remove(userId); // unlike the post
-        }else{
-          // add the like
-          post.likes.add(userId); // like the post
+        final data = postDoc.data() as Map<String, dynamic>;
+        
+        // Ensure 'likes' field exists and is a List
+        List<String> likes = [];
+        if (data.containsKey('likes')) {
+          // Convert all items to String to avoid type issues
+          likes = (data['likes'] as List?)
+              ?.map((item) => item?.toString() ?? "")
+              .where((item) => item.isNotEmpty)
+              .toList() ?? [];
         }
-
-        // update the post document with the new like list
+        
+        // Check if user has already liked this post
+        final hasLiked = likes.contains(userId);
+        
+        // Update the likes list
+        if (hasLiked) {
+          likes.remove(userId); // Unlike the post
+        } else {
+          likes.add(userId); // Like the post
+        }
+        
+        // Update the post document with the new likes list
         await postsCollection.doc(postId).update({
-          'likes': post.likes,
+          'likes': likes,
         });
       } else {
         throw Exception("Post not found");
       }
+    } catch (e) {
+      print('Error in toggleLikePost: $e');
+      throw Exception("Error toggling like: $e");
     }
-catch (e){
-  throw Exception("Error toggling like: $e");
-}
   }
 
   @override

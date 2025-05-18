@@ -8,6 +8,7 @@ import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
+import 'package:talkifyapp/features/Posts/PostComponents/commentTile.dart';
 
 import '../../Profile/presentation/Cubits/ProfileCubit.dart';
 
@@ -76,6 +77,14 @@ Likes
 
 // user tapped like button 
 void toggleLikePost(){
+  // Check if user is logged in
+  if (currentUser == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please log in to like posts'))
+    );
+    return;
+  }
+
   // current like status 
   final isLiked = widget.post.likes.contains(currentUser!.id);
 
@@ -89,19 +98,25 @@ void toggleLikePost(){
     }
   });
 
-  // update like
+  // update like in database
   postCubit.toggleLikePost(widget.post.id, currentUser!.id).catchError((error){
-    // if there's an error, get back to original values
+    print('Error toggling like: $error');
+    
+    // if there's an error, revert back to original values
     setState(() {
-    if (isLiked){
-      widget.post.likes.add(currentUser!.id); // revert unlike 
-    }
-    else{
-      widget.post.likes.remove(currentUser!.id); // revert like 
-    }
+      if (isLiked){
+        widget.post.likes.add(currentUser!.id); // revert unlike 
+      }
+      else{
+        widget.post.likes.remove(currentUser!.id); // revert like 
+      }
+    });
+    
+    // Show error to user
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to update like: ${error.toString()}'))
+    );
   });
-  });
- 
 }
 
   void showDeleteConfirmation() {
@@ -127,16 +142,70 @@ void toggleLikePost(){
       ),
     );
   }
+/*
+Comments
+*/
+
+final TextEditingController commentController = TextEditingController();
+void OpenCommentBox() {  
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Add a new comment'),
+      content: TextField(
+        controller: commentController,
+        decoration: const InputDecoration(
+          hintText: 'Write your comment...',
+        ),
+        maxLines: 3,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () async {
+            if (commentController.text.trim().isNotEmpty) {
+               addComment();
+              if (mounted) {
+                Navigator.pop(context);
+              }
+            }
+          },
+          child: const Text('Add'),
+        ),
+      ],
+    ),
+  );
+}
+// user tapped comment button 
+void addComment(){
+  final content = commentController.text.trim();
+  if (content.isNotEmpty){
+    postCubit.addComment(widget.post.id, currentUser!.id, currentUser!.name, currentUser!.profilePictureUrl, content);
+    commentController.clear();
+  }
+}
+
+@override
+  void dispose() {
+    commentController.dispose();
+    super.dispose();
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      elevation: 3,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,7 +220,7 @@ void toggleLikePost(){
                   tag: 'profile_${widget.post.UserId}_${widget.post.id}',
                   child: CircleAvatar(
                     radius: 24,
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    backgroundColor: colorScheme.primary.withOpacity(0.2),
                     child: widget.post.UserProfilePic.isNotEmpty
                         ? ClipOval(
                             child: CachedNetworkImage(
@@ -165,7 +234,7 @@ void toggleLikePost(){
                                     ? widget.post.UserName[0].toUpperCase()
                                     : '?',
                                 style: TextStyle(
-                                  color: theme.colorScheme.primary,
+                                  color: colorScheme.primary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
                                 ),
@@ -177,7 +246,7 @@ void toggleLikePost(){
                                 ? widget.post.UserName[0].toUpperCase()
                                 : '?',
                             style: TextStyle(
-                              color: theme.colorScheme.primary,
+                              color: colorScheme.primary,
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
                             ),
@@ -200,7 +269,7 @@ void toggleLikePost(){
                       Text(
                         timeago.format(widget.post.timestamp),
                         style: TextStyle(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: colorScheme.onSurface.withOpacity(0.6),
                           fontSize: 13,
                         ),
                       ),
@@ -210,90 +279,10 @@ void toggleLikePost(){
                 // More options button
                 if (isOwnPost)
                   IconButton(
-                    icon: Icon(Icons.more_vert, color: theme.colorScheme.onSurface),
+                    icon: Icon(Icons.more_vert, color: colorScheme.primary),
                     onPressed: showDeleteConfirmation,
                   ),
               ],
-            ),
-          ),
-
-          // Post image
-          if (widget.post.imageUrl.isNotEmpty)
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
-              child: CachedNetworkImage(
-                imageUrl: widget.post.imageUrl,
-                height: 400,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  height: 400,
-                  color: theme.colorScheme.surface,
-                  child: const Center(child: PercentCircleIndicator()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  height: 400,
-                  color: theme.colorScheme.surface,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, color: theme.colorScheme.error, size: 40),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Failed to load image',
-                        style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-          // Post actions (like, comment, share)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: toggleLikePost,
-                  child: Icon( widget.post.likes.contains(currentUser!.id) 
-                    ? Icons.favorite
-                    : Icons.favorite_border,
-                    color: widget.post.likes.contains(currentUser!.id) 
-                    ? Colors.red : theme.colorScheme.onSurface),
-                ),
-                IconButton(
-                  icon: Icon(Icons.chat_bubble_outline, color: theme.colorScheme.onSurface),
-                  onPressed: () {},
-                ),
-                IconButton(
-                  icon: Icon(Icons.send_outlined, color: theme.colorScheme.onSurface),
-                  onPressed: () {},
-                ),
-                const Spacer(),
-                if (isOwnPost)
-                  IconButton(
-                    icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
-                    onPressed: showDeleteConfirmation,
-                  ),
-                IconButton(
-                  icon: Icon(Icons.bookmark_border, color: theme.colorScheme.onSurface),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-          ),
-
-          // Likes count
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              widget.post.likes.length.toString(), // likes count
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                color: theme.colorScheme.onSurface,
-              ),
             ),
           ),
 
@@ -304,16 +293,10 @@ void toggleLikePost(){
               child: RichText(
                 text: TextSpan(
                   style: TextStyle(
-                    color: theme.colorScheme.onSurface,
-                    fontSize: 14,
+                    color: colorScheme.onSurface,
+                    fontSize: 16,
                   ),
                   children: [
-                    TextSpan(
-                      text: '${widget.post.UserName} ',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                     TextSpan(
                       text: widget.post.Text,
                     ),
@@ -321,6 +304,224 @@ void toggleLikePost(){
                 ),
               ),
             ),
+
+          // Post image
+          if (widget.post.imageUrl.isNotEmpty)
+            Container(
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.all(Radius.circular(4)),
+                child: CachedNetworkImage(
+                  imageUrl: widget.post.imageUrl,
+                  height: 400,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    height: 400,
+                    color: colorScheme.surface,
+                    child: const Center(child: PercentCircleIndicator()),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    height: 400,
+                    color: colorScheme.surface,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, color: colorScheme.error, size: 40),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Failed to load image',
+                          style: TextStyle(color: colorScheme.onSurface.withOpacity(0.6)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          // Post actions (like, comment, share)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // Like button with animation
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: toggleLikePost,
+                        borderRadius: BorderRadius.circular(24),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            children: [
+                              Icon(
+                                widget.post.likes.contains(currentUser?.id) 
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color: widget.post.likes.contains(currentUser?.id) 
+                                    ? Colors.red 
+                                    : colorScheme.onSurface,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                widget.post.likes.length.toString(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: widget.post.likes.contains(currentUser?.id) 
+                                      ? Colors.red
+                                      : colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    // Comment button
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: OpenCommentBox,
+                        borderRadius: BorderRadius.circular(24),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.chat_bubble_outline, 
+                                color: colorScheme.onSurface,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                widget.post.comments.length.toString(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    // Share button
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {},
+                        borderRadius: BorderRadius.circular(24),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Icon(
+                            Icons.share_outlined, 
+                            color: colorScheme.onSurface,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    const Spacer(),
+                    
+                    // Delete button (only for post owner)
+                    if (isOwnPost)
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: showDeleteConfirmation,
+                          borderRadius: BorderRadius.circular(24),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Icon(
+                              Icons.delete_outline, 
+                              color: colorScheme.error,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                      ),
+                    
+                    // Bookmark button
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {},
+                        borderRadius: BorderRadius.circular(24),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Icon(
+                            Icons.bookmark_border, 
+                            color: colorScheme.onSurface,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Comments section
+          if (widget.post.comments.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 8),
+              child: Text(
+                'Comments' ,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: widget.post.comments.length,
+              itemBuilder: (context, index) {
+                final comment = widget.post.comments[index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: CommentTile(
+                    comment: comment,
+                    isCommentOwner: comment.userId == currentUser?.id,
+                    onDelete: comment.userId == currentUser?.id ? () {
+                      // Delete comment
+                      postCubit.deleteComment(
+                        widget.post.id,
+                        comment.commentId,
+                      );
+                    } : null,
+                  ),
+                );
+              },
+            ),
+          ],
         ],
       ),
     );

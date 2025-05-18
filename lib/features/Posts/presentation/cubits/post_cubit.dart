@@ -82,4 +82,28 @@ Future<void> toggleLikePost(String postId, String userId) async{
     emit(PostsError("Failed to toggle like: $e"));
   }
 }
+
+// add a comment to a post
+Future<void> addComment(String postId, String userId, String userName, String profilePicture, String content) async {
+  try {
+    emit(PostsLoading());
+    await postRepo.addComment(postId, userId, userName, profilePicture, content);
+    // Refresh posts after adding comment
+    await fetechAllPosts();
+  } catch(e) {
+    emit(PostsError("Failed to add comment: $e"));
+  }
+}
+
+// delete a comment from a post
+Future<void> deleteComment(String postId, String commentId) async {  
+  try {
+    emit(PostsLoading());
+    await postRepo.deleteComment(postId, commentId);
+    // Refresh posts after deleting comment
+    await fetechAllPosts();
+  } catch(e) {
+    emit(PostsError("Failed to delete comment: $e"));
+  }
+}  
 }
