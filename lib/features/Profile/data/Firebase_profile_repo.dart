@@ -19,6 +19,9 @@ class FirebaseProfileRepo implements ProfileRepo {
       if (userDoc.exists) {
         final userData = userDoc.data();
         if (userData != null) {
+          // get followers and following of the user
+          final followers = userData['followers'] ?? [];
+          final following = userData['following'] ?? [];
           return ProfileUser(
             id: id,
             name: userData['name'],
@@ -28,6 +31,8 @@ class FirebaseProfileRepo implements ProfileRepo {
             backgroundprofilePictureUrl: userData['backgroundprofilePictureUrl'].toString(),
             profilePictureUrl: userData['profilePictureUrl'].toString(),
             HintDescription: userData['HintDescription'] ?? '',
+            followers: followers,
+            following: following, 
           );
         }
       }
@@ -49,6 +54,8 @@ class FirebaseProfileRepo implements ProfileRepo {
         'backgroundprofilePictureUrl': updateProfile.backgroundprofilePictureUrl,
         'profilePictureUrl': updateProfile.profilePictureUrl,
         'HintDescription': updateProfile.HintDescription,
+        'followers': updateProfile.followers,
+        'following': updateProfile.following,
       })
       .then((_) {
         print('User profile updated successfully');
@@ -61,5 +68,35 @@ class FirebaseProfileRepo implements ProfileRepo {
     // Handle the error as needed
 
 }
+  }
+  
+  @override
+  ToggleFollow(String currentUserId, String otherUserId) async {
+    // check if the user is already following the other user
+   try {
+     final currentUserDoc = await firestore.collection('users').doc(currentUserId).get();
+     final otherUserDoc = await firestore.collection('users').doc(otherUserId).get();
+     if (currentUserDoc.exists && otherUserDoc.exists) {
+      // check if the user is already following the other user
+      final currentUserFollowing = currentUserDoc.data()?['following'] ?? [];
+      final otherUserFollowers = otherUserDoc.data()?['followers'] ?? [];
+
+     if (currentUserFollowing.contains(otherUserId)) {
+      //unfollow the user
+      print('Unfollowing user: $otherUserId');
+      currentUserFollowing.remove(otherUserId);
+      otherUserFollowers.remove(currentUserId);
+     } else {
+      //follow the user
+      currentUserFollowing.add(otherUserId);
+      otherUserFollowers.add(currentUserId);
+      print('Following user: $otherUserId');
+     }
+
+     }
+   } catch (e) {
+     print('Error toggling follow: $e');
+   }
+
   }
 }
