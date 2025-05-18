@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/EditProfilePage.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/Bio.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/components/FollowButtom.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/components/Message.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/ProfilePicFunction.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
@@ -22,18 +24,58 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   late AuthCubit authCubit;
   late ProfileCubit profileCubit;
-  late AppUser? currentUser;
+  AppUser? currentUser;
 
   @override
   void initState() {
     super.initState();
     authCubit = BlocProvider.of<AuthCubit>(context);
     profileCubit = BlocProvider.of<ProfileCubit>(context);
+    currentUser = authCubit.GetCurrentUser();
     profileCubit.fetchUserProfile(widget.userId!);
+  }
+   // optimize the code
+   void followButtonPressed(String currentUserId, String otherUserId) {
+    final profileAsState = profileCubit.state;
+    if (profileAsState is ProfileLoadedState) {
+      final profileUser = profileAsState.profileuser;
+      final isCurrentlyFollowing = profileUser.followers.contains(currentUserId);
+      
+      setState(() {
+        // Optimistically update UI by modifying the state directly
+        if (isCurrentlyFollowing) {
+          // Unfollow: Remove current user from followers
+          profileUser.followers.remove(currentUserId);
+        } else {
+          // Follow: Add current user to followers
+          profileUser.followers.add(currentUserId);
+        }
+      });
+      
+      // Make the API call to actually perform the follow/unfollow
+      profileCubit.toggleFollow(currentUserId, otherUserId).catchError((error) {
+        // If there's an error, revert the UI change
+        setState(() {
+          if (isCurrentlyFollowing) {
+            // Re-add current user to followers
+            profileUser.followers.add(currentUserId);
+          } else {
+            // Re-remove current user from followers
+            profileUser.followers.remove(currentUserId);
+          }
+        });
+        
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update follow status'))
+        );
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    bool isOwner = currentUser != null && widget.userId != null && currentUser!.id == widget.userId;
     return BlocBuilder<ProfileCubit, ProfileStates>(
       builder: (context, state) {
         if (state is ProfileLoadedState) {
@@ -140,30 +182,62 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   actions: [
-                    IconButton(
-                      icon: const Icon(Icons.settings, color: Colors.white),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditProfilePage(user: user),
-                          ),
-                        );
-                      },
-                    ),
+                    if (isOwner)
+                      IconButton(
+                        icon: const Icon(Icons.settings, color: Colors.white),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EditProfilePage(user: user),
+                            ),
+                          );
+                        },
+                      ),
                   ],
                 ),
                 // Profile Content
                 SliverToBoxAdapter(
                   child: Column(
                     children: [
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 20), 
                       // Bio Section
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            if (!isOwner)
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: MessageButton(
+                                      onPressed: () {
+                                        // Handle message button tap
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Message feature coming soon!'),
+                                            duration: Duration(seconds: 2),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: FollowButton(
+                                      currentUserId: currentUser!.id,
+                                      otherUserId: user.id,
+                                      isFollowing: user.followers.contains(currentUser!.id),
+                                      onFollow: (isFollowing) async {
+                                        // Use await to handle the Future
+                                         followButtonPressed(currentUser!.id, user.id);
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            const SizedBox(height: 20),
                             const Text(
                               'Bio',
                               style: TextStyle(

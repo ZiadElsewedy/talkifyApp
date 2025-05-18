@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
@@ -297,12 +298,22 @@ void addComment(){
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        widget.post.UserName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                          letterSpacing: 0.1,
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProfilePage(userId: widget.post.UserId),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          widget.post.UserName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            letterSpacing: 0.1,
+                          ),
                         ),
                       ),
                       Text(
