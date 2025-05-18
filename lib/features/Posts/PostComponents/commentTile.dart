@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
+import 'package:talkifyapp/features/Profile/Pages/components/WhiteCircleIndicator.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -67,7 +68,7 @@ class CommentTile extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: colorScheme.primary.withOpacity(0.2),
+              backgroundColor: Colors.grey.withOpacity(0.2),
               child: comment.profilePicture.isNotEmpty
                   ? ClipOval(
                       child: CachedNetworkImage(
@@ -75,7 +76,7 @@ class CommentTile extends StatelessWidget {
                         height: 36,
                         width: 36,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => const CircularProgressIndicator(
+                        placeholder: (context, url) => const PercentCircleIndicator(
                           strokeWidth: 2,
                         ),
                         errorWidget: (context, url, error) => Text(
@@ -83,7 +84,7 @@ class CommentTile extends StatelessWidget {
                               ? comment.userName[0].toUpperCase()
                               : '?',
                           style: TextStyle(
-                            color: colorScheme.primary,
+                            color: Colors.grey,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
@@ -95,13 +96,13 @@ class CommentTile extends StatelessWidget {
                           ? comment.userName[0].toUpperCase()
                           : '?',
                       style: TextStyle(
-                        color: colorScheme.primary,
+                        color: Colors.grey,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
                     ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

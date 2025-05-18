@@ -32,6 +32,7 @@ class _PostTileState extends State<PostTile> {
   AppUser? currentUser;
   ProfileUser? PostUser;
   bool isOwnPost = false;
+  bool showAllComments = false;
 
   @override
   void initState() {
@@ -151,29 +152,53 @@ void OpenCommentBox() {
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Add a new comment'),
-      content: TextField(
-        controller: commentController,
-        decoration: const InputDecoration(
-          hintText: 'Write your comment...',
+      title: const Text('Add a new comment', 
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+        )
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      elevation: 8,
+      content: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Theme.of(context).colorScheme.surface),
         ),
-        maxLines: 3,
+        child: TextField(
+          controller: commentController,
+          decoration: InputDecoration(
+            hintText: 'Write your comment...',
+            hintStyle: TextStyle(color: Colors.grey),
+            contentPadding: const EdgeInsets.all(16),
+            border: InputBorder.none,
+            filled: true,
+            fillColor: Theme.of(context).colorScheme.surface,
+          ),
+          maxLines: 3,
+          style: TextStyle(fontSize: 16),
+        ),
       ),
       actions: [
-        TextButton(
+        TextButton.icon(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel' , style: TextStyle(color: Colors.red)),
+          icon: const Icon(Icons.close, color: Colors.red),
+          label: const Text('Cancel', style: TextStyle(color: Colors.red)),
         ),
-        TextButton(
+        TextButton.icon(
           onPressed: () async {
             if (commentController.text.trim().isNotEmpty) {
-               addComment();
+              addComment();
               if (mounted) {
                 Navigator.pop(context);
               }
             }
           },
-          child: const Text('Add' , style: TextStyle(color: Colors.green)),
+          icon: const Icon(Icons.send, color: Colors.green),
+          label: const Text('Add', style: TextStyle(color: Colors.green)),
         ),
       ],
     ),
@@ -232,7 +257,7 @@ void addComment(){
                     tag: 'profile_${widget.post.UserId}_${widget.post.id}',
                     child: CircleAvatar(
                       radius: 24,
-                      backgroundColor: colorScheme.primary.withOpacity(0.2),
+                      backgroundColor:  Colors.white,
                       child: widget.post.UserProfilePic.isNotEmpty
                           ? ClipOval(
                               child: CachedNetworkImage(
@@ -246,7 +271,7 @@ void addComment(){
                                       ? widget.post.UserName[0].toUpperCase()
                                       : '?',
                                   style: TextStyle(
-                                    color: colorScheme.primary,
+                                    color: colorScheme.surface,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 18,
                                   ),
@@ -299,7 +324,7 @@ void addComment(){
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: IconButton(
-                      icon: Icon(Icons.more_vert, color: colorScheme.primary, size: 22),
+                      icon: Icon(Icons.more_vert, color: Colors.black, size: 22),
                       onPressed: showDeleteConfirmation,
                       splashRadius: 24,
                     ),
@@ -538,7 +563,7 @@ void addComment(){
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
-                      color: colorScheme.onSurface,
+                      color: Colors.grey,
                       letterSpacing: 0.2,
                     ),
                   ),
@@ -546,7 +571,7 @@ void addComment(){
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: colorScheme.primary.withOpacity(0.1),
+                      color: const Color.fromARGB(255, 209, 209, 209),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -554,34 +579,109 @@ void addComment(){
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 12,
-                        color: colorScheme.primary,
+                        color: Colors.black,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 16),
-              itemCount: widget.post.comments.length,
-              itemBuilder: (context, index) {
-                final comment = widget.post.comments[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: CommentTile(
-                    comment: comment,
-                    isCommentOwner: comment.userId == currentUser?.id,
-                    onDelete: comment.userId == currentUser?.id ? () {
-                      postCubit.deleteComment(
-                        widget.post.id,
-                        comment.commentId,
-                      );
-                    } : null,
+            Column(
+              children: [
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 8),
+                  itemCount: showAllComments || widget.post.comments.length <= 2 
+                      ? widget.post.comments.length 
+                      : 2,
+                  itemBuilder: (context, index) {
+                    final comment = widget.post.comments[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: CommentTile(
+                        comment: comment,
+                        isCommentOwner: comment.userId == currentUser?.id,
+                        onDelete: comment.userId == currentUser?.id ? () {
+                          postCubit.deleteComment(
+                            widget.post.id,
+                            comment.commentId,
+                          );
+                        } : null,
+                      ),
+                    );
+                  },
+                ),
+                
+                // Show more comments button
+                if (widget.post.comments.length > 2 && !showAllComments)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          showAllComments = true;
+                        });
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surface,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: colorScheme.secondary.withOpacity(0.5)),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Show all ${widget.post.comments.length} comments',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                );
-              },
+                
+                // Show less comments button (appears when showing all comments)
+                if (widget.post.comments.length > 2 && showAllComments)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          showAllComments = false;
+                        });
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surface,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey),
+                        ),
+                        child: Center(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.keyboard_arrow_up, size: 18, color: Colors.grey),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Show less',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ],
         ],
