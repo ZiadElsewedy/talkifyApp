@@ -2,7 +2,7 @@
  Post States 
 */
 
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/domain/Entite/Posts.dart';
+import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 
 abstract class PostState {}
 

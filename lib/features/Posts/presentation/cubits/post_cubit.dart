@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Storage/Domain/Storage_repo.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/domain/Entite/Posts.dart';
+import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/domain/repos/Post_repo.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/cubits/post_states.dart';
+import 'package:talkifyapp/features/Posts/domain/repos/Post_repo.dart';
+import 'package:talkifyapp/features/Posts/presentation/cubits/post_states.dart';
 
 class PostCubit extends Cubit<PostState> {
 final PostRepo postRepo;
@@ -82,4 +82,28 @@ Future<void> toggleLikePost(String postId, String userId) async{
     emit(PostsError("Failed to toggle like: $e"));
   }
 }
+
+// add a comment to a post
+Future<void> addComment(String postId, String userId, String userName, String profilePicture, String content) async {
+  try {
+    emit(PostsLoading());
+    await postRepo.addComment(postId, userId, userName, profilePicture, content);
+    // Refresh posts after adding comment
+    await fetechAllPosts();
+  } catch(e) {
+    emit(PostsError("Failed to add comment: $e"));
+  }
+}
+
+// delete a comment from a post
+Future<void> deleteComment(String postId, String commentId) async {  
+  try {
+    emit(PostsLoading());
+    await postRepo.deleteComment(postId, commentId);
+    // Refresh posts after deleting comment
+    await fetechAllPosts();
+  } catch(e) {
+    emit(PostsError("Failed to delete comment: $e"));
+  }
+}  
 }

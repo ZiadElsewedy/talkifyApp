@@ -7,10 +7,10 @@ import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dar
 import 'package:talkifyapp/features/auth/Presentation/Cubits/AuthStates.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/AuthPage.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/HomePage.dart';
+import 'package:talkifyapp/features/Posts/presentation/HomePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/VerificationEmail.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/data/firebase_post_repo.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/cubits/post_cubit.dart';
+import 'package:talkifyapp/features/Posts/data/firebase_post_repo.dart';
+import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 // things need to do ! 
 // 1. add firebase options
