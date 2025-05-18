@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/domain/Entite/Posts.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/domain/repos/Post_repo.dart';
+import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
+import 'package:talkifyapp/features/Posts/domain/repos/Post_repo.dart';
 
 class FirebasePostRepo implements PostRepo{
 final FirebaseFirestore firestore = FirebaseFirestore.instance;

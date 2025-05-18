@@ -4,12 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Profile/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/presentation/cubits/post_cubit.dart';
+import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:talkifyapp/features/auth/Presentation/screens/Posts/domain/Entite/Posts.dart';
+import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 
-import '../../../../../Profile/presentation/Cubits/ProfileCubit.dart';
+import '../../Profile/presentation/Cubits/ProfileCubit.dart';
 
 class PostTile extends StatefulWidget {
   final Post post;
