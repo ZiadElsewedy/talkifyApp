@@ -203,7 +203,8 @@ void addComment(){
     
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      elevation: 3,
+      elevation: 4,
+      shadowColor: Colors.black.withOpacity(0.2),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -215,42 +216,54 @@ void addComment(){
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                // User avatar
-                Hero(
-                  tag: 'profile_${widget.post.UserId}_${widget.post.id}',
-                  child: CircleAvatar(
-                    radius: 24,
-                    backgroundColor: colorScheme.primary.withOpacity(0.2),
-                    child: widget.post.UserProfilePic.isNotEmpty
-                        ? ClipOval(
-                            child: CachedNetworkImage(
-                              imageUrl: widget.post.UserProfilePic,
-                              height: 48,
-                              width: 48,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => const PercentCircleIndicator(),
-                              errorWidget: (context, url, error) => Text(
-                                widget.post.UserName.isNotEmpty
-                                    ? widget.post.UserName[0].toUpperCase()
-                                    : '?',
-                                style: TextStyle(
-                                  color: colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
+                // User avatar with better shadow
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Hero(
+                    tag: 'profile_${widget.post.UserId}_${widget.post.id}',
+                    child: CircleAvatar(
+                      radius: 24,
+                      backgroundColor: colorScheme.primary.withOpacity(0.2),
+                      child: widget.post.UserProfilePic.isNotEmpty
+                          ? ClipOval(
+                              child: CachedNetworkImage(
+                                imageUrl: widget.post.UserProfilePic,
+                                height: 48,
+                                width: 48,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => const PercentCircleIndicator(),
+                                errorWidget: (context, url, error) => Text(
+                                  widget.post.UserName.isNotEmpty
+                                      ? widget.post.UserName[0].toUpperCase()
+                                      : '?',
+                                  style: TextStyle(
+                                    color: colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
                                 ),
                               ),
+                            )  
+                          : Text(
+                              widget.post.UserName.isNotEmpty
+                                  ? widget.post.UserName[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                color: colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
                             ),
-                          )  
-                        : Text(
-                            widget.post.UserName.isNotEmpty
-                                ? widget.post.UserName[0].toUpperCase()
-                                : '?',
-                            style: TextStyle(
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -264,6 +277,7 @@ void addComment(){
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
+                          letterSpacing: 0.1,
                         ),
                       ),
                       Text(
@@ -271,6 +285,7 @@ void addComment(){
                         style: TextStyle(
                           color: colorScheme.onSurface.withOpacity(0.6),
                           fontSize: 13,
+                          letterSpacing: 0.1,
                         ),
                       ),
                     ],
@@ -278,9 +293,16 @@ void addComment(){
                 ),
                 // More options button
                 if (isOwnPost)
-                  IconButton(
-                    icon: Icon(Icons.more_vert, color: colorScheme.primary),
-                    onPressed: showDeleteConfirmation,
+                  Container(
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: IconButton(
+                      icon: Icon(Icons.more_vert, color: colorScheme.primary, size: 22),
+                      onPressed: showDeleteConfirmation,
+                      splashRadius: 24,
+                    ),
                   ),
               ],
             ),
@@ -289,12 +311,14 @@ void addComment(){
           // Caption
           if (widget.post.Text.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
               child: RichText(
                 text: TextSpan(
                   style: TextStyle(
                     color: colorScheme.onSurface,
                     fontSize: 16,
+                    height: 1.4,
+                    letterSpacing: 0.3,
                   ),
                   children: [
                     TextSpan(
@@ -305,10 +329,12 @@ void addComment(){
               ),
             ),
 
-          // Post image
+          // Post image with improved design
           if (widget.post.imageUrl.isNotEmpty)
             Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
               decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.1),
@@ -318,7 +344,7 @@ void addComment(){
                 ],
               ),
               child: ClipRRect(
-                borderRadius: const BorderRadius.all(Radius.circular(4)),
+                borderRadius: BorderRadius.circular(12),
                 child: CachedNetworkImage(
                   imageUrl: widget.post.imageUrl,
                   height: 400,
@@ -350,12 +376,15 @@ void addComment(){
 
           // Post actions (like, comment, share)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            margin: const EdgeInsets.only(top: 12),
             decoration: BoxDecoration(
               color: colorScheme.surface,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(16),
-                bottomRight: Radius.circular(16),
+              border: Border(
+                top: BorderSide(
+                  color: colorScheme.onSurface.withOpacity(0.05),
+                  width: 1,
+                ),
               ),
             ),
             child: Column(
@@ -380,13 +409,14 @@ void addComment(){
                                 color: widget.post.likes.contains(currentUser?.id) 
                                     ? Colors.red 
                                     : colorScheme.onSurface,
-                                size: 22,
+                                size: 20,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 6),
                               Text(
                                 widget.post.likes.length.toString(),
                                 style: TextStyle(
                                   fontWeight: FontWeight.w500,
+                                  fontSize: 14,
                                   color: widget.post.likes.contains(currentUser?.id) 
                                       ? Colors.red
                                       : colorScheme.onSurface,
@@ -398,6 +428,7 @@ void addComment(){
                       ),
                     ),
                     
+                    const SizedBox(width: 8),
                     // Comment button
                     Material(
                       color: Colors.transparent,
@@ -411,13 +442,14 @@ void addComment(){
                               Icon(
                                 Icons.chat_bubble_outline, 
                                 color: colorScheme.onSurface,
-                                size: 22,
+                                size: 20,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 6),
                               Text(
                                 widget.post.comments.length.toString(),
                                 style: TextStyle(
                                   fontWeight: FontWeight.w500,
+                                  fontSize: 14,
                                   color: colorScheme.onSurface,
                                 ),
                               ),
@@ -427,6 +459,7 @@ void addComment(){
                       ),
                     ),
                     
+                    const SizedBox(width: 8),
                     // Share button
                     Material(
                       color: Colors.transparent,
@@ -438,7 +471,7 @@ void addComment(){
                           child: Icon(
                             Icons.share_outlined, 
                             color: colorScheme.onSurface,
-                            size: 22,
+                            size: 20,
                           ),
                         ),
                       ),
@@ -458,7 +491,7 @@ void addComment(){
                             child: Icon(
                               Icons.delete_outline, 
                               color: colorScheme.error,
-                              size: 22,
+                              size: 20,
                             ),
                           ),
                         ),
@@ -475,7 +508,7 @@ void addComment(){
                           child: Icon(
                             Icons.bookmark_border, 
                             color: colorScheme.onSurface,
-                            size: 22,
+                            size: 20,
                           ),
                         ),
                       ),
@@ -489,19 +522,49 @@ void addComment(){
           // Comments section
           if (widget.post.comments.isNotEmpty) ...[
             Container(
-              padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 8),
-              child: Text(
-                'Comments' ,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                  color: colorScheme.onSurface,
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: colorScheme.onSurface.withOpacity(0.05),
+                    width: 1,
+                  ),
                 ),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    'Comments',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: colorScheme.onSurface,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      widget.post.comments.length.toString(),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 16),
               itemCount: widget.post.comments.length,
               itemBuilder: (context, index) {
                 final comment = widget.post.comments[index];
