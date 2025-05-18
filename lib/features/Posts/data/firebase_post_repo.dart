@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/domain/repos/Post_repo.dart';
 
@@ -23,6 +24,7 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
         imageUrl: post.imageUrl,
         timestamp: post.timestamp,
         likes: post.likes,
+        comments: post.comments,
       );
       // Set the document with the post data
       await docRef.set(postWithId.toJson());
@@ -129,4 +131,74 @@ catch (e){
 }
   }
 
+  @override
+  Future<void> addComment(String postId, String userId, String userName, String profilePicture, String content) async {
+    try {
+      // Get the post document from firestore
+      final postDoc = await postsCollection.doc(postId).get();    
+
+      if (!postDoc.exists) {
+        throw Exception("Post not found");
+      }
+
+      final post = Post.fromJson(postDoc.data() as Map<String, dynamic>);   
+      
+      // Generate a new unique ID for the comment
+      final commentId = FirebaseFirestore.instance.collection('comments').doc().id;
+      
+      // create a new comment
+      final newComment = Comments(
+        commentId: commentId,
+        content: content,
+        postId: postId,
+        userId: userId,
+        userName: userName,
+        profilePicture: profilePicture,
+        createdAt: DateTime.now(),
+      );
+
+      // add the comment to the post
+      post.comments.add(newComment);
+
+      // update the post document with the new comment
+      await postsCollection.doc(postId).update({
+        'comments': post.comments.map((comment) => comment.toJson()).toList(),
+      });
+    } catch (e) {
+      print('Error adding comment: $e'); // Add logging
+      throw Exception("Error adding comment: $e");
+    }
+  }
+
+  @override
+  Future<void> deleteComment(String postId, String commentId) async {
+    try {
+      // Get the post document from firestore
+      final postDoc = await postsCollection.doc(postId).get();
+
+      if (!postDoc.exists) {
+        throw Exception("Post not found");
+      }
+
+      final post = Post.fromJson(postDoc.data() as Map<String, dynamic>);
+
+      // Check if comment exists
+      final commentExists = post.comments.any((comment) => comment.commentId == commentId);
+      if (!commentExists) {
+        throw Exception("Comment not found");
+      }
+
+      // delete the comment from the post
+      post.comments.removeWhere((comment) => comment.commentId == commentId);
+
+      // update the post document with the new comment list
+      await postsCollection.doc(postId).update({
+        'comments': post.comments.map((comment) => comment.toJson()).toList(),
+      }); 
+    } catch (e) {
+      print('Error deleting comment: $e'); // Add logging
+      throw Exception("Error deleting comment: $e");
+    }
+  }
 }
+
