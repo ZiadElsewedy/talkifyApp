@@ -162,7 +162,7 @@ void OpenCommentBox() {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: const Text('Cancel' , style: TextStyle(color: Colors.red)),
         ),
         TextButton(
           onPressed: () async {
@@ -173,7 +173,7 @@ void OpenCommentBox() {
               }
             }
           },
-          child: const Text('Add'),
+          child: const Text('Add' , style: TextStyle(color: Colors.green)),
         ),
       ],
     ),
@@ -511,7 +511,6 @@ void addComment(){
                     comment: comment,
                     isCommentOwner: comment.userId == currentUser?.id,
                     onDelete: comment.userId == currentUser?.id ? () {
-                      // Delete comment
                       postCubit.deleteComment(
                         widget.post.id,
                         comment.commentId,
