@@ -1,10 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:talkifyapp/features/Profile/Pages/EditProfilePage.dart';
-import 'package:talkifyapp/features/Profile/Pages/components/Bio.dart';
-import 'package:talkifyapp/features/Profile/Pages/components/ProfilePicFunction.dart';
-import 'package:talkifyapp/features/Profile/Pages/components/WhiteCircleIndicator.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/EditProfilePage.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/components/Bio.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/components/ProfilePicFunction.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
