@@ -161,7 +161,9 @@ void toggleLikePost(){
                               fit: BoxFit.cover,
                               placeholder: (context, url) => const PercentCircleIndicator(),
                               errorWidget: (context, url, error) => Text(
-                                widget.post.UserName[0].toUpperCase(),
+                                widget.post.UserName.isNotEmpty
+                                    ? widget.post.UserName[0].toUpperCase()
+                                    : '?',
                                 style: TextStyle(
                                   color: theme.colorScheme.primary,
                                   fontWeight: FontWeight.bold,
@@ -171,7 +173,9 @@ void toggleLikePost(){
                             ),
                           )  
                         : Text(
-                            widget.post.UserName[0].toUpperCase(),
+                            widget.post.UserName.isNotEmpty
+                                ? widget.post.UserName[0].toUpperCase()
+                                : '?',
                             style: TextStyle(
                               color: theme.colorScheme.primary,
                               fontWeight: FontWeight.bold,

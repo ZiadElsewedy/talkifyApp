@@ -100,7 +100,7 @@ class ProfilePicFunction extends StatelessWidget {
               child: Icon(
                 Icons.person,
                 size: size * 0.4,
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                color: Colors.grey,
               ),
             );
           },
