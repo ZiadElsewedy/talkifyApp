@@ -65,12 +65,12 @@ ProfileUser copywith ({
       name: json['name'] as String,
       email: json['email'] as String,
       phoneNumber: json['phoneNumber'] ?? '',
-      profilePictureUrl: json['profilePictureUrl']  ?? '',
-      bio: json['bio'] as String,
+      profilePictureUrl: json['profilePictureUrl'] ?? '',
+      bio: json['bio'] ?? '',
       backgroundprofilePictureUrl: json['backgroundprofilePictureUrl'] ?? '',
       HintDescription: json['HintDescription'] ?? '',
-      followers: json['followers'] ?? [],
-      following: json['following'] ?? [],
+      followers: (json['followers'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      following: (json['following'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
     );
   }
   @override
