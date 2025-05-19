@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
-import 'package:talkifyapp/features/Profile/Pages/components/WhiteCircleIndicator.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:cached_network_image/cached_network_image.dart';
 
 class CommentTile extends StatelessWidget {
   final Comments comment;
-  final VoidCallback? onDelete;
+  final Function()? onDelete;
   final bool isCommentOwner;
 
   const CommentTile({

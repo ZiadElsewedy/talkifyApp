@@ -1,13 +1,15 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:talkifyapp/features/Profile/Pages/components/WhiteCircleIndicator.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
+import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
 import 'package:talkifyapp/features/Posts/PostComponents/commentTile.dart';
 
 import '../../Profile/presentation/Cubits/ProfileCubit.dart';
@@ -205,11 +207,53 @@ void OpenCommentBox() {
   );
 }
 // user tapped comment button 
-void addComment(){
+void addComment() async {
   final content = commentController.text.trim();
   if (content.isNotEmpty){
-    postCubit.addComment(widget.post.id, currentUser!.id, currentUser!.name, currentUser!.profilePictureUrl, content);
-    commentController.clear();
+    try {
+      // Generate a unique local ID for the comment
+      final localCommentId = "local_${DateTime.now().millisecondsSinceEpoch}";
+      
+      // First create a new comment locally for immediate display
+      final newComment = Comments(
+        commentId: localCommentId, // Use our local ID format
+        content: content,
+        postId: widget.post.id,
+        userId: currentUser!.id,
+        userName: currentUser!.name,
+        profilePicture: currentUser!.profilePictureUrl,
+        createdAt: DateTime.now(),
+      );
+      
+      // Update UI immediately with new comment
+      setState(() {
+        widget.post.comments.add(newComment);
+        showAllComments = true; // Show all comments including new one
+      });
+      
+      // Clear the input field
+      commentController.clear();
+      
+      // Then save to backend without refreshing entire post list
+      await postCubit.addCommentLocal(
+        widget.post.id, 
+        currentUser!.id, 
+        currentUser!.name, 
+        currentUser!.profilePictureUrl, 
+        content
+      );
+    } catch (e) {
+      // If backend save fails, show error but keep comment in UI
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Comment saved locally but not synced: $e'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }
 
@@ -297,12 +341,22 @@ void addComment(){
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        widget.post.UserName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                          letterSpacing: 0.1,
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProfilePage(userId: widget.post.UserId),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          widget.post.UserName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            letterSpacing: 0.1,
+                          ),
                         ),
                       ),
                       Text(
@@ -602,11 +656,37 @@ void addComment(){
                       child: CommentTile(
                         comment: comment,
                         isCommentOwner: comment.userId == currentUser?.id,
-                        onDelete: comment.userId == currentUser?.id ? () {
-                          postCubit.deleteComment(
-                            widget.post.id,
-                            comment.commentId,
-                          );
+                        onDelete: comment.userId == currentUser?.id ? () async {
+                          try {
+                            // Remove comment from UI immediately
+                            setState(() {
+                              widget.post.comments.removeWhere(
+                                (c) => c.commentId == comment.commentId
+                              );
+                            });
+                            
+                            // If it's a local comment (not yet saved to backend), just remove from UI
+                            if (comment.commentId.startsWith('local_')) {
+                              // No need to call backend since comment isn't saved yet
+                              return;
+                            }
+                            
+                            // Otherwise delete from backend without refreshing page
+                            await postCubit.deleteCommentLocal(
+                              widget.post.id,
+                              comment.commentId,
+                            );
+                          } catch (e) {
+                            // If error, show message but don't revert UI
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error deleting comment: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
                         } : null,
                       ),
                     );

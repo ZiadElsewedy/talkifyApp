@@ -5,6 +5,8 @@ class ProfileUser extends AppUser {
   final String bio;
   final String backgroundprofilePictureUrl;
   final String HintDescription;
+  final List<String> followers;
+  final List<String> following;
 
   ProfileUser({
     required super.id,
@@ -15,6 +17,8 @@ class ProfileUser extends AppUser {
     required this.bio,
     required this.backgroundprofilePictureUrl,
     required this.HintDescription,
+    required this.followers,
+    required this.following,  
   });
 // update the ProfileUser 
 ProfileUser copywith ({
@@ -23,6 +27,8 @@ ProfileUser copywith ({
   String? newName,
   String? newbackgroundprofilePictureUrl,
   String? newHintDescription,
+  List<String>? newfollowers,
+  List<String>? newfollowing,
 }) {
   return ProfileUser(
     id: id,
@@ -33,6 +39,8 @@ ProfileUser copywith ({
     bio: newBio ?? bio,
     backgroundprofilePictureUrl: newbackgroundprofilePictureUrl ?? backgroundprofilePictureUrl,
     HintDescription: newHintDescription ?? HintDescription,
+    followers: newfollowers ?? followers,
+    following: newfollowing ?? following,
   );
 }
 // convert ProfileUser to json
@@ -46,6 +54,8 @@ ProfileUser copywith ({
       'bio': bio,
       'backgroundprofilePictureUrl': backgroundprofilePictureUrl,
       'HintDescription': HintDescription,
+      'followers': followers,
+      'following': following,
     };
   }
 // convert json to ProfileUser
@@ -55,14 +65,16 @@ ProfileUser copywith ({
       name: json['name'] as String,
       email: json['email'] as String,
       phoneNumber: json['phoneNumber'] ?? '',
-      profilePictureUrl: json['profilePictureUrl']  ?? '',
-      bio: json['bio'] as String,
+      profilePictureUrl: json['profilePictureUrl'] ?? '',
+      bio: json['bio'] ?? '',
       backgroundprofilePictureUrl: json['backgroundprofilePictureUrl'] ?? '',
       HintDescription: json['HintDescription'] ?? '',
+      followers: (json['followers'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      following: (json['following'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
     );
   }
   @override
   String toString() {
-    return 'ProfileUser{id: $id, name: $name, email: $email, phoneNumber: $phoneNumber, profilePictureUrl: $profilePictureUrl, bio: $bio, HintDescription: $HintDescription}';
+    return 'ProfileUser{id: $id, name: $name, email: $email, phoneNumber: $phoneNumber, profilePictureUrl: $profilePictureUrl, bio: $bio, HintDescription: $HintDescription, followers: $followers, following: $following}';
   }
 }

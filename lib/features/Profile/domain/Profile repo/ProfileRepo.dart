@@ -9,4 +9,7 @@ abstract class ProfileRepo {
   );
   // Updates the user's profile with new data
   Future<void> updateUserProfile(ProfileUser UpdateProfile);
+
+  // Follow a user
+ToggleFollow(String currentUserId, String otherUserId);
 }

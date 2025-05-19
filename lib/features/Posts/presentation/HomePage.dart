@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:talkifyapp/features/Profile/Pages/components/WhiteCircleIndicator.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Posts/PostComponents/PostTile..dart';
 import 'package:talkifyapp/features/Posts/pages/upload_post_page.dart' show UploadPostPage;
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';

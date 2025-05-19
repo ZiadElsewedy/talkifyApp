@@ -1,9 +1,9 @@
 // this code for drawer 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:talkifyapp/features/Profile/Pages/components/ProfilePicFunction.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/components/ProfilePicFunction.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
-import 'package:talkifyapp/features/Profile/Pages/ProfilePage.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/ConfirmLogOut.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyDrawerTile.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';

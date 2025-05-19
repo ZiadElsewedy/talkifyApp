@@ -11,7 +11,7 @@ import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dar
 import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyTextField.dart';
-import 'package:talkifyapp/features/Profile/Pages/components/ProfilePicFunction.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/components/ProfilePicFunction.dart';
 
 class EditProfilePage extends StatefulWidget {
   EditProfilePage({super.key, required this.user});

@@ -83,10 +83,20 @@ Future<void> toggleLikePost(String postId, String userId) async{
   }
 }
 
+// add a comment to a post without refreshing the entire page
+Future<void> addCommentLocal(String postId, String userId, String userName, String profilePicture, String content) async {
+  try {
+    await postRepo.addComment(postId, userId, userName, profilePicture, content);
+    // Don't emit a loading state or fetch all posts - let the UI handle the update
+  } catch(e) {
+    // Just throw the error to be handled by the UI
+    throw Exception("Failed to add comment: $e");
+  }
+}
+
 // add a comment to a post
 Future<void> addComment(String postId, String userId, String userName, String profilePicture, String content) async {
   try {
-    emit(PostsLoading());
     await postRepo.addComment(postId, userId, userName, profilePicture, content);
     // Refresh posts after adding comment
     await fetechAllPosts();
@@ -94,6 +104,17 @@ Future<void> addComment(String postId, String userId, String userName, String pr
     emit(PostsError("Failed to add comment: $e"));
   }
 }
+
+// delete a comment from a post without refreshing
+Future<void> deleteCommentLocal(String postId, String commentId) async {  
+  try {
+    await postRepo.deleteComment(postId, commentId);
+    // Don't emit loading state or refresh posts
+  } catch(e) {
+    // Just throw the error to be handled by the UI
+    throw Exception("Failed to delete comment: $e");
+  }
+}  
 
 // delete a comment from a post
 Future<void> deleteComment(String postId, String commentId) async {  

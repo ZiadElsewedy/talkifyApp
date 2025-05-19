@@ -73,4 +73,13 @@ class ProfileCubit extends Cubit<ProfileStates> {
     }catch (e) {
       emit(ProfileErrorState(e.toString())); // Emit error if exception occurs
   }}
+
+  // Toggle follow
+Future<void> toggleFollow(String currentUserId, String otherUserId) async {
+  try {
+    await profileRepo.ToggleFollow(currentUserId, otherUserId);
+  } catch (e) {
+    emit(ProfileErrorState(e.toString())); // Emit error if exception occurs
+  }
 }
+} 
