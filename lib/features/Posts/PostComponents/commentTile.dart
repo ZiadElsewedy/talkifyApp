@@ -6,7 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 class CommentTile extends StatelessWidget {
   final Comments comment;
-  final VoidCallback? onDelete;
+  final Function()? onDelete;
   final bool isCommentOwner;
 
   const CommentTile({

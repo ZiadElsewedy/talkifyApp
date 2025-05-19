@@ -9,6 +9,7 @@ import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
+import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
 import 'package:talkifyapp/features/Posts/PostComponents/commentTile.dart';
 
 import '../../Profile/presentation/Cubits/ProfileCubit.dart';
@@ -206,11 +207,50 @@ void OpenCommentBox() {
   );
 }
 // user tapped comment button 
-void addComment(){
+void addComment() async {
   final content = commentController.text.trim();
   if (content.isNotEmpty){
-    postCubit.addComment(widget.post.id, currentUser!.id, currentUser!.name, currentUser!.profilePictureUrl, content);
-    commentController.clear();
+    try {
+      // First create a new comment locally for immediate display
+      final newComment = Comments(
+        commentId: DateTime.now().millisecondsSinceEpoch.toString(), // Temp ID
+        content: content,
+        postId: widget.post.id,
+        userId: currentUser!.id,
+        userName: currentUser!.name,
+        profilePicture: currentUser!.profilePictureUrl,
+        createdAt: DateTime.now(),
+      );
+      
+      // Update UI immediately with new comment
+      setState(() {
+        widget.post.comments.add(newComment);
+        showAllComments = true; // Show all comments including new one
+      });
+      
+      // Clear the input field
+      commentController.clear();
+      
+      // Then save to backend without refreshing entire post list
+      await postCubit.addCommentLocal(
+        widget.post.id, 
+        currentUser!.id, 
+        currentUser!.name, 
+        currentUser!.profilePictureUrl, 
+        content
+      );
+    } catch (e) {
+      // If backend save fails, show error but keep comment in UI
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Comment saved locally but not synced: $e'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }
 
@@ -613,11 +653,31 @@ void addComment(){
                       child: CommentTile(
                         comment: comment,
                         isCommentOwner: comment.userId == currentUser?.id,
-                        onDelete: comment.userId == currentUser?.id ? () {
-                          postCubit.deleteComment(
-                            widget.post.id,
-                            comment.commentId,
-                          );
+                        onDelete: comment.userId == currentUser?.id ? () async {
+                          try {
+                            // Remove comment from UI immediately
+                            setState(() {
+                              widget.post.comments.removeWhere(
+                                (c) => c.commentId == comment.commentId
+                              );
+                            });
+                            
+                            // Then delete from backend without refreshing page
+                            await postCubit.deleteCommentLocal(
+                              widget.post.id,
+                              comment.commentId,
+                            );
+                          } catch (e) {
+                            // If error, show message but don't revert UI
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error deleting comment: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
                         } : null,
                       ),
                     );
