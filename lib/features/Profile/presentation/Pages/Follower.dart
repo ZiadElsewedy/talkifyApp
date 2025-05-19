@@ -24,7 +24,7 @@ class FollowerPage extends StatefulWidget {
   State<FollowerPage> createState() => FollowerPageState();
 }
 
-class FollowerPageState extends State<FollowerPage> {
+class FollowerPageState extends State<FollowerPage> with SingleTickerProviderStateMixin {
   // Define our black and white colors explicitly
   static const Color pureBlack = Color(0xFF000000);
   static const Color pureWhite = Color(0xFFFFFFFF);
@@ -36,12 +36,40 @@ class FollowerPageState extends State<FollowerPage> {
   List<ProfileUser> followingUsers = [];
   bool isLoading = true;
   String? currentUserId;
+  bool isRefreshing = false;
+  TabController? _tabController;
+  String searchQuery = '';
+  List<ProfileUser> filteredFollowerUsers = [];
+  List<ProfileUser> filteredFollowingUsers = [];
 
   @override
   void initState() {
     super.initState();
+    _initializeTabController();
     getCurrentUser();
     fetchUserDetails();
+  }
+
+  void _initializeTabController() {
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController?.addListener(() {
+      if (!_tabController!.indexIsChanging) {
+        setState(() {
+          // Update filtered lists when tab changes
+          if (_tabController!.index == 0) {
+            filteredFollowerUsers = List.from(followerUsers);
+          } else {
+            filteredFollowingUsers = List.from(followingUsers);
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
   }
   
   void getCurrentUser() {
@@ -51,49 +79,85 @@ class FollowerPageState extends State<FollowerPage> {
       currentUserId = user.id;
     }
   }
+
+  void filterUsers(String query) {
+    setState(() {
+      searchQuery = query.toLowerCase();
+      filteredFollowerUsers = followerUsers.where((user) =>
+        user.name.toLowerCase().contains(searchQuery) ||
+        user.email.toLowerCase().contains(searchQuery)
+      ).toList();
+      
+      filteredFollowingUsers = followingUsers.where((user) =>
+        user.name.toLowerCase().contains(searchQuery) ||
+        user.email.toLowerCase().contains(searchQuery)
+      ).toList();
+    });
+  }
   
   Future<void> fetchUserDetails() async {
+    if (isRefreshing) return;
+    
     setState(() {
+      isRefreshing = true;
       isLoading = true;
-      // Clear existing lists to prevent duplicates
       followerUsers = [];
       followingUsers = [];
+      filteredFollowerUsers = [];
+      filteredFollowingUsers = [];
     });
     
     final profileCubit = context.read<ProfileCubit>();
     
-    // Fetch follower details
-    for (String id in widget.followers) {
-      try {
+    try {
+      // Fetch follower details
+      final Set<String> processedFollowerIds = {};
+      for (String id in widget.followers) {
+        if (processedFollowerIds.contains(id)) continue;
+        
         final user = await profileCubit.GetUserProfileByUsername(id);
         if (user != null && mounted) {
           setState(() {
             followerUsers.add(user);
+            processedFollowerIds.add(id);
           });
         }
-      } catch (e) {
-        print('Error fetching follower user: $e');
       }
-    }
-    
-    // Fetch following details
-    for (String id in widget.following) {
-      try {
+      
+      // Fetch following details
+      final Set<String> processedFollowingIds = {};
+      for (String id in widget.following) {
+        if (processedFollowingIds.contains(id)) continue;
+        
         final user = await profileCubit.GetUserProfileByUsername(id);
         if (user != null && mounted) {
           setState(() {
             followingUsers.add(user);
+            processedFollowingIds.add(id);
           });
         }
-      } catch (e) {
-        print('Error fetching following user: $e');
       }
-    }
-    
-    if (mounted) {
-      setState(() {
-        isLoading = false;
-      });
+
+      // Initialize filtered lists
+      filteredFollowerUsers = List.from(followerUsers);
+      filteredFollowingUsers = List.from(followingUsers);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading users: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          isRefreshing = false;
+        });
+      }
     }
   }
   
@@ -102,31 +166,33 @@ class FollowerPageState extends State<FollowerPage> {
     
     final profileCubit = context.read<ProfileCubit>();
     
+    // Store original state for rollback
+    final originalFollowers = List<String>.from(user.followers);
+    final originalFollowing = List<String>.from(user.following);
+    
     // Optimistically update UI
     setState(() {
       if (isCurrentlyFollowing) {
-        // Remove current user from followers
         user.followers.remove(currentUserId);
-        // If this is in the following list, update accordingly
         if (followingUsers.contains(user)) {
-          // We're unfollowing, so remove from our following list
           followingUsers.removeWhere((followingUser) => followingUser.id == user.id);
+          filteredFollowingUsers.removeWhere((followingUser) => followingUser.id == user.id);
         }
       } else {
-        // Add current user to followers
         user.followers.add(currentUserId!);
-        // If we're in the followers tab and adding a follow, we should add to our following list
         if (!followingUsers.contains(user)) {
           followingUsers.add(user);
+          if (user.name.toLowerCase().contains(searchQuery) ||
+              user.email.toLowerCase().contains(searchQuery)) {
+            filteredFollowingUsers.add(user);
+          }
         }
       }
     });
     
     try {
-      // Make the actual API call
       await profileCubit.toggleFollow(currentUserId!, user.id);
       
-      // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -139,22 +205,53 @@ class FollowerPageState extends State<FollowerPage> {
     } catch (e) {
       // Revert UI changes if there's an error
       setState(() {
+        // Create a new ProfileUser with the original state
+        final updatedUser = ProfileUser(
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          profilePictureUrl: user.profilePictureUrl,
+          followers: originalFollowers,
+          following: originalFollowing,
+          phoneNumber: user.phoneNumber,
+          bio: user.bio,
+          backgroundprofilePictureUrl: user.backgroundprofilePictureUrl,
+          HintDescription: user.HintDescription,
+        );
+        
+        // Update the user in the lists
+        final followerIndex = followerUsers.indexWhere((u) => u.id == user.id);
+        if (followerIndex != -1) {
+          followerUsers[followerIndex] = updatedUser;
+          final filteredIndex = filteredFollowerUsers.indexWhere((u) => u.id == user.id);
+          if (filteredIndex != -1) {
+            filteredFollowerUsers[filteredIndex] = updatedUser;
+          }
+        }
+        
+        final followingIndex = followingUsers.indexWhere((u) => u.id == user.id);
+        if (followingIndex != -1) {
+          followingUsers[followingIndex] = updatedUser;
+          final filteredIndex = filteredFollowingUsers.indexWhere((u) => u.id == user.id);
+          if (filteredIndex != -1) {
+            filteredFollowingUsers[filteredIndex] = updatedUser;
+          }
+        }
+        
         if (isCurrentlyFollowing) {
-          // Re-add current user to followers
-          user.followers.add(currentUserId!);
-          if (!followingUsers.contains(user)) {
-            followingUsers.add(user);
+          if (!followingUsers.contains(updatedUser)) {
+            followingUsers.add(updatedUser);
+            if (updatedUser.name.toLowerCase().contains(searchQuery) ||
+                updatedUser.email.toLowerCase().contains(searchQuery)) {
+              filteredFollowingUsers.add(updatedUser);
+            }
           }
         } else {
-          // Re-remove current user from followers
-          user.followers.remove(currentUserId);
-          if (followingUsers.contains(user)) {
-            followingUsers.removeWhere((followingUser) => followingUser.id == user.id);
-          }
+          followingUsers.removeWhere((followingUser) => followingUser.id == updatedUser.id);
+          filteredFollowingUsers.removeWhere((followingUser) => followingUser.id == updatedUser.id);
         }
       });
       
-      // Show error message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -174,7 +271,6 @@ class FollowerPageState extends State<FollowerPage> {
         builder: (context) => ProfilePage(userId: user.id),
       ),
     ).then((_) {
-      // Reset and refetch data when returning from profile
       if (mounted) {
         fetchUserDetails();
       }
@@ -198,40 +294,69 @@ class FollowerPageState extends State<FollowerPage> {
             ),
           ),
           elevation: 0,
-          bottom: TabBar(
-            indicatorWeight: 3,
-            indicatorColor: pureBlack,
-            labelColor: pureBlack,
-            unselectedLabelColor: mediumGrey,
-            labelStyle: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(100),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: TextField(
+                    onChanged: filterUsers,
+                    decoration: InputDecoration(
+                      hintText: 'Search users...',
+                      prefixIcon: const Icon(Icons.search, color: mediumGrey),
+                      filled: true,
+                      fillColor: lightGrey.withOpacity(0.3),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                  ),
+                ),
+                TabBar(
+                  controller: _tabController,
+                  indicatorWeight: 3,
+                  indicatorColor: pureBlack,
+                  labelColor: pureBlack,
+                  unselectedLabelColor: mediumGrey,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                  tabs: [
+                    Tab(
+                      text: 'Followers (${filteredFollowerUsers.length})',
+                    ),
+                    Tab(
+                      text: 'Following (${filteredFollowingUsers.length})',
+                    ),
+                  ],
+                ),
+              ],
             ),
-            tabs: [
-              Tab(
-                text: 'Followers (${followerUsers.length})',
-              ),
-              Tab(
-                text: 'Following (${followingUsers.length})',
-              ),
-            ],
           ),
         ),
-        body: isLoading
-            ? const Center(child: CircularProgressIndicator(color: pureBlack))
-            : TabBarView(
-                children: [
-                  // Followers tab
-                  followerUsers.isEmpty 
-                    ? buildEmptyState('No followers yet')
-                    : buildUserList(followerUsers, false),
-                    
-                  // Following tab
-                  followingUsers.isEmpty 
-                    ? buildEmptyState('Not following anyone yet')
-                    : buildUserList(followingUsers, true),
-                ],
-              ),
+        body: RefreshIndicator(
+          onRefresh: fetchUserDetails,
+          child: isLoading
+              ? const Center(child: CircularProgressIndicator(color: pureBlack))
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    // Followers tab
+                    filteredFollowerUsers.isEmpty 
+                        ? buildEmptyState('No followers found')
+                        : buildUserList(filteredFollowerUsers, false),
+                        
+                    // Following tab
+                    filteredFollowingUsers.isEmpty 
+                        ? buildEmptyState('No following found')
+                        : buildUserList(filteredFollowingUsers, true),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -242,7 +367,7 @@ class FollowerPageState extends State<FollowerPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.person_outline ,
+            Icons.person_outline,
             size: 80,
             color: mediumGrey,
           ),
@@ -255,6 +380,16 @@ class FollowerPageState extends State<FollowerPage> {
               fontWeight: FontWeight.w500,
             ),
           ),
+          if (searchQuery.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Try a different search term',
+              style: TextStyle(
+                fontSize: 14,
+                color: mediumGrey,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -266,14 +401,10 @@ class FollowerPageState extends State<FollowerPage> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemBuilder: (context, index) {
         final user = users[index];
-        // Check if the current user is following this user
-        final bool isFollowing = currentUserId != null && 
-            (isFollowingList || user.followers.contains(currentUserId));
-        
-        // Check if this user follows the current user
+        final bool isFollowing = currentUserId != null && user.followers.contains(currentUserId);
         final bool followsYou = currentUserId != null && user.following.contains(currentUserId!);
+        final bool isCurrentUser = currentUserId == user.id;
         
-        // Generate a unique tag for each user in each list
         final String uniqueHeroTag = isFollowingList 
             ? 'profile_following_${index}_${user.id}'
             : 'profile_follower_${index}_${user.id}';
@@ -314,17 +445,33 @@ class FollowerPageState extends State<FollowerPage> {
                   color: pureBlack,
                 ),
               ),
-              subtitle: Text(
-                // Determine the appropriate relationship text
-                isFollowingList 
-                    ? "You're following" 
-                    : (followsYou ? "Follows you" : "Follower"),
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: darkGrey,
-                ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isFollowingList 
+                        ? (currentUserId == widget.following.first ? "You are following" : "Following")
+                        : (followsYou ? "Follows you" : "Follower"),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: darkGrey,
+                    ),
+                  ),
+                  if (user.bio.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      user.bio,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: mediumGrey,
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              trailing: currentUserId != user.id ? OutlinedButton(
+              trailing: !isCurrentUser ? OutlinedButton(
                 onPressed: () => handleFollowToggle(user, isFollowing),
                 style: OutlinedButton.styleFrom(
                   shape: RoundedRectangleBorder(
