@@ -6,11 +6,13 @@ import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dar
 import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 
+/// A page that displays a user's followers and following lists
+/// with the ability to follow/unfollow users and navigate to their profiles
 class FollowerPage extends StatefulWidget {
-  final List<String> followers;
-  final List<String> following;
-  final VoidCallback onTapFollowers;
-  final VoidCallback onTapFollowing;
+  final List<String> followers;      // List of follower user IDs
+  final List<String> following;      // List of following user IDs
+  final VoidCallback onTapFollowers; // Callback when followers tab is tapped
+  final VoidCallback onTapFollowing; // Callback when following tab is tapped
   
   const FollowerPage({
     super.key, 
@@ -25,25 +27,27 @@ class FollowerPage extends StatefulWidget {
 }
 
 class FollowerPageState extends State<FollowerPage> {
-  // Define our black and white colors explicitly
+  // Color constants for consistent theming
   static const Color pureBlack = Color(0xFF000000);
   static const Color pureWhite = Color(0xFFFFFFFF);
   static const Color lightGrey = Color(0xFFE0E0E0);
   static const Color mediumGrey = Color(0xFF757575);
   static const Color darkGrey = Color(0xFF424242);
   
-  List<ProfileUser> followerUsers = [];
-  List<ProfileUser> followingUsers = [];
-  bool isLoading = true;
-  String? currentUserId;
+  // Lists to store user profile data
+  List<ProfileUser> followerUsers = [];  // List of follower user profiles
+  List<ProfileUser> followingUsers = []; // List of following user profiles
+  bool isLoading = true;                 // Loading state indicator
+  String? currentUserId;                 // ID of the currently logged-in user
 
   @override
   void initState() {
     super.initState();
-    getCurrentUser();
-    fetchUserDetails();
+    getCurrentUser();    // Get the current user's ID
+    fetchUserDetails();  // Fetch follower and following user details
   }
   
+  /// Retrieves the current user's ID from the AuthCubit
   void getCurrentUser() {
     final authCubit = context.read<AuthCubit>();
     final user = authCubit.GetCurrentUser();
@@ -52,6 +56,7 @@ class FollowerPageState extends State<FollowerPage> {
     }
   }
   
+  /// Fetches detailed profile information for all followers and following users
   Future<void> fetchUserDetails() async {
     setState(() {
       isLoading = true;
@@ -76,7 +81,7 @@ class FollowerPageState extends State<FollowerPage> {
       }
     }
     
-    // Fetch following details
+    // Fetch following details 
     for (String id in widget.following) {
       try {
         final user = await profileCubit.GetUserProfileByUsername(id);
@@ -97,6 +102,8 @@ class FollowerPageState extends State<FollowerPage> {
     }
   }
   
+  /// Handles the follow/unfollow action for a user
+  /// Updates the UI optimistically and reverts changes if the API call fails
   Future<void> handleFollowToggle(ProfileUser user, bool isCurrentlyFollowing) async {
     if (currentUserId == null) return;
     
@@ -167,6 +174,7 @@ class FollowerPageState extends State<FollowerPage> {
     }
   }
   
+  /// Navigates to a user's profile page and refreshes data when returning
   void navigateToUserProfile(ProfileUser user) {
     Navigator.push(
       context, 
@@ -236,13 +244,14 @@ class FollowerPageState extends State<FollowerPage> {
     );
   }
   
+  /// Builds an empty state widget with a message and icon
   Widget buildEmptyState(String message) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.person_outline ,
+            Icons.person_outline,
             size: 80,
             color: mediumGrey,
           ),
@@ -260,6 +269,7 @@ class FollowerPageState extends State<FollowerPage> {
     );
   }
   
+  /// Builds a scrollable list of users with follow/unfollow functionality
   Widget buildUserList(List<ProfileUser> users, bool isFollowingList) {
     return ListView.builder(
       itemCount: users.length,
@@ -273,7 +283,7 @@ class FollowerPageState extends State<FollowerPage> {
         // Check if this user follows the current user
         final bool followsYou = currentUserId != null && user.following.contains(currentUserId!);
         
-        // Generate a unique tag for each user in each list
+        // Generate a unique tag for each user in each list for Hero animations
         final String uniqueHeroTag = isFollowingList 
             ? 'profile_following_${index}_${user.id}'
             : 'profile_follower_${index}_${user.id}';
