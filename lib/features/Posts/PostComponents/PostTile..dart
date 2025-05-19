@@ -211,9 +211,12 @@ void addComment() async {
   final content = commentController.text.trim();
   if (content.isNotEmpty){
     try {
+      // Generate a unique local ID for the comment
+      final localCommentId = "local_${DateTime.now().millisecondsSinceEpoch}";
+      
       // First create a new comment locally for immediate display
       final newComment = Comments(
-        commentId: DateTime.now().millisecondsSinceEpoch.toString(), // Temp ID
+        commentId: localCommentId, // Use our local ID format
         content: content,
         postId: widget.post.id,
         userId: currentUser!.id,
@@ -662,7 +665,13 @@ void addComment() async {
                               );
                             });
                             
-                            // Then delete from backend without refreshing page
+                            // If it's a local comment (not yet saved to backend), just remove from UI
+                            if (comment.commentId.startsWith('local_')) {
+                              // No need to call backend since comment isn't saved yet
+                              return;
+                            }
+                            
+                            // Otherwise delete from backend without refreshing page
                             await postCubit.deleteCommentLocal(
                               widget.post.id,
                               comment.commentId,
