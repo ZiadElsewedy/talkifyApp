@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
+import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/EditProfilePage.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/Follower.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/Bio.dart';
@@ -10,7 +12,6 @@ import 'package:talkifyapp/features/Profile/presentation/Pages/components/Profil
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/profileStats.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
-import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
@@ -20,24 +21,43 @@ class ProfilePage extends StatefulWidget {
   final String? userId;
   
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  State<ProfilePage> createState() => ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class ProfilePageState extends State<ProfilePage> {
   late AuthCubit authCubit;
   late ProfileCubit profileCubit;
+  late PostCubit postCubit;
   AppUser? currentUser;
+  int userPostCount = 0;
 
   @override
   void initState() {
     super.initState();
     authCubit = BlocProvider.of<AuthCubit>(context);
     profileCubit = BlocProvider.of<ProfileCubit>(context);
+    postCubit = BlocProvider.of<PostCubit>(context);
     currentUser = authCubit.GetCurrentUser();
     profileCubit.fetchUserProfile(widget.userId!);
+    
+    // Fetch user posts to get the count
+    fetchUserPostCount();
   }
-   // optimize the code
-   void followButtonPressed(String currentUserId, String otherUserId) {
+  
+  Future<void> fetchUserPostCount() async {
+    try {
+      final posts = await postCubit.postRepo.fetechPostsByUserId(widget.userId!);
+      if (mounted) {
+        setState(() {
+          userPostCount = posts.length;
+        });
+      }
+    } catch (e) {
+      print('Error fetching post count: $e');
+    }
+  }
+
+  void followButtonPressed(String currentUserId, String otherUserId) {
     final profileAsState = profileCubit.state;
     if (profileAsState is ProfileLoadedState) {
       final profileUser = profileAsState.profileuser;
@@ -88,6 +108,8 @@ class _ProfilePageState extends State<ProfilePage> {
               onRefresh: () async {
                 // Refresh profile data
                 profileCubit.fetchUserProfile(widget.userId!);
+                // Refresh post count
+                fetchUserPostCount();
                 // Wait for a reasonable time to ensure the UI updates
                 await Future.delayed(const Duration(milliseconds: 800));
               },
@@ -139,7 +161,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   children: [
                                     // Profile Picture
                                     Hero(
-                                      tag: 'profile_picture',
+                                      tag: 'profilepicture',
                                       child: ProfilePicFunction(
                                         state: state,
                                         profilePictureUrl: user.profilePictureUrl,
@@ -196,7 +218,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   profileUser: user,
                                   followCount: user.followers.length,
                                   followingCount: user.following.length,
-                                  postCount: 0, // Using hardcoded value for now
+                                  postCount: userPostCount,
                                   onTapFollowers: () {
                                     Navigator.push(
                                       context,
