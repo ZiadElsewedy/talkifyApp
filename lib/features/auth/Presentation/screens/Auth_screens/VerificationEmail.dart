@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/AuthStates.dart';
 import 'package:talkifyapp/features/Posts/presentation/HomePage.dart';
+import 'package:lottie/lottie.dart';
 
 class VerificationEmail extends StatefulWidget {
   const VerificationEmail({super.key});
@@ -12,12 +13,14 @@ class VerificationEmail extends StatefulWidget {
   State<VerificationEmail> createState() => _VerificationEmailState();
 }
 
-class _VerificationEmailState extends State<VerificationEmail> {
+class _VerificationEmailState extends State<VerificationEmail> with SingleTickerProviderStateMixin {
   StreamSubscription? _authSubscription;
+  AnimationController? _animationController;
 
   @override
   void initState() {
     super.initState();
+    _initializeAnimation();
     _authSubscription = context.read<AuthCubit>().stream.listen((state) {
       if (!mounted) return;
       
@@ -37,9 +40,18 @@ class _VerificationEmailState extends State<VerificationEmail> {
     });
   }
 
+  void _initializeAnimation() {
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    );
+    _animationController?.repeat();
+  }
+
   @override
   void dispose() {
     _authSubscription?.cancel();
+    _animationController?.dispose();
     super.dispose();
   }
 
@@ -83,9 +95,11 @@ class _VerificationEmailState extends State<VerificationEmail> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Email Icon with Container
+                      // Email Animation with Container
                       Container(
-                        padding: EdgeInsets.all(20),
+                        padding: EdgeInsets.all(15),
+                        width: 250,
+                        height: 250,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
@@ -97,11 +111,18 @@ class _VerificationEmailState extends State<VerificationEmail> {
                             ),
                           ],
                         ),
-                        child: Icon(
-                          Icons.mark_email_unread_outlined,
-                          size: 80,
-                          color: Colors.black87,
-                        ),
+                        child: _animationController != null
+                            ? Lottie.asset(
+                                'lib/assets/Verfiy.json',
+                                controller: _animationController,
+                                fit: BoxFit.contain,
+                                repeat: true,
+                                animate: true,
+                                onLoaded: (composition) {
+                                  _animationController?.duration = composition.duration;
+                                },
+                              )
+                            : const SizedBox(),
                       ),
                       const SizedBox(height: 40),
                       

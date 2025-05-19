@@ -5,6 +5,8 @@ import 'package:talkifyapp/features/auth/Presentation/Cubits/AuthStates.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/ForgotPasswordPage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyTextField.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/Mybutton.dart';
+import 'package:lottie/lottie.dart';
+
 // step 5 : create the login page
 // the login page will be the page that the user will use to login to the app
 class LoginPage extends StatefulWidget {
@@ -15,12 +17,35 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
   // Text Controller
   // to manage the text input for email and password fields
   // these controllers will be used to get the text input from the user
   final EmailController = TextEditingController();
   final PwController = TextEditingController();
+  AnimationController? _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeAnimation();
+  }
+
+  void _initializeAnimation() {
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+    _animationController?.repeat();
+  }
+
+  @override
+  void dispose() {
+    _animationController?.dispose();
+    EmailController.dispose();
+    PwController.dispose();
+    super.dispose();
+  }
 
   // login button pressed
   void login() {
@@ -41,13 +66,6 @@ class _LoginPageState extends State<LoginPage> {
       EMAIL: Email,
       PASSWORD: Pw,
     );
-  }
-
-  @override
-  void dispose() {
-    EmailController.dispose();
-    PwController.dispose();
-    super.dispose();
   }
 
   @override
@@ -88,14 +106,19 @@ class _LoginPageState extends State<LoginPage> {
                     Padding(
                       padding: const EdgeInsets.only(top: 50),
                       child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.transparent),
-                        ),
-                        child: Image.asset(
-                          'lib/assets/Logo1.png',
-                          height: 170,
-                          fit: BoxFit.cover,
-                        ),
+                        height: 170,
+                        child: _animationController != null
+                            ? Lottie.asset(
+                                'lib/assets/logo_animation.json',
+                                controller: _animationController,
+                                fit: BoxFit.contain,
+                                repeat: true,
+                                animate: true,
+                                onLoaded: (composition) {
+                                  _animationController?.duration = composition.duration;
+                                },
+                              )
+                            : const SizedBox(), // Show empty container while animation is loading
                       ),
                     ),
                     const SizedBox(height: 10),
