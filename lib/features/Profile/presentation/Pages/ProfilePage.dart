@@ -161,7 +161,7 @@ class ProfilePageState extends State<ProfilePage> {
                                   children: [
                                     // Profile Picture
                                     Hero(
-                                      tag: 'profile_${user.id}',
+                                      tag: isOwner ? 'drawer_profile_${user.id}' : 'profile_${user.id}',
                                       child: ProfilePicFunction(
                                         state: state,
                                         profilePictureUrl: user.profilePictureUrl,
