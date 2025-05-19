@@ -21,10 +21,10 @@ class FollowerPage extends StatefulWidget {
   });
 
   @override
-  State<FollowerPage> createState() => _FollowerPageState();
+  State<FollowerPage> createState() => FollowerPageState();
 }
 
-class _FollowerPageState extends State<FollowerPage> {
+class FollowerPageState extends State<FollowerPage> {
   // Define our black and white colors explicitly
   static const Color pureBlack = Color(0xFF000000);
   static const Color pureWhite = Color(0xFFFFFFFF);
@@ -32,19 +32,19 @@ class _FollowerPageState extends State<FollowerPage> {
   static const Color mediumGrey = Color(0xFF757575);
   static const Color darkGrey = Color(0xFF424242);
   
-  List<ProfileUser> _followerUsers = [];
-  List<ProfileUser> _followingUsers = [];
-  bool _isLoading = true;
+  List<ProfileUser> followerUsers = [];
+  List<ProfileUser> followingUsers = [];
+  bool isLoading = true;
   String? currentUserId;
 
   @override
   void initState() {
     super.initState();
-    _getCurrentUser();
-    _fetchUserDetails();
+    getCurrentUser();
+    fetchUserDetails();
   }
   
-  void _getCurrentUser() {
+  void getCurrentUser() {
     final authCubit = context.read<AuthCubit>();
     final user = authCubit.GetCurrentUser();
     if (user != null) {
@@ -52,12 +52,12 @@ class _FollowerPageState extends State<FollowerPage> {
     }
   }
   
-  Future<void> _fetchUserDetails() async {
+  Future<void> fetchUserDetails() async {
     setState(() {
-      _isLoading = true;
+      isLoading = true;
       // Clear existing lists to prevent duplicates
-      _followerUsers = [];
-      _followingUsers = [];
+      followerUsers = [];
+      followingUsers = [];
     });
     
     final profileCubit = context.read<ProfileCubit>();
@@ -68,7 +68,7 @@ class _FollowerPageState extends State<FollowerPage> {
         final user = await profileCubit.GetUserProfileByUsername(id);
         if (user != null && mounted) {
           setState(() {
-            _followerUsers.add(user);
+            followerUsers.add(user);
           });
         }
       } catch (e) {
@@ -82,7 +82,7 @@ class _FollowerPageState extends State<FollowerPage> {
         final user = await profileCubit.GetUserProfileByUsername(id);
         if (user != null && mounted) {
           setState(() {
-            _followingUsers.add(user);
+            followingUsers.add(user);
           });
         }
       } catch (e) {
@@ -92,12 +92,12 @@ class _FollowerPageState extends State<FollowerPage> {
     
     if (mounted) {
       setState(() {
-        _isLoading = false;
+        isLoading = false;
       });
     }
   }
   
-  Future<void> _handleFollowToggle(ProfileUser user, bool isCurrentlyFollowing) async {
+  Future<void> handleFollowToggle(ProfileUser user, bool isCurrentlyFollowing) async {
     if (currentUserId == null) return;
     
     final profileCubit = context.read<ProfileCubit>();
@@ -108,16 +108,16 @@ class _FollowerPageState extends State<FollowerPage> {
         // Remove current user from followers
         user.followers.remove(currentUserId);
         // If this is in the following list, update accordingly
-        if (_followingUsers.contains(user)) {
+        if (followingUsers.contains(user)) {
           // We're unfollowing, so remove from our following list
-          _followingUsers.removeWhere((followingUser) => followingUser.id == user.id);
+          followingUsers.removeWhere((followingUser) => followingUser.id == user.id);
         }
       } else {
         // Add current user to followers
         user.followers.add(currentUserId!);
         // If we're in the followers tab and adding a follow, we should add to our following list
-        if (!_followingUsers.contains(user)) {
-          _followingUsers.add(user);
+        if (!followingUsers.contains(user)) {
+          followingUsers.add(user);
         }
       }
     });
@@ -142,14 +142,14 @@ class _FollowerPageState extends State<FollowerPage> {
         if (isCurrentlyFollowing) {
           // Re-add current user to followers
           user.followers.add(currentUserId!);
-          if (!_followingUsers.contains(user)) {
-            _followingUsers.add(user);
+          if (!followingUsers.contains(user)) {
+            followingUsers.add(user);
           }
         } else {
           // Re-remove current user from followers
           user.followers.remove(currentUserId);
-          if (_followingUsers.contains(user)) {
-            _followingUsers.removeWhere((followingUser) => followingUser.id == user.id);
+          if (followingUsers.contains(user)) {
+            followingUsers.removeWhere((followingUser) => followingUser.id == user.id);
           }
         }
       });
@@ -167,7 +167,7 @@ class _FollowerPageState extends State<FollowerPage> {
     }
   }
   
-  void _navigateToUserProfile(ProfileUser user) {
+  void navigateToUserProfile(ProfileUser user) {
     Navigator.push(
       context, 
       MaterialPageRoute(
@@ -176,7 +176,7 @@ class _FollowerPageState extends State<FollowerPage> {
     ).then((_) {
       // Reset and refetch data when returning from profile
       if (mounted) {
-        _fetchUserDetails();
+        fetchUserDetails();
       }
     });
   }
@@ -209,40 +209,40 @@ class _FollowerPageState extends State<FollowerPage> {
             ),
             tabs: [
               Tab(
-                text: 'Followers (${_followerUsers.length})',
+                text: 'Followers (${followerUsers.length})',
               ),
               Tab(
-                text: 'Following (${_followingUsers.length})',
+                text: 'Following (${followingUsers.length})',
               ),
             ],
           ),
         ),
-        body: _isLoading
+        body: isLoading
             ? const Center(child: CircularProgressIndicator(color: pureBlack))
             : TabBarView(
                 children: [
                   // Followers tab
-                  _followerUsers.isEmpty 
-                    ? _buildEmptyState('No followers yet')
-                    : _buildUserList(_followerUsers, false),
+                  followerUsers.isEmpty 
+                    ? buildEmptyState('No followers yet')
+                    : buildUserList(followerUsers, false),
                     
                   // Following tab
-                  _followingUsers.isEmpty 
-                    ? _buildEmptyState('Not following anyone yet')
-                    : _buildUserList(_followingUsers, true),
+                  followingUsers.isEmpty 
+                    ? buildEmptyState('Not following anyone yet')
+                    : buildUserList(followingUsers, true),
                 ],
               ),
       ),
     );
   }
   
-  Widget _buildEmptyState(String message) {
+  Widget buildEmptyState(String message) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.person_outline,
+            Icons.person_outline ,
             size: 80,
             color: mediumGrey,
           ),
@@ -260,7 +260,7 @@ class _FollowerPageState extends State<FollowerPage> {
     );
   }
   
-  Widget _buildUserList(List<ProfileUser> users, bool isFollowingList) {
+  Widget buildUserList(List<ProfileUser> users, bool isFollowingList) {
     return ListView.builder(
       itemCount: users.length,
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -272,11 +272,11 @@ class _FollowerPageState extends State<FollowerPage> {
         
         // Generate a unique tag for each user in each list
         final String uniqueHeroTag = isFollowingList 
-            ? 'profile_following_${index}_${user.id}'
-            : 'profile_follower_${index}_${user.id}';
+            ? 'profilefollowing${index}${user.id}'
+            : 'profilefollower${index}${user.id}';
             
         return GestureDetector(
-          onTap: () => _navigateToUserProfile(user),
+          onTap: () => navigateToUserProfile(user),
           child: Card(
             elevation: 0,
             color: pureWhite,
@@ -319,7 +319,7 @@ class _FollowerPageState extends State<FollowerPage> {
                 ),
               ),
               trailing: currentUserId != user.id ? OutlinedButton(
-                onPressed: () => _handleFollowToggle(user, isFollowing),
+                onPressed: () => handleFollowToggle(user, isFollowing),
                 style: OutlinedButton.styleFrom(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
