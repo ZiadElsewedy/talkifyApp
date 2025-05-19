@@ -270,10 +270,13 @@ class FollowerPageState extends State<FollowerPage> {
         final bool isFollowing = currentUserId != null && 
             (isFollowingList || user.followers.contains(currentUserId));
         
+        // Check if this user follows the current user
+        final bool followsYou = currentUserId != null && user.following.contains(currentUserId!);
+        
         // Generate a unique tag for each user in each list
         final String uniqueHeroTag = isFollowingList 
-            ? 'profilefollowing${index}${user.id}'
-            : 'profilefollower${index}${user.id}';
+            ? 'profile_following_${index}_${user.id}'
+            : 'profile_follower_${index}_${user.id}';
             
         return GestureDetector(
           onTap: () => navigateToUserProfile(user),
@@ -312,7 +315,10 @@ class FollowerPageState extends State<FollowerPage> {
                 ),
               ),
               subtitle: Text(
-                isFollowingList ? 'You follow this account' : 'Follows you',
+                // Determine the appropriate relationship text
+                isFollowingList 
+                    ? "You're following" 
+                    : (followsYou ? "Follows you" : "Follower"),
                 style: const TextStyle(
                   fontSize: 14,
                   color: darkGrey,
