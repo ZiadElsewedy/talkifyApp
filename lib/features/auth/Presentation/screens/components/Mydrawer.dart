@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/ProfilePicFunction.dart';
+import 'package:talkifyapp/features/Search/Presentation/SearchPage.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/ConfirmLogOut.dart';
@@ -33,9 +34,13 @@ class MyDrawer extends StatelessWidget {
                 const SizedBox(height: 40),
                 BlocBuilder<ProfileCubit, ProfileStates>(
                   builder: (context, state) {
-                    return ProfilePicFunction(
-                      state: state,
-                      profilePictureUrl: state is ProfileLoadedState ? state.profileuser.profilePictureUrl : null,
+                    final currentUser = context.read<AuthCubit>().GetCurrentUser();
+                    return Hero(
+                      tag: 'profile_${currentUser?.id}',
+                      child: ProfilePicFunction(
+                        state: state,
+                        profilePictureUrl: state is ProfileLoadedState ? state.profileuser.profilePictureUrl : null,
+                      ),
                     );
                   },
                 ),
@@ -67,6 +72,13 @@ class MyDrawer extends StatelessWidget {
               )),
               );
               // Handle profile tap
+            },
+          ),
+          MyDrawerTile(
+            icon: Icons.search,
+            title: 'S E A R C H',
+            onTap: () {
+              Navigator.of(context).push( MaterialPageRoute(builder: (context) => SearchPage()));
             },
           ),
           MyDrawerTile(
