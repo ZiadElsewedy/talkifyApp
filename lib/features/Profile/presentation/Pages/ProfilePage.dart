@@ -2,8 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
-import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/Posts/PostComponents/PostTile..dart';
+import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/EditProfilePage.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/Follower.dart';
@@ -41,11 +41,15 @@ class ProfilePageState extends State<ProfilePage> {
     profileCubit = BlocProvider.of<ProfileCubit>(context);
     postCubit = BlocProvider.of<PostCubit>(context);
     currentUser = authCubit.GetCurrentUser();
-    profileCubit.fetchUserProfile(widget.userId!);
-    
-    // Fetch user posts and post count
-    fetchUserPosts();
-    fetchUserPostCount();
+    initializeProfile();
+  }
+
+  Future<void> initializeProfile() async {
+    if (widget.userId != null) {
+      await profileCubit.fetchUserProfile(widget.userId!);
+      await fetchUserPosts();
+      await fetchUserPostCount();
+    }
   }
   
   Future<void> fetchUserPostCount() async {
@@ -74,41 +78,69 @@ class ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> followButtonPressed(String currentUserId, String otherUserId) async {
-    final profileAsState = profileCubit.state;
-    if (profileAsState is ProfileLoadedState) {
-      final profileUser = profileAsState.profileuser;
-      final isCurrentlyFollowing = profileUser.followers.contains(currentUserId);
+  Future<void> handleFollowAction() async {
+    if (currentUser == null || widget.userId == null) return;
+
+    try {
+      await profileCubit.toggleFollow(currentUser!.id, widget.userId!);
       
-      try {
-        // Make the API call to update follow status
-        await profileCubit.toggleFollow(currentUserId, otherUserId);
-        
-        // Refresh the profile to ensure we have the latest state
-        await profileCubit.fetchUserProfile(otherUserId);
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(isCurrentlyFollowing ? 'Unfollowed successfully' : 'Followed successfully'),
-              backgroundColor: Colors.black,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-      } catch (error) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to update follow status: $error'),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-        // Re-throw the error to be handled by the FollowButton
-        rethrow;
+      // Refresh the profile to ensure we have the latest state
+      await profileCubit.fetchUserProfile(widget.userId!);
+      
+      if (mounted) {
+        final isFollowing = await profileCubit.profileRepo.isFollowing(currentUser!.id, widget.userId!);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isFollowing ? 'Followed successfully' : 'Unfollowed successfully'),
+            backgroundColor: Colors.black,
+            duration: const Duration(seconds: 2),
+          ),
+        );
       }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update follow status: $error'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> handlePostDelete(Post post, int index) async {
+    try {
+      await postCubit.postRepo.deletePost(post.id);
+      if (mounted) {
+        setState(() {
+          userPosts.removeAt(index);
+          userPostCount--;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Post deleted successfully'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting post: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> refreshProfile() async {
+    if (widget.userId != null) {
+      await profileCubit.fetchUserProfile(widget.userId!);
+      await fetchUserPostCount();
+      await Future.delayed(const Duration(milliseconds: 800));
     }
   }
 
@@ -122,14 +154,7 @@ class ProfilePageState extends State<ProfilePage> {
           return Scaffold(
             body: RefreshIndicator(
               color: Colors.black,
-              onRefresh: () async {
-                // Refresh profile data
-                profileCubit.fetchUserProfile(widget.userId!);
-                // Refresh post count
-                fetchUserPostCount();
-                // Wait for a reasonable time to ensure the UI updates
-                await Future.delayed(const Duration(milliseconds: 800));
-              },
+              onRefresh: refreshProfile,
               child: CustomScrollView(
                 slivers: [
                   // Modern App Bar with background image
@@ -245,15 +270,11 @@ class ProfilePageState extends State<ProfilePage> {
                                           following: user.following,
                                           onTapFollowers: () {
                                             // Handle follow action from the followers tab
-                                            if (currentUser != null) {
-                                              followButtonPressed(currentUser!.id, user.id);
-                                            }
+                                            handleFollowAction();
                                           },
                                           onTapFollowing: () {
                                             // Handle unfollow action from the following tab
-                                            if (currentUser != null) {
-                                              followButtonPressed(currentUser!.id, user.id);
-                                            }
+                                            handleFollowAction();
                                           },
                                         ),
                                       ),
@@ -268,15 +289,11 @@ class ProfilePageState extends State<ProfilePage> {
                                           following: user.following,
                                           onTapFollowers: () {
                                             // Handle follow action from the followers tab
-                                            if (currentUser != null) {
-                                              followButtonPressed(currentUser!.id, user.id);
-                                            }
+                                            handleFollowAction();
                                           },
                                           onTapFollowing: () {
                                             // Handle unfollow action from the following tab
-                                            if (currentUser != null) {
-                                              followButtonPressed(currentUser!.id, user.id);
-                                            }
+                                            handleFollowAction();
                                           },
                                         ),
                                       ),
@@ -298,17 +315,7 @@ class ProfilePageState extends State<ProfilePage> {
                     actions: [
                       IconButton(
                         icon: const Icon(Icons.refresh, color: Colors.white),
-                        onPressed: () {
-                          // Show loading indicator
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Refreshing profile...'),
-                              duration: Duration(seconds: 1),
-                            ),
-                          );
-                          // Refresh profile data
-                          profileCubit.fetchUserProfile(widget.userId!);
-                        },
+                        onPressed: refreshProfile,
                       ),
                       if (isOwner)
                         IconButton(
@@ -354,17 +361,17 @@ class ProfilePageState extends State<ProfilePage> {
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: FollowButton(
-                                        key: ValueKey('profile_follow_button_${user.id}_${user.followers.contains(currentUser!.id)}'),
+                                        key: ValueKey('profilefollowbutton${user.id}${user.followers.contains(currentUser!.id)}'),
                                         currentUserId: currentUser!.id,
                                         otherUserId: user.id,
                                         isFollowing: user.followers.contains(currentUser!.id),
                                         onFollow: (isFollowing) async {
                                           try {
-                                            await followButtonPressed(currentUser!.id, user.id);
+                                            await handleFollowAction();
                                             // We don't need to setState here because the parent widget will be rebuilt
-                                            // when the profile is refreshed in followButtonPressed
+                                            // when the profile is refreshed in handleFollowAction
                                           } catch (e) {
-                                            // Error is already handled in followButtonPressed
+                                            // Error is already handled in handleFollowAction
                                             rethrow;
                                           }
                                         },
@@ -449,30 +456,7 @@ class ProfilePageState extends State<ProfilePage> {
                                           return PostTile(
                                             post: post,
                                             onDelete: () async {
-                                              try {
-                                                await postCubit.postRepo.deletePost(post.id);
-                                                // Remove post from local list
-                                                setState(() {
-                                                  userPosts.removeAt(index);
-                                                  userPostCount--;
-                                                });
-                                                if (mounted) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text('Post deleted successfully'),
-                                                    ),
-                                                  );
-                                                }
-                                              } catch (e) {
-                                                if (mounted) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text('Error deleting post: $e'),
-                                                      backgroundColor: Colors.red,
-                                                    ),
-                                                  );
-                                                }
-                                              }
+                                              await handlePostDelete(post, index);
                                             },
                                           );
                                         },
@@ -507,7 +491,7 @@ class ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => profileCubit.fetchUserProfile(widget.userId!),
+                    onPressed: initializeProfile,
                     child: const Text('Retry'),
                   ),
                 ],

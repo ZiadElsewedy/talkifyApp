@@ -11,5 +11,8 @@ abstract class ProfileRepo {
   Future<void> updateUserProfile(ProfileUser UpdateProfile);
 
   // Follow a user
-ToggleFollow(String currentUserId, String otherUserId);
+  Future<bool> ToggleFollow(String currentUserId, String otherUserId);
+
+  // Check if a user is following another user
+  Future<bool> isFollowing(String currentUserId, String otherUserId);
 }
