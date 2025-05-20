@@ -6,11 +6,13 @@ import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dar
 import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 
+/// A page that displays a user's followers and following lists
+/// with the ability to follow/unfollow users and navigate to their profiles
 class FollowerPage extends StatefulWidget {
-  final List<String> followers;
-  final List<String> following;
-  final VoidCallback onTapFollowers;
-  final VoidCallback onTapFollowing;
+  final List<String> followers;      // List of follower user IDs
+  final List<String> following;      // List of following user IDs
+  final VoidCallback onTapFollowers; // Callback when followers tab is tapped
+  final VoidCallback onTapFollowing; // Callback when following tab is tapped
   
   const FollowerPage({
     super.key, 
@@ -24,14 +26,17 @@ class FollowerPage extends StatefulWidget {
   State<FollowerPage> createState() => FollowerPageState();
 }
 
+
 class FollowerPageState extends State<FollowerPage> with SingleTickerProviderStateMixin {
   // Define our black and white colors explicitly
+
   static const Color pureBlack = Color(0xFF000000);
   static const Color pureWhite = Color(0xFFFFFFFF);
   static const Color lightGrey = Color(0xFFE0E0E0);
   static const Color mediumGrey = Color(0xFF757575);
   static const Color darkGrey = Color(0xFF424242);
   
+
   List<ProfileUser> followerUsers = [];
   List<ProfileUser> followingUsers = [];
   bool isLoading = true;
@@ -42,12 +47,19 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
   List<ProfileUser> filteredFollowerUsers = [];
   List<ProfileUser> filteredFollowingUsers = [];
 
+  // Lists to store user profile data
+
+
   @override
   void initState() {
     super.initState();
+
     _initializeTabController();
-    getCurrentUser();
-    fetchUserDetails();
+
+
+    getCurrentUser();    // Get the current user's ID
+    fetchUserDetails();  // Fetch follower and following user details
+
   }
 
   void _initializeTabController() {
@@ -72,6 +84,7 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
     super.dispose();
   }
   
+  /// Retrieves the current user's ID from the AuthCubit
   void getCurrentUser() {
     final authCubit = context.read<AuthCubit>();
     final user = authCubit.GetCurrentUser();
@@ -95,6 +108,7 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
     });
   }
   
+  /// Fetches detailed profile information for all followers and following users
   Future<void> fetchUserDetails() async {
     if (isRefreshing) return;
     
@@ -123,12 +137,13 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
           });
         }
       }
+
       
-      // Fetch following details
-      final Set<String> processedFollowingIds = {};
-      for (String id in widget.following) {
-        if (processedFollowingIds.contains(id)) continue;
-        
+
+    // Fetch following details 
+    for (String id in widget.following) {
+      try {
+
         final user = await profileCubit.GetUserProfileByUsername(id);
         if (user != null && mounted) {
           setState(() {
@@ -140,7 +155,6 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
 
       // Initialize filtered lists
       filteredFollowerUsers = List.from(followerUsers);
-      filteredFollowingUsers = List.from(followingUsers);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -161,6 +175,8 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
     }
   }
   
+  /// Handles the follow/unfollow action for a user
+  /// Updates the UI optimistically and reverts changes if the API call fails
   Future<void> handleFollowToggle(ProfileUser user, bool isCurrentlyFollowing) async {
     if (currentUserId == null) return;
     
@@ -264,6 +280,7 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
     }
   }
   
+  /// Navigates to a user's profile page and refreshes data when returning
   void navigateToUserProfile(ProfileUser user) {
     Navigator.push(
       context, 
@@ -361,6 +378,7 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
     );
   }
   
+  /// Builds an empty state widget with a message and icon
   Widget buildEmptyState(String message) {
     return Center(
       child: Column(
@@ -395,6 +413,7 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
     );
   }
   
+  /// Builds a scrollable list of users with follow/unfollow functionality
   Widget buildUserList(List<ProfileUser> users, bool isFollowingList) {
     return ListView.builder(
       itemCount: users.length,
