@@ -61,59 +61,41 @@ class ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> fetchUserPosts() async {
-    try {
-      final posts = await postCubit.postRepo.fetechPostsByUserId(widget.userId!);
-      if (mounted) {
-        setState(() {
-          userPosts = posts;
-        });
-      }
-    } catch (e) {
-      print('Error fetching user posts: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading posts: $e')),
-        );
-      }
-    }
-  }
-
   void followButtonPressed(String currentUserId, String otherUserId) {
     final profileAsState = profileCubit.state;
     if (profileAsState is ProfileLoadedState) {
       final profileUser = profileAsState.profileuser;
       final isCurrentlyFollowing = profileUser.followers.contains(currentUserId);
       
-      setState(() {
-        // Optimistically update UI by modifying the state directly
-        if (isCurrentlyFollowing) {
-          // Unfollow: Remove current user from followers
-          profileUser.followers.remove(currentUserId);
-        } else {
-          // Follow: Add current user to followers
-          profileUser.followers.add(currentUserId);
-        }
-      });
-      
-      // Make the API call to actually perform the follow/unfollow
-      profileCubit.toggleFollow(currentUserId, otherUserId).catchError((error) {
-        // If there's an error, revert the UI change
-        setState(() {
-          if (isCurrentlyFollowing) {
-            // Re-add current user to followers
-            profileUser.followers.add(currentUserId);
-          } else {
-            // Re-remove current user from followers
-            profileUser.followers.remove(currentUserId);
-          }
-        });
+      try {
+        // Make the API call to update follow status
+        await profileCubit.toggleFollow(currentUserId, otherUserId);
         
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update follow status'))
-        );
-      });
+        // Refresh the profile to ensure we have the latest state
+        await profileCubit.fetchUserProfile(otherUserId);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(isCurrentlyFollowing ? 'Unfollowed successfully' : 'Followed successfully'),
+              backgroundColor: Colors.black,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update follow status: $error'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+        // Re-throw the error to be handled by the FollowButton
+        rethrow;
+      }
     }
   }
 
@@ -362,10 +344,7 @@ class ProfilePageState extends State<ProfilePage> {
                                         currentUserId: currentUser!.id,
                                         otherUserId: user.id,
                                         isFollowing: user.followers.contains(currentUser!.id),
-                                        onFollow: (isFollowing) async {
-                                          // Use await to handle the Future
-                                           followButtonPressed(currentUser!.id, user.id);
-                                        },
+                                        onFollow: (isFollowing) => followButtonPressed(currentUser!.id, user.id),
                                       ),
                                     ),
                                   ],

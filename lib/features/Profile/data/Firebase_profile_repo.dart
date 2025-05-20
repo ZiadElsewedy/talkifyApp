@@ -9,51 +9,44 @@ class FirebaseProfileRepo implements ProfileRepo {
   Future<ProfileUser?> fetchUserProfile(String id) async {
     try {
       if (id.isEmpty) {
-        print('Cannot fetch profile: Empty user ID provided');
-        return null;
+        throw Exception('Cannot fetch profile: Empty user ID provided');
       }
       
-      // Get the current user's ID from Firebase Auth
       final userDoc = await firestore.collection('users').doc(id).get();
       
-      if (userDoc.exists) {
-        final userData = userDoc.data();
-        if (userData != null) {
-          // get followers and following of the user and ensure they're properly converted to List<String>
-          final followers = List<String>.from(userData['followers'] ?? []);
-          final following = List<String>.from(userData['following'] ?? []);
-          
-          print('Successfully fetched profile for ID: $id');
-          
-          return ProfileUser(
-            id: id,
-            name: userData['name'] ?? '',
-            email: userData['email'] ?? '',
-            phoneNumber: userData['phoneNumber'] ?? '',
-            bio: userData['bio'] ?? '',
-            backgroundprofilePictureUrl: userData['backgroundprofilePictureUrl']?.toString() ?? '',
-            profilePictureUrl: userData['profilePictureUrl']?.toString() ?? '',
-            HintDescription: userData['HintDescription'] ?? '',
-            followers: followers,
-            following: following,
-          );
-        } else {
-          print('User document exists but data is null for ID: $id');
-        }
-      } else {
-        print('User document not found for ID: $id');
+      if (!userDoc.exists) {
+        throw Exception('User document not found for ID: $id');
       }
-      return null;
+
+      final userData = userDoc.data();
+      if (userData == null) {
+        throw Exception('User document exists but data is null for ID: $id');
+      }
+
+      final followers = List<String>.from(userData['followers'] ?? []);
+      final following = List<String>.from(userData['following'] ?? []);
+      
+      return ProfileUser(
+        id: id,
+        name: userData['name'] ?? '',
+        email: userData['email'] ?? '',
+        phoneNumber: userData['phoneNumber'] ?? '',
+        bio: userData['bio'] ?? '',
+        backgroundprofilePictureUrl: userData['backgroundprofilePictureUrl']?.toString() ?? '',
+        profilePictureUrl: userData['profilePictureUrl']?.toString() ?? '',
+        HintDescription: userData['HintDescription'] ?? '',
+        followers: followers,
+        following: following,
+      );
     } catch (e, stackTrace) {
       print('Error fetching user profile for ID $id: $e');
       print('Stack trace: $stackTrace');
-      // Handle the error as needed
-      return null;
+      rethrow;
     }
   }
 
   @override
-  Future<void> updateUserProfile (ProfileUser updateProfile) async {
+  Future<void> updateUserProfile(ProfileUser updateProfile) async {
     try {
       await firestore.collection('users').doc(updateProfile.id).update({
         'bio': updateProfile.bio,
@@ -63,64 +56,56 @@ class FirebaseProfileRepo implements ProfileRepo {
         'HintDescription': updateProfile.HintDescription,
         'followers': updateProfile.followers,
         'following': updateProfile.following,
-      })
-      .then((_) {
-        print('User profile updated successfully');
-      })
-      .catchError((error) {
-        
       });
-} on Exception catch (e) {
-    print('Error updating user profile: $e');
-    // Handle the error as needed
-
-}
+    } catch (e) {
+      print('Error updating user profile: $e');
+      rethrow;
+    }
   }
   
   @override
-  ToggleFollow(String currentUserId, String otherUserId) async {
+  Future<void> ToggleFollow(String currentUserId, String otherUserId) async {
     try {
-      final currentUserDoc = await firestore.collection('users').doc(currentUserId).get();
-      final otherUserDoc = await firestore.collection('users').doc(otherUserId).get();
-      
-      if (!currentUserDoc.exists) {
-        throw Exception("Current user document not found");
-      }
-      
-      if (!otherUserDoc.exists) {
-        throw Exception("Target user document not found");
-      }
-      
-      if (currentUserDoc.exists && otherUserDoc.exists) {
-        // check if the user is already following the other user
+      // Use a transaction to ensure atomic updates
+      await firestore.runTransaction((transaction) async {
+        // Get both user documents
+        final currentUserDoc = await transaction.get(firestore.collection('users').doc(currentUserId));
+        final otherUserDoc = await transaction.get(firestore.collection('users').doc(otherUserId));
+        
+        if (!currentUserDoc.exists || !otherUserDoc.exists) {
+          throw Exception("One or both user documents not found");
+        }
+
+        // Get current following/followers lists
         final currentUserFollowing = List<String>.from(currentUserDoc.data()?['following'] ?? []);
         final otherUserFollowers = List<String>.from(otherUserDoc.data()?['followers'] ?? []);
 
-        if (currentUserFollowing.contains(otherUserId)) {
-          //unfollow the user
-          print('Unfollowing user: $otherUserId');
+        // Determine if we're following or unfollowing
+        final isFollowing = currentUserFollowing.contains(otherUserId);
+
+        if (isFollowing) {
+          // Unfollow: Remove from both lists
           currentUserFollowing.remove(otherUserId);
           otherUserFollowers.remove(currentUserId);
         } else {
-          //follow the user
+          // Follow: Add to both lists
           currentUserFollowing.add(otherUserId);
           otherUserFollowers.add(currentUserId);
-          print('Following user: $otherUserId');
         }
-        
-        // Update both users in Firestore
-        await firestore.collection('users').doc(currentUserId).update({
+
+        // Update both documents atomically
+        transaction.update(firestore.collection('users').doc(currentUserId), {
           'following': currentUserFollowing,
         });
-        
-        await firestore.collection('users').doc(otherUserId).update({
+
+        transaction.update(firestore.collection('users').doc(otherUserId), {
           'followers': otherUserFollowers,
         });
-      }
+      });
     } catch (e, stackTrace) {
       print('Error toggling follow relationship: $e');
       print('Stack trace: $stackTrace');
-      throw e; // Rethrow to let the cubit handle it
+      rethrow;
     }
   }
 }

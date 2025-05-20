@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
+import 'package:talkifyapp/features/Search/Data/Firebase_search_repo.dart';
+import 'package:talkifyapp/features/Search/Presentation/Cubit/Search_cubit.dart';
 import 'package:talkifyapp/features/Storage/Data/Filebase_Storage_repo.dart';
 import 'package:talkifyapp/features/Profile/data/Firebase_profile_repo.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
@@ -33,6 +35,7 @@ class MyApp extends StatelessWidget {
   final FirebasestorageRepo = FirebaseStorageRepo();
   final FirebaseauthRepo = FirebaseAuthRepo();
   final firebasePostRepo = FirebasePostRepo();
+  final firebaseSearchRepo = FirebaseSearchRepo();
   // Initialize the ProfileRepo
   // Initialize the AuthRepo
   @override
@@ -52,6 +55,9 @@ class MyApp extends StatelessWidget {
         // post cubit 
         BlocProvider<PostCubit>(
           create: (context) => PostCubit(postRepo: firebasePostRepo, storageRepo: FirebasestorageRepo)
+        ),
+        BlocProvider<SearchCubit>(
+          create: (context) => SearchCubit(searchRepo: firebaseSearchRepo)
         )
       ],
     

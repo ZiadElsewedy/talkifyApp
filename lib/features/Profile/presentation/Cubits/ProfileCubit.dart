@@ -13,6 +13,11 @@ class ProfileCubit extends Cubit<ProfileStates> {
   
   // Fetch user profile
   Future<void> fetchUserProfile( String id ) async {
+    if (id.isEmpty) {
+      emit(ProfileErrorState("Invalid user ID"));
+      return;
+    }
+
     emit(ProfileLoadingState()); // Emit loading state
     try {
       final user = await profileRepo.fetchUserProfile(id); // Fetch user profile by ID

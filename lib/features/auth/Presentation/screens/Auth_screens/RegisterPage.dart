@@ -6,6 +6,7 @@ import 'package:talkifyapp/features/auth/Presentation/screens/components/MyTextF
 import 'package:talkifyapp/features/auth/Presentation/screens/components/Mybutton.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/PassReq.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/RegisterLogic.dart';
+import 'package:lottie/lottie.dart';
 
 class Registerpage extends StatefulWidget {
   const Registerpage({super.key, required this.togglePages});
@@ -15,12 +16,27 @@ class Registerpage extends StatefulWidget {
   State<Registerpage> createState() => _RegisterpageState();
 }
 
-class _RegisterpageState extends State<Registerpage> {
+class _RegisterpageState extends State<Registerpage> with SingleTickerProviderStateMixin {
   final NameController = TextEditingController();
   final EmailController = TextEditingController();
   final PwController = TextEditingController();
   final ConfirmPwController = TextEditingController();
   final PHONENUMBERController = TextEditingController();
+  AnimationController? _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeAnimation();
+  }
+
+  void _initializeAnimation() {
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+    _animationController?.repeat();
+  }
 
   void register() {
     RegisterLogic.register(
@@ -35,6 +51,7 @@ class _RegisterpageState extends State<Registerpage> {
 
   @override
   void dispose() {
+    _animationController?.dispose();
     NameController.dispose();
     EmailController.dispose();
     PwController.dispose();
@@ -69,12 +86,23 @@ class _RegisterpageState extends State<Registerpage> {
                     SizedBox(height: 60),
                     Padding(
                       padding: const EdgeInsets.only(top: 50),
-                      child: Image.asset(
-                        'lib/assets/Logo1.png',
-                        height: 120,
+                      child: Container(
+                        height: 170,
+                        child: _animationController != null
+                            ? Lottie.asset(
+                                'lib/assets/Register.json',
+                                controller: _animationController,
+                                fit: BoxFit.contain,
+                                repeat: true,
+                                animate: true,
+                                onLoaded: (composition) {
+                                  _animationController?.duration = composition.duration;
+                                },
+                              )
+                            : const SizedBox(),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    
                     Text(
                       'Create an account :)',
                       style: TextStyle(
