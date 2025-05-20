@@ -33,6 +33,8 @@ class ProfilePageState extends State<ProfilePage> {
   AppUser? currentUser;
   int userPostCount = 0;
   List<Post> userPosts = [];
+  final ScrollController _scrollController = ScrollController();
+  bool _showNameInHeader = false;
 
   @override
   void initState() {
@@ -42,6 +44,27 @@ class ProfilePageState extends State<ProfilePage> {
     postCubit = BlocProvider.of<PostCubit>(context);
     currentUser = authCubit.GetCurrentUser();
     initializeProfile();
+    
+    _scrollController.addListener(_scrollListener);
+  }
+  
+  void _scrollListener() {
+    if (_scrollController.offset > 200 && !_showNameInHeader) {
+      setState(() {
+        _showNameInHeader = true;
+      });
+    } else if (_scrollController.offset <= 200 && _showNameInHeader) {
+      setState(() {
+        _showNameInHeader = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> initializeProfile() async {
@@ -152,15 +175,50 @@ class ProfilePageState extends State<ProfilePage> {
         if (state is ProfileLoadedState) {
           final user = state.profileuser;
           return Scaffold(
+            backgroundColor: const Color(0xFFF9F9F9),
             body: RefreshIndicator(
               color: Colors.black,
               onRefresh: refreshProfile,
               child: CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                controller: _scrollController,
                 slivers: [
                   // Modern App Bar with background image
                   SliverAppBar(
                     expandedHeight: 270,
                     pinned: true,
+                    backgroundColor: Colors.black,
+                    elevation: 0,
+                    title: AnimatedOpacity(
+                      opacity: _showNameInHeader ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: Text(
+                        user.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    actions: [
+                      IconButton(
+                        icon: const Icon(Icons.refresh, color: Colors.white),
+                        onPressed: refreshProfile,
+                      ),
+                      if (isOwner)
+                        IconButton(
+                          icon: const Icon(Icons.settings, color: Colors.white),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => EditProfilePage(user: user),
+                              ),
+                            );
+                          },
+                        ),
+                    ],
                     flexibleSpace: FlexibleSpaceBar(
                       background: Stack(
                         fit: StackFit.expand,
@@ -169,11 +227,11 @@ class ProfilePageState extends State<ProfilePage> {
                           CachedNetworkImage(
                             imageUrl: user.backgroundprofilePictureUrl,
                             placeholder: (context, url) => Container(
-                              color: Colors.grey[300],
+                              color: const Color(0xFFEEEEEE),
                               child: const Center(child: PercentCircleIndicator()),
                             ),
                             errorWidget: (context, url, error) => Container(
-                              color: Colors.grey[300],
+                              color: const Color(0xFFEEEEEE),
                               child: const Icon(Icons.image, size: 50, color: Colors.grey),
                             ),
                             fit: BoxFit.cover,
@@ -185,8 +243,8 @@ class ProfilePageState extends State<ProfilePage> {
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  Colors.black.withOpacity(0.3),
-                                  Colors.black.withOpacity(0.1),
+                                  Colors.black.withOpacity(0.4),
+                                  Colors.black.withOpacity(0.2),
                                 ],
                               ),
                             ),
@@ -306,167 +364,222 @@ class ProfilePageState extends State<ProfilePage> {
                                     );
                                   },
                                 ),
+                                const SizedBox(height: 10),
+                                // Subtle indicator to encourage scrolling
+                              
                               ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                    actions: [
-                      IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.white),
-                        onPressed: refreshProfile,
-                      ),
-                      if (isOwner)
-                        IconButton(
-                          icon: const Icon(Icons.settings, color: Colors.white),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EditProfilePage(user: user),
-                              ),
-                            );
-                          },
-                        ),
-                    ],
                   ),
                   // Profile Content
                   SliverToBoxAdapter(
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20), 
-                        // Bio Section
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (!isOwner)
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: MessageButton(
-                                        onPressed: () {
-                                          // Handle message button tap
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Message feature coming soon!'),
-                                              duration: Duration(seconds: 2),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: FollowButton(
-                                        key: ValueKey('profilefollowbutton${user.id}${user.followers.contains(currentUser!.id)}'),
-                                        currentUserId: currentUser!.id,
-                                        otherUserId: user.id,
-                                        isFollowing: user.followers.contains(currentUser!.id),
-                                        onFollow: (isFollowing) async {
-                                          try {
-                                            await handleFollowAction();
-                                            // We don't need to setState here because the parent widget will be rebuilt
-                                            // when the profile is refreshed in handleFollowAction
-                                          } catch (e) {
-                                            // Error is already handled in handleFollowAction
-                                            rethrow;
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              const SizedBox(height: 20),
-                              const Text(
-                                'Bio',
-                                style: TextStyle(
-                                  color: Color.fromARGB(255, 95, 95, 95),
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(15),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 10,
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
-                                ),
-                                child: Mybio(bioText: user.bio),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 30),
-                        // Posts Section
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Posts',
-                                style: TextStyle(
-                                  color: Color.fromARGB(255, 95, 95, 95),
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(15),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 10,
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
-                                ),
-                                child: userPosts.isEmpty
-                                    ? Container(
-                                        height: 200,
-                                        child: const Center(
-                                          child: Text(
-                                            'No posts yet',
-                                            style: TextStyle(
-                                              color: Colors.grey,
-                                              fontSize: 16,
-                                            ),
+                    child: Container(
+                      color: const Color(0xFFF9F9F9),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 20), 
+                          // Bio Section
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            margin: const EdgeInsets.only(bottom: 10),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (!isOwner)
+                                  Container(
+                                    margin: const EdgeInsets.only(bottom: 25),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: MessageButton(
+                                            onPressed: () {
+                                              // Handle message button tap
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Message feature coming soon!'),
+                                                  duration: Duration(seconds: 2),
+                                                ),
+                                              );
+                                            },
                                           ),
                                         ),
-                                      )
-                                    : ListView.builder(
-                                        shrinkWrap: true,
-                                        physics: const NeverScrollableScrollPhysics(),
-                                        itemCount: userPosts.length,
-                                        itemBuilder: (context, index) {
-                                          final post = userPosts[index];
-                                          return PostTile(
-                                            post: post,
-                                            onDelete: () async {
-                                              await handlePostDelete(post, index);
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: FollowButton(
+                                            key: ValueKey('profilefollowbutton${user.id}${user.followers.contains(currentUser!.id)}'),
+                                            currentUserId: currentUser!.id,
+                                            otherUserId: user.id,
+                                            isFollowing: user.followers.contains(currentUser!.id),
+                                            onFollow: (isFollowing) async {
+                                              try {
+                                                await handleFollowAction();
+                                                // We don't need to setState here because the parent widget will be rebuilt
+                                                // when the profile is refreshed in handleFollowAction
+                                              } catch (e) {
+                                                // Error is already handled in handleFollowAction
+                                                rethrow;
+                                              }
                                             },
-                                          );
-                                        },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                Row(
+                                  children: [
+                                    Container(
+                                      height: 24,
+                                      width: 4,
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.circular(2),
                                       ),
-                              ),
-                            ],
+                                    ),
+                                    const SizedBox(width: 10),
+                                    const Text(
+                                      'Bio',
+                                      style: TextStyle(
+                                        color: Colors.black87,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 15),
+                                Mybio(bioText: user.bio),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 30),
-                      ],
+                          const SizedBox(height: 25),
+                          // Posts Section
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            margin: const EdgeInsets.only(bottom: 30),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      height: 24,
+                                      width: 4,
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    const Text(
+                                      'Posts',
+                                      style: TextStyle(
+                                        color: Colors.black87,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 15),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.08),
+                                        spreadRadius: 1,
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                    border: Border.all(
+                                      color: Colors.grey.withOpacity(0.1),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: userPosts.isEmpty
+                                      ? AnimatedContainer(
+                                          duration: const Duration(milliseconds: 300),
+                                          height: 200,
+                                          child: Center(
+                                            child: Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.post_add_outlined,
+                                                  size: 50,
+                                                  color: Colors.black.withOpacity(0.3),
+                                                ),
+                                                const SizedBox(height: 10),
+                                                Text(
+                                                  'No posts yet',
+                                                  style: TextStyle(
+                                                    color: Colors.black54,
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w500,
+                                                    letterSpacing: 0.5,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 5),
+                                                Text(
+                                                  'Posts will appear here',
+                                                  style: TextStyle(
+                                                    color: Colors.black38,
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                                if (isOwner) const SizedBox(height: 16),
+                                                if (isOwner)
+                                                  OutlinedButton(
+                                                    onPressed: () {
+                                                      // Navigate to create post
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        const SnackBar(
+                                                          content: Text('Create post feature coming soon!'),
+                                                          backgroundColor: Colors.black,
+                                                        ),
+                                                      );
+                                                    },
+                                                    style: OutlinedButton.styleFrom(
+                                                      foregroundColor: Colors.black,
+                                                      side: const BorderSide(color: Colors.black),
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius: BorderRadius.circular(8),
+                                                      ),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                    ),
+                                                    child: const Text('Create a post'),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        )
+                                      : ListView.builder(
+                                          shrinkWrap: true,
+                                          physics: const NeverScrollableScrollPhysics(),
+                                          itemCount: userPosts.length,
+                                          itemBuilder: (context, index) {
+                                            final post = userPosts[index];
+                                            return PostTile(
+                                              post: post,
+                                              onDelete: () async {
+                                                await handlePostDelete(post, index);
+                                              },
+                                            );
+                                          },
+                                        ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -475,26 +588,73 @@ class ProfilePageState extends State<ProfilePage> {
           );
         } else if (state is ProfileLoadingState) {
           return const Scaffold(
+            backgroundColor: Color(0xFFF9F9F9),
             body: Center(
               child: ProfessionalCircularProgress(),
             ),
           );
         } else if (state is ProfileErrorState) {
           return Scaffold(
+            backgroundColor: Color(0xFFF9F9F9),
+            appBar: AppBar(
+              backgroundColor: Colors.black,
+              elevation: 0,
+              title: const Text('Profile'),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
             body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    state.error,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: initializeProfile,
-                    child: const Text('Retry'),
-                  ),
-                ],
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                margin: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      spreadRadius: 1,
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      color: Colors.black,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      state.error,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: initializeProfile,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
