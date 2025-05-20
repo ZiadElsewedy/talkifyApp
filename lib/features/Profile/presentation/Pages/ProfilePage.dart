@@ -1,7 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
+import 'package:talkifyapp/features/Posts/PostComponents/PostTile..dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/EditProfilePage.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/Follower.dart';
@@ -30,6 +32,7 @@ class ProfilePageState extends State<ProfilePage> {
   late PostCubit postCubit;
   AppUser? currentUser;
   int userPostCount = 0;
+  List<Post> userPosts = [];
 
   @override
   void initState() {
@@ -40,7 +43,8 @@ class ProfilePageState extends State<ProfilePage> {
     currentUser = authCubit.GetCurrentUser();
     profileCubit.fetchUserProfile(widget.userId!);
     
-    // Fetch user posts to get the count
+    // Fetch user posts and post count
+    fetchUserPosts();
     fetchUserPostCount();
   }
   
@@ -54,6 +58,24 @@ class ProfilePageState extends State<ProfilePage> {
       }
     } catch (e) {
       print('Error fetching post count: $e');
+    }
+  }
+
+  Future<void> fetchUserPosts() async {
+    try {
+      final posts = await postCubit.postRepo.fetechPostsByUserId(widget.userId!);
+      if (mounted) {
+        setState(() {
+          userPosts = posts;
+        });
+      }
+    } catch (e) {
+      print('Error fetching user posts: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading posts: $e')),
+        );
+      }
     }
   }
 
@@ -392,7 +414,6 @@ class ProfilePageState extends State<ProfilePage> {
                               ),
                               const SizedBox(height: 10),
                               Container(
-                                height: 200,
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(15),
@@ -404,15 +425,56 @@ class ProfilePageState extends State<ProfilePage> {
                                     ),
                                   ],
                                 ),
-                                child: const Center(
-                                  child: Text(
-                                    'No posts yet',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ),
+                                child: userPosts.isEmpty
+                                    ? Container(
+                                        height: 200,
+                                        child: const Center(
+                                          child: Text(
+                                            'No posts yet',
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : ListView.builder(
+                                        shrinkWrap: true,
+                                        physics: const NeverScrollableScrollPhysics(),
+                                        itemCount: userPosts.length,
+                                        itemBuilder: (context, index) {
+                                          final post = userPosts[index];
+                                          return PostTile(
+                                            post: post,
+                                            onDelete: () async {
+                                              try {
+                                                await postCubit.postRepo.deletePost(post.id);
+                                                // Remove post from local list
+                                                setState(() {
+                                                  userPosts.removeAt(index);
+                                                  userPostCount--;
+                                                });
+                                                if (mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text('Post deleted successfully'),
+                                                    ),
+                                                  );
+                                                }
+                                              } catch (e) {
+                                                if (mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Error deleting post: $e'),
+                                                      backgroundColor: Colors.red,
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                            },
+                                          );
+                                        },
+                                      ),
                               ),
                             ],
                           ),
