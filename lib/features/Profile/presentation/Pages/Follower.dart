@@ -329,8 +329,62 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
       MaterialPageRoute(
         builder: (context) => ProfilePage(userId: user.id),
       ),
-    ).then((_) {
+    ).then((_) async {
       if (mounted) {
+        // Get the latest profile data for the current user
+        final authCubit = context.read<AuthCubit>();
+        final currentUser = authCubit.GetCurrentUser();
+        
+        if (currentUser != null) {
+          // Get the latest profile data for the user we just visited
+          final profileCubit = context.read<ProfileCubit>();
+          final updatedVisitedUser = await profileCubit.GetUserProfileByUsername(user.id);
+          
+          if (updatedVisitedUser != null) {
+            setState(() {
+              // Check if the current user is still following this user
+              final isStillFollowing = updatedVisitedUser.followers.contains(currentUser.id);
+              
+              // If not following anymore, remove from following lists
+              if (!isStillFollowing) {
+                followingUsers.removeWhere((u) => u.id == user.id);
+                filteredFollowingUsers.removeWhere((u) => u.id == user.id);
+                
+                // Show a message
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('User removed from your following list'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              } else {
+                // Otherwise, just update the user data
+                final followingIndex = followingUsers.indexWhere((u) => u.id == user.id);
+                if (followingIndex != -1) {
+                  followingUsers[followingIndex] = updatedVisitedUser;
+                }
+                
+                final filteredIndex = filteredFollowingUsers.indexWhere((u) => u.id == user.id);
+                if (filteredIndex != -1) {
+                  filteredFollowingUsers[filteredIndex] = updatedVisitedUser;
+                }
+              }
+              
+              // Also update in followers list if present
+              final followerIndex = followerUsers.indexWhere((u) => u.id == user.id);
+              if (followerIndex != -1) {
+                followerUsers[followerIndex] = updatedVisitedUser;
+              }
+              
+              final filteredFollowerIndex = filteredFollowerUsers.indexWhere((u) => u.id == user.id);
+              if (filteredFollowerIndex != -1) {
+                filteredFollowerUsers[filteredFollowerIndex] = updatedVisitedUser;
+              }
+            });
+          }
+        }
+        
+        // Refresh the entire list to ensure everything is up to date
         fetchUserDetails();
       }
     });
