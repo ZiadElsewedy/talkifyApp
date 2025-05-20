@@ -74,6 +74,7 @@ flutter:
     - lib\assets\logo_animation.json
     - lib\assets\Register.json
     - lib\assets\Verfiy.json
+    - lib\assets\Search.json
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/components/FollowButtom.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 
 /// A page that displays a user's followers and following lists
@@ -26,17 +27,14 @@ class FollowerPage extends StatefulWidget {
   State<FollowerPage> createState() => FollowerPageState();
 }
 
-
 class FollowerPageState extends State<FollowerPage> with SingleTickerProviderStateMixin {
   // Define our black and white colors explicitly
-
   static const Color pureBlack = Color(0xFF000000);
   static const Color pureWhite = Color(0xFFFFFFFF);
   static const Color lightGrey = Color(0xFFE0E0E0);
   static const Color mediumGrey = Color(0xFF757575);
   static const Color darkGrey = Color(0xFF424242);
   
-
   List<ProfileUser> followerUsers = [];
   List<ProfileUser> followingUsers = [];
   bool isLoading = true;
@@ -49,17 +47,13 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
 
   // Lists to store user profile data
 
-
   @override
   void initState() {
     super.initState();
-
     _initializeTabController();
-
 
     getCurrentUser();    // Get the current user's ID
     fetchUserDetails();  // Fetch follower and following user details
-
   }
 
   void _initializeTabController() {
@@ -137,13 +131,12 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
           });
         }
       }
-
       
-
-    // Fetch following details 
-    for (String id in widget.following) {
-      try {
-
+      // Fetch following details 
+      final Set<String> processedFollowingIds = {};
+      for (String id in widget.following) {
+        if (processedFollowingIds.contains(id)) continue;
+        
         final user = await profileCubit.GetUserProfileByUsername(id);
         if (user != null && mounted) {
           setState(() {
@@ -155,6 +148,7 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
 
       // Initialize filtered lists
       filteredFollowerUsers = List.from(followerUsers);
+      filteredFollowingUsers = List.from(followingUsers);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -174,7 +168,45 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
       }
     }
   }
-  
+
+  /// Refreshes a specific user's data in both followers and following lists
+  Future<void> refreshUserData(String userId) async {
+    final profileCubit = context.read<ProfileCubit>();
+    
+    try {
+      final updatedUser = await profileCubit.GetUserProfileByUsername(userId);
+      if (updatedUser != null && mounted) {
+        setState(() {
+          // Update in followers list
+          final followerIndex = followerUsers.indexWhere((u) => u.id == userId);
+          if (followerIndex != -1) {
+            followerUsers[followerIndex] = updatedUser;
+            
+            // Also update in filtered list
+            final filteredIndex = filteredFollowerUsers.indexWhere((u) => u.id == userId);
+            if (filteredIndex != -1) {
+              filteredFollowerUsers[filteredIndex] = updatedUser;
+            }
+          }
+          
+          // Update in following list
+          final followingIndex = followingUsers.indexWhere((u) => u.id == userId);
+          if (followingIndex != -1) {
+            followingUsers[followingIndex] = updatedUser;
+            
+            // Also update in filtered list
+            final filteredIndex = filteredFollowingUsers.indexWhere((u) => u.id == userId);
+            if (filteredIndex != -1) {
+              filteredFollowingUsers[filteredIndex] = updatedUser;
+            }
+          }
+        });
+      }
+    } catch (e) {
+      print('Error refreshing user data: $e');
+    }
+  }
+
   /// Handles the follow/unfollow action for a user
   /// Updates the UI optimistically and reverts changes if the API call fails
   Future<void> handleFollowToggle(ProfileUser user, bool isCurrentlyFollowing) async {
@@ -208,6 +240,16 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
     
     try {
       await profileCubit.toggleFollow(currentUserId!, user.id);
+      
+      // Only update the list we're currently viewing
+      if (_tabController?.index == 0) { // Followers tab
+        widget.onTapFollowers();
+      } else { // Following tab
+        widget.onTapFollowing();
+      }
+      
+      // Refresh the user data to ensure it's up to date
+      await refreshUserData(user.id);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -286,98 +328,52 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
       context, 
       MaterialPageRoute(
         builder: (context) => ProfilePage(userId: user.id),
+
       ),
-    ).then((_) {
+    ).then((_) async {
       if (mounted) {
+        // Get the latest profile data for the current user
+        final authCubit = context.read<AuthCubit>();
+        final currentUser = authCubit.GetCurrentUser();
+        
+        if (currentUser != null) {
+          // Get the latest profile data for the user we just visited
+          final profileCubit = context.read<ProfileCubit>();
+          final updatedVisitedUser = await profileCubit.GetUserProfileByUsername(user.id);
+          
+          if (updatedVisitedUser != null) {
+            setState(() {
+              // Only update the user data in the lists, don't remove them
+              final followingIndex = followingUsers.indexWhere((u) => u.id == user.id);
+              if (followingIndex != -1) {
+                followingUsers[followingIndex] = updatedVisitedUser;
+              }
+              
+              final filteredIndex = filteredFollowingUsers.indexWhere((u) => u.id == user.id);
+              if (filteredIndex != -1) {
+                filteredFollowingUsers[filteredIndex] = updatedVisitedUser;
+              }
+              
+              // Also update in followers list if present
+              final followerIndex = followerUsers.indexWhere((u) => u.id == user.id);
+              if (followerIndex != -1) {
+                followerUsers[followerIndex] = updatedVisitedUser;
+              }
+              
+              final filteredFollowerIndex = filteredFollowerUsers.indexWhere((u) => u.id == user.id);
+              if (filteredFollowerIndex != -1) {
+                filteredFollowerUsers[filteredFollowerIndex] = updatedVisitedUser;
+              }
+            });
+          }
+        }
+        
+        // Refresh the entire list to ensure everything is up to date
         fetchUserDetails();
       }
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: pureWhite,
-        appBar: AppBar(
-          backgroundColor: pureWhite,
-          foregroundColor: pureBlack,
-          title: const Text(
-            'Connections',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: pureBlack,
-            ),
-          ),
-          elevation: 0,
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(100),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: TextField(
-                    onChanged: filterUsers,
-                    decoration: InputDecoration(
-                      hintText: 'Search users...',
-                      prefixIcon: const Icon(Icons.search, color: mediumGrey),
-                      filled: true,
-                      fillColor: lightGrey.withOpacity(0.3),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(25),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                    ),
-                  ),
-                ),
-                TabBar(
-                  controller: _tabController,
-                  indicatorWeight: 3,
-                  indicatorColor: pureBlack,
-                  labelColor: pureBlack,
-                  unselectedLabelColor: mediumGrey,
-                  labelStyle: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                  tabs: [
-                    Tab(
-                      text: 'Followers (${filteredFollowerUsers.length})',
-                    ),
-                    Tab(
-                      text: 'Following (${filteredFollowingUsers.length})',
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        body: RefreshIndicator(
-          onRefresh: fetchUserDetails,
-          child: isLoading
-              ? const Center(child: CircularProgressIndicator(color: pureBlack))
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    // Followers tab
-                    filteredFollowerUsers.isEmpty 
-                        ? buildEmptyState('No followers found')
-                        : buildUserList(filteredFollowerUsers, false),
-                        
-                    // Following tab
-                    filteredFollowingUsers.isEmpty 
-                        ? buildEmptyState('No following found')
-                        : buildUserList(filteredFollowingUsers, true),
-                  ],
-                ),
-        ),
-      ),
-    );
-  }
-  
   /// Builds an empty state widget with a message and icon
   Widget buildEmptyState(String message) {
     return Center(
@@ -490,30 +486,121 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
                   ],
                 ],
               ),
-              trailing: !isCurrentUser ? OutlinedButton(
-                onPressed: () => handleFollowToggle(user, isFollowing),
-                style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  side: BorderSide(
-                    color: isFollowing ? mediumGrey : pureBlack,
-                    width: 1.5,
-                  ),
-                  foregroundColor: isFollowing ? mediumGrey : pureBlack,
-                ),
-                child: Text(
-                  isFollowing ? 'Unfollow' : 'Follow',
-                  style: TextStyle(
-                    color: isFollowing ? mediumGrey : pureBlack,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+              trailing: !isCurrentUser ? FollowButton(
+                key: ValueKey('follow_button_${user.id}_${isFollowing ? 'following' : 'not_following'}'),
+                currentUserId: currentUserId!,
+                otherUserId: user.id,
+                isFollowing: isFollowing,
+                onFollow: (wasFollowing) async {
+                  await handleFollowToggle(user, isFollowing);
+                  return;
+                },
               ) : null,
             ),
           ),
         );
       },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: pureWhite,
+        appBar: AppBar(
+          backgroundColor: pureWhite,
+          foregroundColor: pureBlack,
+          title: const Text(
+            'Connections',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: pureBlack,
+            ),
+          ),
+          elevation: 0,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh, color: pureBlack),
+              onPressed: () {
+                // Show loading indicator
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Refreshing users...'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+                // Refresh all users
+                fetchUserDetails();
+              },
+            ),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(100),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: TextField(
+                    onChanged: filterUsers,
+                    decoration: InputDecoration(
+                      hintText: 'Search users...',
+                      prefixIcon: const Icon(Icons.search, color: mediumGrey),
+                      filled: true,
+                      fillColor: lightGrey.withOpacity(0.3),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                  ),
+                ),
+                TabBar(
+                  controller: _tabController,
+                  indicatorWeight: 3,
+                  indicatorColor: pureBlack,
+                  labelColor: pureBlack,
+                  unselectedLabelColor: mediumGrey,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                  tabs: [
+                    Tab(
+                      text: 'Followers (${filteredFollowerUsers.length})',
+                    ),
+                    Tab(
+                      text: 'Following (${filteredFollowingUsers.length})',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        body: RefreshIndicator(
+          color: pureBlack,
+          onRefresh: fetchUserDetails,
+          child: isLoading
+              ? const Center(child: CircularProgressIndicator(color: pureBlack))
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    // Followers tab
+                    filteredFollowerUsers.isEmpty 
+                        ? buildEmptyState('No followers found')
+                        : buildUserList(filteredFollowerUsers, false),
+                        
+                    // Following tab
+                    filteredFollowingUsers.isEmpty 
+                        ? buildEmptyState('No following found')
+                        : buildUserList(filteredFollowingUsers, true),
+                  ],
+                ),
+        ),
+      ),
     );
   }
 }
