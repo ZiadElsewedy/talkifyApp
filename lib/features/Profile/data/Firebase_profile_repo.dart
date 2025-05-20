@@ -66,6 +66,11 @@ class FirebaseProfileRepo implements ProfileRepo {
   @override
   Future<void> ToggleFollow(String currentUserId, String otherUserId) async {
     try {
+      // Prevent self-following
+      if (currentUserId == otherUserId) {
+        throw Exception("Users cannot follow themselves");
+      }
+
       // Use a transaction to ensure atomic updates
       await firestore.runTransaction((transaction) async {
         // Get both user documents
@@ -79,6 +84,10 @@ class FirebaseProfileRepo implements ProfileRepo {
         // Get current following/followers lists
         final currentUserFollowing = List<String>.from(currentUserDoc.data()?['following'] ?? []);
         final otherUserFollowers = List<String>.from(otherUserDoc.data()?['followers'] ?? []);
+
+        // Clean up any self-following that might exist
+        currentUserFollowing.remove(currentUserId); // Remove self from following
+        otherUserFollowers.remove(otherUserId);     // Remove self from followers
 
         // Determine if we're following or unfollowing
         final isFollowing = currentUserFollowing.contains(otherUserId);
