@@ -61,7 +61,20 @@ class ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  void followButtonPressed(String currentUserId, String otherUserId) {
+  Future<void> fetchUserPosts() async {
+    try {
+      final posts = await postCubit.postRepo.fetechPostsByUserId(widget.userId!);
+      if (mounted) {
+        setState(() {
+          userPosts = posts;
+        });
+      }
+    } catch (e) {
+      print('Error fetching user posts: $e');
+    }
+  }
+
+  Future<void> followButtonPressed(String currentUserId, String otherUserId) async {
     final profileAsState = profileCubit.state;
     if (profileAsState is ProfileLoadedState) {
       final profileUser = profileAsState.profileuser;
@@ -341,10 +354,20 @@ class ProfilePageState extends State<ProfilePage> {
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: FollowButton(
+                                        key: ValueKey('profile_follow_button_${user.id}_${user.followers.contains(currentUser!.id)}'),
                                         currentUserId: currentUser!.id,
                                         otherUserId: user.id,
                                         isFollowing: user.followers.contains(currentUser!.id),
-                                        onFollow: (isFollowing) => followButtonPressed(currentUser!.id, user.id),
+                                        onFollow: (isFollowing) async {
+                                          try {
+                                            await followButtonPressed(currentUser!.id, user.id);
+                                            // We don't need to setState here because the parent widget will be rebuilt
+                                            // when the profile is refreshed in followButtonPressed
+                                          } catch (e) {
+                                            // Error is already handled in followButtonPressed
+                                            rethrow;
+                                          }
+                                        },
                                       ),
                                     ),
                                   ],
