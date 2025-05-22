@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lottie/lottie.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/PostComponents/PostTile..dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
@@ -192,13 +193,27 @@ class ProfilePageState extends State<ProfilePage> {
                     title: AnimatedOpacity(
                       opacity: _showNameInHeader ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 300),
-                      child: Text(
-                        user.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            user.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          SizedBox(
+                            width: 60,
+                            height: 70,
+                            child: Lottie.asset(
+                              'lib/assets/profile.json',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     actions: [
