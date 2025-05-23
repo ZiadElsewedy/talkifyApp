@@ -14,6 +14,8 @@ import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/Verif
 import 'package:talkifyapp/features/Posts/data/firebase_post_repo.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
+import 'package:talkifyapp/features/Chat/Data/firebase_chat_repo.dart';
+import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 // things need to do ! 
 // 1. add firebase options
 // bloc providers for state management
@@ -36,6 +38,7 @@ class MyApp extends StatelessWidget {
   final FirebaseauthRepo = FirebaseAuthRepo();
   final firebasePostRepo = FirebasePostRepo();
   final firebaseSearchRepo = FirebaseSearchRepo();
+  final firebaseChatRepo = FirebaseChatRepo();
   // Initialize the ProfileRepo
   // Initialize the AuthRepo
   @override
@@ -58,7 +61,12 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<SearchCubit>(
           create: (context) => SearchCubit(searchRepo: firebaseSearchRepo)
-        )
+        ),
+        
+        // chat cubit
+        BlocProvider<ChatCubit>(
+          create: (context) => ChatCubit(chatRepo: firebaseChatRepo)
+        ),
       ],
     
      child: MaterialApp(

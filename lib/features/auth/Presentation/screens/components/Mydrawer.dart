@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/ProfilePicFunction.dart';
 import 'package:talkifyapp/features/Search/Presentation/SearchPage.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/chat_list_page.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/ConfirmLogOut.dart';
@@ -78,6 +79,20 @@ class _MyDrawerState extends State<MyDrawer> {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => ProfilePage(userId: uid),
+                    ),
+                  ).then((_) {
+                    refreshProfile();
+                  });
+                },
+              ),
+              MyDrawerTile(
+                icon: Icons.chat,
+                title: 'C H A T S',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const ChatListPage(),
                     ),
                   ).then((_) {
                     refreshProfile();
