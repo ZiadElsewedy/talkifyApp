@@ -28,6 +28,10 @@ class ChatCubit extends Cubit<ChatState> {
       _chatRoomsSubscription?.cancel();
       _chatRoomsSubscription = chatRepo.getUserChatRooms(userId).listen(
         (chatRooms) {
+          print('ChatCubit: received ${chatRooms.length} chat rooms for user $userId');
+          for (var cr in chatRooms) {
+            print('  chatRoom ${cr.id} participants=${cr.participants} lastMessage=${cr.lastMessage}');
+          }
           emit(ChatRoomsLoaded(chatRooms));
         },
         onError: (error) {
@@ -166,6 +170,7 @@ class ChatCubit extends Cubit<ChatState> {
         replyToMessageId: replyToMessageId,
         metadata: metadata,
       );
+      print('ChatCubit: Message sent: ${message.id}');  
       emit(MessageSent(message));
     } catch (e) {
       emit(MediaUploadError('Failed to send media: $e'));

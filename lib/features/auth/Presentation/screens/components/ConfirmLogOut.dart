@@ -15,14 +15,15 @@ class ConfirmLogout extends StatelessWidget {
         final shouldLogout = await showConfirmLogoutDialog(context);
     
         if (shouldLogout == true) {
-          context.read<AuthCubit>().logout();
+          // Call the actual logout method
+          await context.read<AuthCubit>().logout();
+          
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Logged out successfully'),
               backgroundColor: Colors.green,
             ),
           );
-          // Optionally, navigate to login page here
         }
       },
     );

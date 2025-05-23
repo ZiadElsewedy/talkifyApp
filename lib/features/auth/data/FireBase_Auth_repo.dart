@@ -20,7 +20,9 @@ class FirebaseAuthRepo implements AuthRepo {
         email: email, 
         password: password,
       );
-
+      await firestore.collection('users').doc(userCredential.user!.uid).update({
+        'isOnline': true,
+      });
 
       // check if the user is signed in
       if (userCredential.user?.emailVerified == true) {
@@ -122,8 +124,23 @@ class FirebaseAuthRepo implements AuthRepo {
 
   @override
   Future<void> LogOut() async {
-    await firebaseAuth.signOut();
-    // handle any additional logout logic here
+    try {
+      // Get the current user ID before signing out
+      final userId = firebaseAuth.currentUser?.uid;
+      
+      // Update online status if user ID exists
+      if (userId != null) {
+        await firestore.collection('users').doc(userId).update({
+          'isOnline': false,
+        });
+      }
+      
+      // Sign out after updating the status
+      await firebaseAuth.signOut();
+      print('Logged out successfully');
+    } catch (e) {
+      throw Exception('Logout failed: $e');
+    }
   }
 
   @override

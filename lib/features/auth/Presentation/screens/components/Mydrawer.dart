@@ -90,13 +90,11 @@ class _MyDrawerState extends State<MyDrawer> {
                 title: 'C H A T S',
                 onTap: () {
                   Navigator.of(context).pop();
-                  Navigator.of(context).push(
+                  Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
                       builder: (context) => const ChatListPage(),
                     ),
-                  ).then((_) {
-                    refreshProfile();
-                  });
+                  );
                 },
               ),
               MyDrawerTile(
@@ -130,15 +128,21 @@ class _MyDrawerState extends State<MyDrawer> {
                 title: 'L O G O U T',
                 onTap: () async {
                   final shouldLogout = await showConfirmLogoutDialog(context);
+
                   if (shouldLogout == true) {
-                    context.read<AuthCubit>().logout();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Logged out successfully'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
+                    try {
+                      await context.read<AuthCubit>().logout();
+                      // No need for snackbar here as the App.dart BlocConsumer will handle navigation
+                      // The navigation will happen automatically when UnAuthanticated state is emitted
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Logout failed: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     }
                   }
                 },

@@ -239,26 +239,21 @@ class FirebaseChatRepo implements ChatRepo {
         .collection(_chatRoomsCollection)
         .doc(chatRoomId)
         .collection(_messagesCollection)
-        .orderBy('timestamp', descending: false)
         .snapshots()
         .map((snapshot) {
       print('FCR: Received snapshot with ${snapshot.docs.length} docs for chatRoomId: $chatRoomId');
-      if (snapshot.docs.isEmpty) {
-        print('FCR: Snapshot is empty.');
-      }
       List<Message> messages = [];
       for (var doc in snapshot.docs) {
         try {
           final data = doc.data();
-          print('FCR: Raw message data from Firestore: $data');
           final message = Message.fromJson(data);
           messages.add(message);
-          print('FCR: Mapped message: ${message.id}, content: "${message.content}", timestamp: ${message.timestamp}');
         } catch (e) {
-          print('FCR: Error parsing message doc ${doc.id}: $e. Data: ${doc.data()}');
+          print('FCR: Error parsing message doc ${doc.id}: $e');
         }
       }
-      print('FCR: Returning ${messages.length} mapped messages for chatRoomId: $chatRoomId');
+      // sort by timestamp ascending
+      messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
       return messages;
     });
   }

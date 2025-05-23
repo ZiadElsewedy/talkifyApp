@@ -5,8 +5,10 @@ import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_states.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/chat_room_page.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/components/chat_room_tile.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/new_chat_page.dart';
+import 'package:talkifyapp/features/Posts/presentation/HomePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
+import 'package:talkifyapp/features/Chat/domain/entite/chat_room.dart';
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
@@ -16,15 +18,25 @@ class ChatListPage extends StatefulWidget {
 }
 
 class _ChatListPageState extends State<ChatListPage> {
+  // Keep a local list of chat rooms
+  List<ChatRoom> _chatRooms = [];
+
   @override
   void initState() {
     super.initState();
     _loadChatRooms();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadChatRooms();
+  }
+
   void _loadChatRooms() {
     final currentUser = context.read<AuthCubit>().GetCurrentUser();
     if (currentUser != null) {
+      print("ChatListPage: Loading chat rooms for user ${currentUser.id}");
       context.read<ChatCubit>().loadUserChatRooms(currentUser.id);
     }
   }
@@ -36,6 +48,16 @@ class _ChatListPageState extends State<ChatListPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => HomePage(),
+              ),
+            );
+          },
+        ),
         title: const Text(
           'Chats',
           style: TextStyle(
@@ -49,6 +71,9 @@ class _ChatListPageState extends State<ChatListPage> {
         elevation: 1,
         shadowColor: Colors.black12,
         actions: [
+          
+
+          
           IconButton(
             icon: const Icon(Icons.search, color: Colors.black),
             onPressed: () {
@@ -74,42 +99,52 @@ class _ChatListPageState extends State<ChatListPage> {
         onRefresh: () async {
           _loadChatRooms();
         },
-        child: BlocBuilder<ChatCubit, ChatState>(
+        child: BlocConsumer<ChatCubit, ChatState>(
+          listener: (context, state) {
+            if (state is ChatRoomsLoaded) {
+              print("ChatListPage: Received ${state.chatRooms.length} chat rooms");
+              setState(() {
+                _chatRooms = state.chatRooms;
+              });
+            } else if (state is ChatRoomsError) {
+              print("ChatListPage: Error loading chat rooms: ${state.message}");
+            }
+          },
           builder: (context, state) {
-            if (state is ChatRoomsLoading) {
+            if (state is ChatRoomsLoading && _chatRooms.isEmpty) {
               return const Center(
                 child: PercentCircleIndicator(),
               );
-            } else if (state is ChatRoomsLoaded) {
-              if (state.chatRooms.isEmpty) {
-                return _buildEmptyState();
-              }
-
-              return ListView.builder(
-                itemCount: state.chatRooms.length,
-                itemBuilder: (context, index) {
-                  final chatRoom = state.chatRooms[index];
-                  return ChatRoomTile(
-                    chatRoom: chatRoom,
-                    currentUserId: currentUser?.id ?? '',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ChatRoomPage(
-                            chatRoom: chatRoom,
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              );
-            } else if (state is ChatRoomsError) {
-              return _buildErrorState(state.message);
             }
 
-            return _buildEmptyState();
+            // Always use the local list to render
+            if (_chatRooms.isEmpty) {
+              return _buildEmptyState();
+            }
+
+            return ListView.builder(
+              itemCount: _chatRooms.length,
+              itemBuilder: (context, index) {
+                final chatRoom = _chatRooms[index];
+                return ChatRoomTile(
+                  chatRoom: chatRoom,
+                  currentUserId: currentUser?.id ?? '',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatRoomPage(
+                          chatRoom: chatRoom,
+                        ),
+                      ),
+                    ).then((_) {
+                      // Reload chat rooms when returning from chat
+                      _loadChatRooms();
+                    });
+                  },
+                );
+              },
+            );
           },
         ),
       ),

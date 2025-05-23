@@ -25,6 +25,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isTyping = false;
+  final List<Message> _messages = [];
 
   @override
   void initState() {
@@ -226,6 +227,12 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
               listener: (context, state) {
                 if (state is MessageSent) {
                   _scrollToBottom();
+                } else if (state is MessagesLoaded) {
+                  setState(() {
+                    _messages
+                      ..clear()
+                      ..addAll(state.messages);
+                  });
                 } else if (state is SendMessageError) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -243,34 +250,28 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                 }
               },
               builder: (context, state) {
-                if (state is MessagesLoading) {
-                  return const Center(child: PercentCircleIndicator());
-                } else if (state is MessagesLoaded) {
-                  if (state.messages.isEmpty) {
-                    return _buildEmptyMessagesState();
+                if (_messages.isEmpty) {
+                  // While loading, show spinner else empty state
+                  if (state is MessagesLoading) {
+                    return const Center(child: PercentCircleIndicator());
                   }
-
-                  return ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: state.messages.length,
-                    itemBuilder: (context, index) {
-                      final message = state.messages[index];
-                      final currentUser = context.read<AuthCubit>().GetCurrentUser();
-                      final isFromCurrentUser = currentUser != null && 
-                          message.isFromCurrentUser(currentUser.id);
-
-                      return MessageBubble(
-                        message: message,
-                        isFromCurrentUser: isFromCurrentUser,
-                      );
-                    },
-                  );
-                } else if (state is MessagesError) {
-                  return _buildErrorState(state.message);
+                  return _buildEmptyMessagesState();
                 }
 
-                return _buildEmptyMessagesState();
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    final message = _messages[index];
+                    final currentUser = context.read<AuthCubit>().GetCurrentUser();
+                    final isFromCurrentUser = currentUser != null && message.isFromCurrentUser(currentUser.id);
+                    return MessageBubble(
+                      message: message,
+                      isFromCurrentUser: isFromCurrentUser,
+                    );
+                  },
+                );
               },
             ),
           ),
