@@ -108,6 +108,17 @@ class _ChatListPageState extends State<ChatListPage> {
               });
             } else if (state is ChatRoomsError) {
               print("ChatListPage: Error loading chat rooms: ${state.message}");
+            } else if (state is ChatRoomDeleted) {
+              // Remove the deleted chat room from the local list
+              setState(() {
+                _chatRooms.removeWhere((room) => room.id == state.chatRoomId);
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Chat deleted successfully'),
+                  backgroundColor: Colors.black,
+                ),
+              );
             }
           },
           builder: (context, state) {

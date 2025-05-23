@@ -39,10 +39,22 @@ class ChatRoomCreated extends ChatState {
   ChatRoomCreated(this.chatRoom);
 }
 
+class ChatRoomDeleted extends ChatState {
+  final String chatRoomId;
+  
+  ChatRoomDeleted(this.chatRoomId);
+}
+
 class MessageUpdated extends ChatState {
   final Message message;
   
   MessageUpdated(this.message);
+}
+
+class MessageDeleted extends ChatState {
+  final String messageId;
+  
+  MessageDeleted(this.messageId);
 }
 
 class MessagesMarkedAsRead extends ChatState {

@@ -27,6 +27,8 @@ abstract class ChatRepo {
     required String userId,
   });
   
+  Future<void> deleteChatRoom(String chatRoomId);
+  
   // Message operations
   Future<Message> sendMessage({
     required String chatRoomId,

@@ -240,9 +240,20 @@ class ChatCubit extends Cubit<ChatState> {
   Future<void> deleteMessage(String messageId) async {
     try {
       await chatRepo.deleteMessage(messageId);
-      // Note: The message deletion will be received through the stream
+      emit(MessageDeleted(messageId));
     } catch (e) {
       emit(ChatError('Failed to delete message: $e'));
+    }
+  }
+
+  // Delete chat room
+  Future<void> deleteChatRoom(String chatRoomId) async {
+    emit(ChatLoading());
+    try {
+      await chatRepo.deleteChatRoom(chatRoomId);
+      emit(ChatRoomDeleted(chatRoomId));
+    } catch (e) {
+      emit(ChatError('Failed to delete chat room: $e'));
     }
   }
 

@@ -319,18 +319,126 @@ class FirebaseChatRepo implements ChatRepo {
       final chatRoomsSnapshot = await _firestore.collection(_chatRoomsCollection).get();
       
       for (final chatRoomDoc in chatRoomsSnapshot.docs) {
+        final chatRoomId = chatRoomDoc.id;
         final messageRef = chatRoomDoc.reference
             .collection(_messagesCollection)
             .doc(messageId);
         
         final messageDoc = await messageRef.get();
         if (messageDoc.exists) {
+          final messageData = messageDoc.data();
+          
+          // Check if there's media to delete
+          if (messageData != null && 
+              messageData['fileUrl'] != null && 
+              messageData['fileUrl'].toString().isNotEmpty) {
+            
+            try {
+              // Extract the file path from the URL
+              final String fileUrl = messageData['fileUrl'];
+              
+              // Get the storage reference from the URL
+              final ref = _storage.refFromURL(fileUrl);
+              
+              // Delete the file from storage
+              await ref.delete();
+              print('Deleted media file: ${ref.fullPath}');
+            } catch (storageError) {
+              print('Warning: Unable to delete media file: $storageError');
+              // Continue with message deletion even if media deletion fails
+            }
+          }
+          
+          // Check if this was the last message in the chat room
+          final chatRoom = ChatRoom.fromJson(chatRoomDoc.data());
+          final messageTimestamp = messageData != null ? 
+              (messageData['timestamp'] is Timestamp ? 
+                  (messageData['timestamp'] as Timestamp).toDate() : 
+                  DateTime.parse(messageData['timestamp'].toString())) : 
+              null;
+          
+          var isLastMessage = messageTimestamp != null && 
+              chatRoom.lastMessageSenderId == messageData!['senderId'];
+          
+          // For additional verification, also check content if it's a text message
+          if (isLastMessage && messageData['type'] == 'text') {
+            if (chatRoom.lastMessage != messageData['content']) {
+              // If content doesn't match, it's not the last message
+              isLastMessage = false;
+            }
+          }
+          
+          // Delete the message from Firestore
           await messageRef.delete();
+          print('Deleted message: $messageId from chat room: $chatRoomId');
+          
+          // If this was the last message, update the chat room's last message
+          if (isLastMessage) {
+            // Get the previous message (now the latest message)
+            final latestMessagesQuery = await chatRoomDoc.reference
+                .collection(_messagesCollection)
+                .orderBy('timestamp', descending: true)
+                .limit(1)
+                .get();
+            
+            if (latestMessagesQuery.docs.isNotEmpty) {
+              // Found a previous message, update the chat room with this as the last message
+              final latestMessage = latestMessagesQuery.docs.first.data();
+              await chatRoomDoc.reference.update({
+                'lastMessage': latestMessage['type'] == MessageType.text.name 
+                    ? latestMessage['content'] 
+                    : '${latestMessage['type'].toString().split('.').last.capitalize()} message',
+                'lastMessageSenderId': latestMessage['senderId'],
+                'lastMessageTime': latestMessage['timestamp'],
+              });
+            } else {
+              // No messages left, clear the last message
+              await chatRoomDoc.reference.update({
+                'lastMessage': '',
+                'lastMessageSenderId': '',
+                'lastMessageTime': FieldValue.serverTimestamp(),
+              });
+            }
+          }
+          
           return;
         }
       }
     } catch (e) {
       throw Exception('Failed to delete message: $e');
+    }
+  }
+
+  @override
+  Future<void> deleteChatRoom(String chatRoomId) async {
+    try {
+      // Get reference to the chat room
+      final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc(chatRoomId);
+      
+      // Get all messages in the chat room
+      final messagesSnapshot = await chatRoomRef.collection(_messagesCollection).get();
+      
+      // Use a batch to delete all messages
+      final batch = _firestore.batch();
+      
+      // Add all message deletions to the batch
+      for (final messageDoc in messagesSnapshot.docs) {
+        batch.delete(messageDoc.reference);
+      }
+      
+      // Delete any typing indicators
+      final typingSnapshot = await chatRoomRef.collection(_typingCollection).get();
+      for (final typingDoc in typingSnapshot.docs) {
+        batch.delete(typingDoc.reference);
+      }
+      
+      // Execute the batch
+      await batch.commit();
+      
+      // Finally, delete the chat room itself
+      await chatRoomRef.delete();
+    } catch (e) {
+      throw Exception('Failed to delete chat room: $e');
     }
   }
 

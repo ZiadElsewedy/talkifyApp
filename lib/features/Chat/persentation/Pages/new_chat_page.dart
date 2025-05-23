@@ -18,7 +18,9 @@ class NewChatPage extends StatefulWidget {
 
 class _NewChatPageState extends State<NewChatPage> {
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _groupNameController = TextEditingController();
   List<ProfileUser> _selectedUsers = [];
+  bool _isCreatingGroup = false;
 
   @override
   void initState() {
@@ -30,6 +32,7 @@ class _NewChatPageState extends State<NewChatPage> {
   @override
   void dispose() {
     _searchController.dispose();
+    _groupNameController.dispose();
     super.dispose();
   }
 
@@ -44,6 +47,9 @@ class _NewChatPageState extends State<NewChatPage> {
       } else {
         _selectedUsers.add(user);
       }
+      
+      // Set group creation mode if more than 1 user is selected
+      _isCreatingGroup = _selectedUsers.length > 1;
     });
   }
 
@@ -58,7 +64,13 @@ class _NewChatPageState extends State<NewChatPage> {
     final currentUser = context.read<AuthCubit>().GetCurrentUser();
     if (currentUser == null) return;
 
-    // Create participant lists including current user
+    // Check if this is a group chat
+    if (_selectedUsers.length > 1) {
+      _showGroupNameDialog();
+      return;
+    }
+
+    // Create participant lists including current user for 1-on-1 chat
     final participantIds = [currentUser.id, ..._selectedUsers.map((u) => u.id)];
     final participantNames = {
       currentUser.id: currentUser.name,
@@ -87,14 +99,107 @@ class _NewChatPageState extends State<NewChatPage> {
     }
   }
 
+  void _showGroupNameDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create Group'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _groupNameController,
+              decoration: const InputDecoration(
+                labelText: 'Group Name',
+                hintText: 'Enter a name for this group',
+                border: OutlineInputBorder(),
+              ),
+              maxLength: 30,
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _createGroupChat(null);
+            },
+            child: const Text('Skip'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final groupName = _groupNameController.text.trim();
+              if (groupName.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please enter a group name'))
+                );
+                return;
+              }
+              Navigator.of(context).pop();
+              _createGroupChat(groupName);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _createGroupChat(String? groupName) async {
+    final currentUser = context.read<AuthCubit>().GetCurrentUser();
+    if (currentUser == null) return;
+
+    // Create participant lists including current user
+    final participantIds = [currentUser.id, ..._selectedUsers.map((u) => u.id)];
+    final participantNames = {
+      currentUser.id: currentUser.name,
+      for (var user in _selectedUsers) user.id: user.name,
+    };
+    
+    // Add group name if provided
+    if (groupName != null && groupName.isNotEmpty) {
+      participantNames['groupName'] = groupName;
+    }
+    
+    final participantAvatars = {
+      currentUser.id: currentUser.profilePictureUrl,
+      for (var user in _selectedUsers) user.id: user.profilePictureUrl,
+    };
+
+    // Create the chat room
+    final chatRoom = await context.read<ChatCubit>().findOrCreateChatRoom(
+      participantIds: participantIds,
+      participantNames: participantNames,
+      participantAvatars: participantAvatars,
+    );
+
+    // Clear controllers
+    _groupNameController.clear();
+
+    if (chatRoom != null && mounted) {
+      // Navigate to chat room
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChatRoomPage(chatRoom: chatRoom),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'New Chat',
-          style: TextStyle(
+        title: Text(
+          _isCreatingGroup ? 'New Group' : 'New Chat',
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.black,
           ),
@@ -107,9 +212,9 @@ class _NewChatPageState extends State<NewChatPage> {
           if (_selectedUsers.isNotEmpty)
             TextButton(
               onPressed: _startChat,
-              child: const Text(
-                'Start',
-                style: TextStyle(
+              child: Text(
+                _isCreatingGroup ? 'Next' : 'Start',
+                style: const TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.bold,
                 ),
@@ -156,7 +261,9 @@ class _NewChatPageState extends State<NewChatPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Selected (${_selectedUsers.length}):',
+                    _isCreatingGroup
+                        ? 'Group members (${_selectedUsers.length}):'
+                        : 'Selected (${_selectedUsers.length}):',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -274,7 +381,10 @@ class _NewChatPageState extends State<NewChatPage> {
           ? FloatingActionButton(
               onPressed: _startChat,
               backgroundColor: Colors.black,
-              child: const Icon(Icons.arrow_forward, color: Colors.white),
+              child: Icon(
+                _isCreatingGroup ? Icons.group_add : Icons.arrow_forward,
+                color: Colors.white
+              ),
             )
           : null,
     );

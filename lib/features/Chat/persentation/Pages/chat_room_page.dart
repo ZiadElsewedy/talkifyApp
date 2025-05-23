@@ -8,6 +8,9 @@ import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_states.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/components/message_bubble.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/user_profile_page.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/group_info_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChatRoomPage extends StatefulWidget {
   final ChatRoom chatRoom;
@@ -26,6 +29,8 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   final ScrollController _scrollController = ScrollController();
   bool _isTyping = false;
   final List<Message> _messages = [];
+  bool _otherUserIsOnline = false;
+  Stream<DocumentSnapshot>? _userStatusStream;
 
   @override
   void initState() {
@@ -33,6 +38,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     _loadMessages();
     _markMessagesAsRead();
     _messageController.addListener(_onTyping);
+    _setupUserStatusListener();
   }
 
   @override
@@ -40,6 +46,32 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _setupUserStatusListener() {
+    final currentUser = context.read<AuthCubit>().GetCurrentUser();
+    if (currentUser != null && widget.chatRoom.participants.length == 2) {
+      final otherParticipantId = widget.chatRoom.participants.firstWhere(
+        (id) => id != currentUser.id,
+        orElse: () => '',
+      );
+      
+      if (otherParticipantId.isNotEmpty) {
+        _userStatusStream = FirebaseFirestore.instance
+            .collection('users')
+            .doc(otherParticipantId)
+            .snapshots();
+            
+        _userStatusStream!.listen((snapshot) {
+          if (snapshot.exists && mounted) {
+            final userData = snapshot.data() as Map<String, dynamic>?;
+            setState(() {
+              _otherUserIsOnline = userData?['isOnline'] ?? false;
+            });
+          }
+        });
+      }
+    }
   }
 
   void _loadMessages() {
@@ -104,6 +136,22 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     }
   }
 
+  void _scrollToBottomOnLoad() {
+    if (_scrollController.hasClients) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      });
+    }
+  }
+
+  void _scrollToBottomOnNewMessages() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
+  }
+
   Future<void> _pickAndSendFile() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -155,6 +203,11 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     final currentUser = context.read<AuthCubit>().GetCurrentUser();
     if (currentUser == null) return 'Chat';
 
+    // Check if a group name is set
+    if (widget.chatRoom.participantNames.containsKey('groupName')) {
+      return widget.chatRoom.participantNames['groupName']!;
+    }
+
     if (widget.chatRoom.participants.length == 2) {
       // 1-on-1 chat
       final otherParticipant = widget.chatRoom.participants.firstWhere(
@@ -163,12 +216,54 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
       );
       return widget.chatRoom.participantNames[otherParticipant] ?? 'Unknown User';
     } else {
-      // Group chat
-      final names = widget.chatRoom.participantNames.values
-          .where((name) => name.isNotEmpty)
+      // Group chat without custom name
+      final names = widget.chatRoom.participantNames.entries
+          .where((entry) => entry.key != 'groupName' && entry.value.isNotEmpty)
+          .map((entry) => entry.value)
           .take(3)
           .join(', ');
-      return names.isNotEmpty ? names : 'Group Chat';
+      
+      String title = names.isNotEmpty ? names : 'Group Chat';
+      if (widget.chatRoom.participantNames.length > 3) {
+        title += ' +${widget.chatRoom.participantNames.length - 3}';
+      }
+      return title;
+    }
+  }
+
+  void _openUserProfile() {
+    final currentUser = context.read<AuthCubit>().GetCurrentUser();
+    if (currentUser == null) return;
+
+    // For 1-on-1 chats, show the other user's profile
+    if (widget.chatRoom.participants.length == 2) {
+      final otherParticipantId = widget.chatRoom.participants.firstWhere(
+        (id) => id != currentUser.id,
+        orElse: () => '',
+      );
+      
+      if (otherParticipantId.isNotEmpty) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => UserProfilePage(
+              userId: otherParticipantId,
+              userName: widget.chatRoom.participantNames[otherParticipantId] ?? 'Unknown User',
+              initialAvatarUrl: widget.chatRoom.participantAvatars[otherParticipantId] ?? '',
+            ),
+          ),
+        );
+      }
+    } else {
+      // For group chats, show group info
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GroupInfoPage(
+            chatRoom: widget.chatRoom,
+          ),
+        ),
+      );
     }
   }
 
@@ -177,11 +272,50 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(
-          _getChatTitle(),
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+        title: GestureDetector(
+          onTap: _openUserProfile,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _getChatTitle(),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                      fontSize: 16,
+                    ),
+                  ),
+                  if (widget.chatRoom.participants.length == 2)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: _otherUserIsOnline ? Colors.green : Colors.grey,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _otherUserIsOnline ? 'Online' : 'Offline',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _otherUserIsOnline ? Colors.green : Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.info_outline, size: 16, color: Colors.black54),
+            ],
           ),
         ),
         backgroundColor: Colors.white,
@@ -233,6 +367,19 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                       ..clear()
                       ..addAll(state.messages);
                   });
+                  _scrollToBottomOnNewMessages();
+                } else if (state is MessageDeleted) {
+                  // Remove the deleted message from local list
+                  setState(() {
+                    _messages.removeWhere((message) => message.id == state.messageId);
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Message deleted permanently from database'),
+                      backgroundColor: Colors.black,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
                 } else if (state is SendMessageError) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

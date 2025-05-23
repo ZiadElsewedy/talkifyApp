@@ -90,9 +90,11 @@ class FirebaseAuthRepo implements AuthRepo {
         'name': user.name,
         'email': user.email,
         'phoneNumber': user.phoneNumber,
+        'profilePictureUrl': user.profilePictureUrl,
         'isVerified': false,
+        'isOnline': true,
+        'lastSeen': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
-        
       });
     } catch (e) {
       throw Exception('Failed to save user data: $e');
@@ -132,6 +134,7 @@ class FirebaseAuthRepo implements AuthRepo {
       if (userId != null) {
         await firestore.collection('users').doc(userId).update({
           'isOnline': false,
+          'lastSeen': FieldValue.serverTimestamp(),
         });
       }
       
@@ -149,15 +152,25 @@ class FirebaseAuthRepo implements AuthRepo {
       final user = firebaseAuth.currentUser;
       if (user == null) return null;
 
+      // Update online status when getting current user
+      await firestore.collection('users').doc(user.uid).update({
+        'isOnline': true,
+        'lastSeen': FieldValue.serverTimestamp(),
+      });
+
       final userData = await firestore.collection('users').doc(user.uid).get();
       if (!userData.exists) return null;
 
+      final data = userData.data()!;
+      
       return AppUser(
         id: user.uid,
-        name: userData.data()?['name'] ?? '',
+        name: data['name'] ?? '',
         email: user.email ?? '',
-        phoneNumber: userData.data()?['phoneNumber'] ?? '',
-        profilePictureUrl: userData.data()?['profilePictureUrl'] ?? '',
+        phoneNumber: data['phoneNumber'] ?? '',
+        profilePictureUrl: data['profilePictureUrl'] ?? '',
+        isOnline: data['isOnline'] ?? false,
+        lastSeen: data['lastSeen'] != null ? (data['lastSeen'] as Timestamp).toDate() : null,
       );
     } catch (e) {
       throw Exception('Failed to get current user: $e');
