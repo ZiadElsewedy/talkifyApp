@@ -23,30 +23,15 @@ class FirebaseProfileRepo implements ProfileRepo {
         throw Exception('User document exists but data is null for ID: $id');
       }
 
-      return _mapDocumentToProfileUser(id, userData);
+      return ProfileUser.fromJson({
+        'id': id,
+        ...userData,
+      });
     } catch (e, stackTrace) {
       print('Error fetching user profile for ID $id: $e');
       print('Stack trace: $stackTrace');
       rethrow;
     }
-  }
-
-  ProfileUser _mapDocumentToProfileUser(String id, Map<String, dynamic> userData) {
-    final followers = List<String>.from(userData['followers'] ?? []);
-    final following = List<String>.from(userData['following'] ?? []);
-    
-    return ProfileUser(
-      id: id,
-      name: userData['name'] ?? '',
-      email: userData['email'] ?? '',
-      phoneNumber: userData['phoneNumber'] ?? '',
-      bio: userData['bio'] ?? '',
-      backgroundprofilePictureUrl: userData['backgroundprofilePictureUrl']?.toString() ?? '',
-      profilePictureUrl: userData['profilePictureUrl']?.toString() ?? '',
-      HintDescription: userData['HintDescription'] ?? '',
-      followers: followers,
-      following: following,
-    );
   }
 
   @override
@@ -61,15 +46,13 @@ class FirebaseProfileRepo implements ProfileRepo {
         throw Exception('User document not found for ID: ${updateProfile.id}');
       }
 
-      await firestore.collection('users').doc(updateProfile.id).update({
-        'bio': updateProfile.bio,
-        'name': updateProfile.name,
-        'backgroundprofilePictureUrl': updateProfile.backgroundprofilePictureUrl,
-        'profilePictureUrl': updateProfile.profilePictureUrl,
-        'HintDescription': updateProfile.HintDescription,
-        'followers': updateProfile.followers,
-        'following': updateProfile.following,
-      });
+      // Use the toJson method from ProfileUser for consistency
+      final userData = updateProfile.toJson();
+      
+      // Remove the ID field since it's the document ID
+      userData.remove('id');
+      
+      await firestore.collection('users').doc(updateProfile.id).update(userData);
     } catch (e) {
       print('Error updating user profile: $e');
       rethrow;
