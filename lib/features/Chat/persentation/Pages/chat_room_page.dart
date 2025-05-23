@@ -288,6 +288,19 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.arrow_back, size: 20, color: Colors.black),
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
         title: Material(
           color: Colors.transparent,
           child: InkWell(
