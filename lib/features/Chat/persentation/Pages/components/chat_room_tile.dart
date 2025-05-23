@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:talkifyapp/features/Chat/domain/entite/chat_room.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
+import 'package:talkifyapp/features/Chat/Utils/chat_styles.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -10,30 +11,66 @@ class ChatRoomTile extends StatefulWidget {
   final ChatRoom chatRoom;
   final String currentUserId;
   final VoidCallback onTap;
+  final int index;
 
   const ChatRoomTile({
     super.key,
     required this.chatRoom,
     required this.currentUserId,
     required this.onTap,
+    required this.index,
   });
 
   @override
   State<ChatRoomTile> createState() => _ChatRoomTileState();
 }
 
-class _ChatRoomTileState extends State<ChatRoomTile> {
+class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderStateMixin {
   bool _isOtherUserOnline = false;
   Stream<DocumentSnapshot>? _userStatusStream;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
     _setupUserStatusListener();
+    
+    // Set up animations
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeOut,
+      ),
+    );
+    
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(-0.1, 0),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+    
+    // Stagger the animation based on index
+    Future.delayed(Duration(milliseconds: widget.index * 50), () {
+      if (mounted) {
+        _animationController.forward();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -78,21 +115,56 @@ class _ChatRoomTileState extends State<ChatRoomTile> {
     final unreadCount = widget.chatRoom.unreadCount[widget.currentUserId] ?? 0;
     final hasUnread = unreadCount > 0;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      elevation: 0,
-      color: hasUnread 
-          ? Colors.grey[50]
-          : Colors.white,
-      child: InkWell(
-        onTap: widget.onTap,
-        onLongPress: () => _showOptionsDialog(context),
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          leading: _buildAvatar(otherParticipant),
-          title: _buildTitle(context, otherParticipant, hasUnread),
-          subtitle: _buildSubtitle(context, hasUnread),
-          trailing: _buildTrailing(context, hasUnread, unreadCount),
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          decoration: BoxDecoration(
+            color: hasUnread 
+                ? Colors.grey[50]
+                : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: hasUnread 
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      offset: const Offset(0, 2),
+                      blurRadius: 5,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: widget.onTap,
+              onLongPress: () => _showOptionsDialog(context),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    _buildAvatar(otherParticipant),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildTitle(context, otherParticipant, hasUnread),
+                          const SizedBox(height: 4),
+                          _buildSubtitle(context, hasUnread),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildTrailing(context, hasUnread, unreadCount),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -104,40 +176,55 @@ class _ChatRoomTileState extends State<ChatRoomTile> {
       final avatarUrl = widget.chatRoom.participantAvatars[otherParticipantId] ?? '';
       final name = widget.chatRoom.participantNames[otherParticipantId] ?? 'User';
       
-      return Stack(
-        children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: Colors.grey[200],
-            backgroundImage: avatarUrl.isNotEmpty 
-                ? CachedNetworkImageProvider(avatarUrl)
-                : null,
-            child: avatarUrl.isEmpty 
-                ? Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: Colors.black,
-                    ),
-                  )
-                : null,
-          ),
-          // Online status indicator
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: Container(
-              width: 14,
-              height: 14,
+      return Hero(
+        tag: 'avatar_${widget.chatRoom.id}',
+        child: Stack(
+          children: [
+            Container(
               decoration: BoxDecoration(
-                color: _isOtherUserOnline ? Colors.green : Colors.grey,
-                border: Border.all(color: Colors.white, width: 2),
-                borderRadius: BorderRadius.circular(7),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: CircleAvatar(
+                radius: 28,
+                backgroundColor: Colors.grey[200],
+                backgroundImage: avatarUrl.isNotEmpty 
+                    ? CachedNetworkImageProvider(avatarUrl)
+                    : null,
+                child: avatarUrl.isEmpty 
+                    ? Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                          color: Colors.black,
+                        ),
+                      )
+                    : null,
               ),
             ),
-          ),
-        ],
+            // Online status indicator
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: _isOtherUserOnline ? ChatStyles.onlineColor : ChatStyles.offlineColor,
+                  border: Border.all(color: Colors.white, width: 2),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+              ),
+            ),
+          ],
+        ),
       );
     } else {
       // Group chat avatar - show the first 2-3 participants in a stacked avatar
@@ -156,15 +243,30 @@ class _ChatRoomTileState extends State<ChatRoomTile> {
     if (widget.chatRoom.participantNames.containsKey('groupName') && 
         widget.chatRoom.participantNames['groupName']!.isNotEmpty) {
       final groupName = widget.chatRoom.participantNames['groupName']!;
-      return CircleAvatar(
-        radius: 28,
-        backgroundColor: Colors.grey[200],
-        child: Text(
-          groupName[0].toUpperCase(),
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-            color: Colors.black,
+      return Hero(
+        tag: 'group_${widget.chatRoom.id}',
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: CircleAvatar(
+            radius: 28,
+            backgroundColor: Colors.grey[200],
+            child: Text(
+              groupName[0].toUpperCase(),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+                color: Colors.black,
+              ),
+            ),
           ),
         ),
       );
@@ -245,22 +347,34 @@ class _ChatRoomTileState extends State<ChatRoomTile> {
     final avatarUrl = widget.chatRoom.participantAvatars[participantId] ?? '';
     final name = widget.chatRoom.participantNames[participantId] ?? 'User';
     
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: Colors.grey[200],
-      backgroundImage: avatarUrl.isNotEmpty 
-          ? CachedNetworkImageProvider(avatarUrl)
-          : null,
-      child: avatarUrl.isEmpty 
-          ? Text(
-              name.isNotEmpty ? name[0].toUpperCase() : 'U',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: radius * 0.7,
-                color: Colors.black,
-              ),
-            )
-          : null,
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: CircleAvatar(
+        radius: radius,
+        backgroundColor: Colors.grey[200],
+        backgroundImage: avatarUrl.isNotEmpty 
+            ? CachedNetworkImageProvider(avatarUrl)
+            : null,
+        child: avatarUrl.isEmpty 
+            ? Text(
+                name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: radius * 0.7,
+                  color: Colors.black,
+                ),
+              )
+            : null,
+      ),
     );
   }
 
@@ -290,16 +404,27 @@ class _ChatRoomTileState extends State<ChatRoomTile> {
         
         // Online status text for 1-on-1 chats
         if (widget.chatRoom.participants.length == 2 && _isOtherUserOnline)
-          Container(
-            margin: const EdgeInsets.only(left: 4),
-            child: Text(
-              '• Online',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.green,
-                fontWeight: FontWeight.w500,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: ChatStyles.onlineColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
               ),
-            ),
+              const SizedBox(width: 4),
+              Text(
+                'Online',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: ChatStyles.onlineColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
       ],
     );
@@ -371,10 +496,12 @@ class _ChatRoomTileState extends State<ChatRoomTile> {
             ),
           ),
         
+        const SizedBox(height: 4),
+        
         // Unread count badge
         if (hasUnread)
-          Container(
-            margin: const EdgeInsets.only(top: 4),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: Colors.black,
@@ -394,44 +521,105 @@ class _ChatRoomTileState extends State<ChatRoomTile> {
   }
 
   void _showOptionsDialog(BuildContext context) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          _getChatTitle(),
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text('Delete chat'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _confirmDeleteChat(context);
-              },
-            ),
-            if (widget.chatRoom.participants.length > 2)
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        widget.chatRoom.participants.length > 2 
+                            ? Icons.group 
+                            : Icons.person,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        _getChatTitle(),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
               ListTile(
-                leading: const Icon(Icons.exit_to_app),
-                title: const Text('Leave group'),
+                leading: const Icon(Icons.archive_outlined),
+                title: const Text('Archive chat'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  _confirmLeaveGroup(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Archive feature coming soon!'),
+                      backgroundColor: Colors.black,
+                    ),
+                  );
                 },
               ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+              ListTile(
+                leading: const Icon(Icons.notifications_off_outlined),
+                title: const Text('Mute notifications'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Mute notifications feature coming soon!'),
+                      backgroundColor: Colors.black,
+                    ),
+                  );
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: ChatStyles.errorColor),
+                title: const Text('Delete chat'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _confirmDeleteChat(context);
+                },
+              ),
+              if (widget.chatRoom.participants.length > 2)
+                ListTile(
+                  leading: const Icon(Icons.exit_to_app),
+                  title: const Text('Leave group'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _confirmLeaveGroup(context);
+                  },
+                ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -452,9 +640,13 @@ class _ChatRoomTileState extends State<ChatRoomTile> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              context.read<ChatCubit>().deleteChatRoom(widget.chatRoom.id);
+              
+              // Run delete animation
+              _animationController.reverse().then((_) {
+                context.read<ChatCubit>().deleteChatRoom(widget.chatRoom.id);
+              });
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: ChatStyles.errorColor),
             child: const Text('Delete'),
           ),
         ],
@@ -479,36 +671,39 @@ class _ChatRoomTileState extends State<ChatRoomTile> {
             onPressed: () async {
               Navigator.of(context).pop();
               
-              try {
-                // Get the updated list of participants
-                List<String> updatedParticipants = 
-                    List.from(widget.chatRoom.participants)
-                      ..remove(widget.currentUserId);
-                
-                // Remove user from participants
-                await FirebaseFirestore.instance
-                    .collection('chatRooms')
-                    .doc(widget.chatRoom.id)
-                    .update({
-                  'participants': updatedParticipants,
-                });
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('You have left the group'),
-                    backgroundColor: Colors.black,
-                  ),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Failed to leave group: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
+              // Run leave animation
+              _animationController.reverse().then((_) async {
+                try {
+                  // Get the updated list of participants
+                  List<String> updatedParticipants = 
+                      List.from(widget.chatRoom.participants)
+                        ..remove(widget.currentUserId);
+                  
+                  // Remove user from participants
+                  await FirebaseFirestore.instance
+                      .collection('chatRooms')
+                      .doc(widget.chatRoom.id)
+                      .update({
+                    'participants': updatedParticipants,
+                  });
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('You have left the group'),
+                      backgroundColor: Colors.black,
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to leave group: $e'),
+                      backgroundColor: ChatStyles.errorColor,
+                    ),
+                  );
+                }
+              });
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: ChatStyles.errorColor),
             child: const Text('Leave'),
           ),
         ],

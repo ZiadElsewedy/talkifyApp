@@ -8,19 +8,26 @@ import 'package:talkifyapp/features/Posts/presentation/cubits/post_states.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/Mydrawer.dart';
 
 class HomePage extends StatefulWidget {
-   HomePage({super.key});
+  final int initialTabIndex;
+
+  const HomePage({
+    super.key,
+    this.initialTabIndex = 0, // Default to home tab (index 0)
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  
+  int _currentIndex = 0;
+
   late final postCubit = context.read<PostCubit>();
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialTabIndex;
     fetchPosts();
   }
 

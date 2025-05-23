@@ -9,6 +9,7 @@ import 'package:talkifyapp/features/Posts/presentation/HomePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Chat/domain/entite/chat_room.dart';
+import 'package:talkifyapp/features/Chat/Utils/page_transitions.dart';
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
@@ -17,14 +18,26 @@ class ChatListPage extends StatefulWidget {
   State<ChatListPage> createState() => _ChatListPageState();
 }
 
-class _ChatListPageState extends State<ChatListPage> {
+class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMixin {
   // Keep a local list of chat rooms
   List<ChatRoom> _chatRooms = [];
+  late AnimationController _fadeInController;
 
   @override
   void initState() {
     super.initState();
+    _fadeInController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _fadeInController.forward();
     _loadChatRooms();
+  }
+  
+  @override
+  void dispose() {
+    _fadeInController.dispose();
+    super.dispose();
   }
 
   @override
@@ -44,40 +57,50 @@ class _ChatListPageState extends State<ChatListPage> {
   @override
   Widget build(BuildContext context) {
     final currentUser = context.read<AuthCubit>().GetCurrentUser();
-    
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => HomePage(),
-              ),
-            );
-          },
-        ),
         title: const Text(
           'Chats',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
             fontSize: 24,
+            fontWeight: FontWeight.bold,
             color: Colors.black,
           ),
         ),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 1,
-        shadowColor: Colors.black12,
+        elevation: 0,
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.arrow_back, size: 20, color: Colors.black),
+          ),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context, 
+              PageTransitions.fadeTransition(
+                page: HomePage(),
+              ),
+            );
+          },
+        ),
         actions: [
-          
-
-          
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.black),
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.search, size: 20, color: Colors.black),
+            ),
             onPressed: () {
-              // TODO: Implement chat search
+              // TODO: Implement search functionality
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Search feature coming soon!'),
@@ -86,12 +109,59 @@ class _ChatListPageState extends State<ChatListPage> {
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.black),
-            onPressed: () {
-              // TODO: Implement more options
+          PopupMenuButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.more_vert, size: 20, color: Colors.black),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings, color: Colors.black),
+                    SizedBox(width: 12),
+                    Text('Chat settings'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'archived',
+                child: Row(
+                  children: [
+                    Icon(Icons.archive, color: Colors.black),
+                    SizedBox(width: 12),
+                    Text('Archived chats'),
+                  ],
+                ),
+              ),
+            ],
+            onSelected: (value) {
+              if (value == 'settings') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Settings feature coming soon!'),
+                    backgroundColor: Colors.black,
+                  ),
+                );
+              } else if (value == 'archived') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Archived chats feature coming soon!'),
+                    backgroundColor: Colors.black,
+                  ),
+                );
+              }
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: RefreshIndicator(
@@ -133,28 +203,32 @@ class _ChatListPageState extends State<ChatListPage> {
               return _buildEmptyState();
             }
 
-            return ListView.builder(
-              itemCount: _chatRooms.length,
-              itemBuilder: (context, index) {
-                final chatRoom = _chatRooms[index];
-                return ChatRoomTile(
-                  chatRoom: chatRoom,
-                  currentUserId: currentUser?.id ?? '',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChatRoomPage(
-                          chatRoom: chatRoom,
+            return FadeTransition(
+              opacity: _fadeInController,
+              child: ListView.builder(
+                itemCount: _chatRooms.length,
+                itemBuilder: (context, index) {
+                  final chatRoom = _chatRooms[index];
+                  return ChatRoomTile(
+                    chatRoom: chatRoom,
+                    currentUserId: currentUser?.id ?? '',
+                    index: index,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransitions.slideRightTransition(
+                          page: ChatRoomPage(
+                            chatRoom: chatRoom,
+                          ),
                         ),
-                      ),
-                    ).then((_) {
-                      // Reload chat rooms when returning from chat
-                      _loadChatRooms();
-                    });
-                  },
-                );
-              },
+                      ).then((_) {
+                        // Reload chat rooms when returning from chat
+                        _loadChatRooms();
+                      });
+                    },
+                  );
+                },
+              ),
             );
           },
         ),
@@ -163,15 +237,20 @@ class _ChatListPageState extends State<ChatListPage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const NewChatPage(),
+            PageTransitions.zoomTransition(
+              page: const NewChatPage(),
             ),
           );
         },
         backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: const Icon(
           Icons.chat,
-          color: Colors.white,
+          size: 24,
         ),
       ),
     );
@@ -182,92 +261,55 @@ class _ChatListPageState extends State<ChatListPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.chat_bubble_outline,
-            size: 80,
-            color: Colors.grey[400],
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.chat_bubble_outline,
+              size: 60,
+              color: Colors.grey[400],
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Text(
             'No chats yet',
             style: TextStyle(
               fontSize: 20,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.bold,
               color: Colors.grey[700],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
-            'Start a conversation with someone',
+            'Start a conversation to connect with friends',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey[600],
+              color: Colors.grey[500],
             ),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 30),
           ElevatedButton.icon(
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const NewChatPage(),
+                PageTransitions.zoomTransition(
+                  page: const NewChatPage(),
                 ),
               );
             },
-            icon: const Icon(Icons.add, color: Colors.white),
-            label: const Text('Start New Chat', style: TextStyle(color: Colors.white)),
+            icon: const Icon(Icons.add),
+            label: const Text('Start a new chat'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 12,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorState(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 80,
-            color: Colors.red[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Oops! Something went wrong',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey[700],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
-              message,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _loadChatRooms,
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            label: const Text('Try Again', style: TextStyle(color: Colors.white)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
             ),
           ),
         ],

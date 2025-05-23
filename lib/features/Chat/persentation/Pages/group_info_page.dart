@@ -7,6 +7,8 @@ import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/user_profile_page.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Chat/Utils/chat_styles.dart';
+import 'package:talkifyapp/features/Chat/Utils/page_transitions.dart';
 
 class GroupInfoPage extends StatefulWidget {
   final ChatRoom chatRoom;
@@ -20,15 +22,37 @@ class GroupInfoPage extends StatefulWidget {
   State<GroupInfoPage> createState() => _GroupInfoPageState();
 }
 
-class _GroupInfoPageState extends State<GroupInfoPage> {
+class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateMixin {
   late Future<List<AppUser>> _participantsFuture;
   late String _currentUserId;
+  late AnimationController _fadeInController;
+  late AnimationController _listAnimationController;
 
   @override
   void initState() {
     super.initState();
     _currentUserId = context.read<AuthCubit>().GetCurrentUser()?.id ?? '';
     _participantsFuture = _fetchParticipantsDetails();
+    
+    _fadeInController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    
+    _listAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    
+    _fadeInController.forward();
+    _listAnimationController.forward();
+  }
+  
+  @override
+  void dispose() {
+    _fadeInController.dispose();
+    _listAnimationController.dispose();
+    super.dispose();
   }
 
   Future<List<AppUser>> _fetchParticipantsDetails() async {
@@ -76,108 +100,247 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Group Info'),
+        title: const Text(
+          'Group Info',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+            fontSize: 18,
+          ),
+        ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
-        elevation: 1,
+        elevation: 0,
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.arrow_back, size: 20, color: Colors.black),
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: FutureBuilder<List<AppUser>>(
-        future: _participantsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: FadeTransition(
+        opacity: _fadeInController,
+        child: FutureBuilder<List<AppUser>>(
+          future: _participantsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator(color: Colors.black));
+            }
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No participants found'));
-          }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text('No participants found'));
+            }
 
-          final participants = snapshot.data!;
-          
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Group Avatar
-                CircleAvatar(
-                  radius: 60,
-                  backgroundColor: Colors.grey[200],
-                  child: Text(
-                    _getGroupNameAbbreviation(),
-                    style: const TextStyle(fontSize: 40, color: Colors.black54),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                // Group Name
-                Text(
-                  _getGroupName(),
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 8),
-                Text(
-                  '${participants.length} participants',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                
-                // Edit group name button
-                TextButton.icon(
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Edit Group Name'),
-                  onPressed: _showEditGroupNameDialog,
-                ),
-                
-                const SizedBox(height: 24),
-                const Divider(),
-                const SizedBox(height: 16),
-                
-                // Participants list
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Participants',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+            final participants = snapshot.data!;
+            
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Group Avatar with animated shadow
+                  TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0, end: 15),
+                    duration: const Duration(seconds: 1),
+                    builder: (context, value, child) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: value,
+                              spreadRadius: value / 8,
+                            ),
+                          ],
+                        ),
+                        child: child,
+                      );
+                    },
+                    child: Hero(
+                      tag: 'group_${widget.chatRoom.id}',
+                      child: CircleAvatar(
+                        radius: 60,
+                        backgroundColor: Colors.grey[200],
+                        child: Text(
+                          _getGroupNameAbbreviation(),
+                          style: const TextStyle(fontSize: 40, color: Colors.black54),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    ...participants.map((user) => _buildParticipantTile(user)),
-                  ],
-                ),
-                
-                const SizedBox(height: 24),
-                const Divider(),
-                const SizedBox(height: 16),
-                
-                // Leave group button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.exit_to_app, color: Colors.white),
-                    label: const Text('Leave Group'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    onPressed: _confirmLeaveGroup,
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                  const SizedBox(height: 24),
+                  
+                  // Group Name with edit animation
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: _showEditGroupNameDialog,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                _getGroupName(),
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.edit, size: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 8),
+                  Text(
+                    '${participants.length} participants',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Participants section header
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.group, size: 18, color: Colors.black),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Participants',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  
+                  // Participants list with staggered animations
+                  ...List.generate(participants.length, (index) {
+                    final user = participants[index];
+                    final animation = Tween<Offset>(
+                      begin: const Offset(0.5, 0),
+                      end: Offset.zero,
+                    ).animate(
+                      CurvedAnimation(
+                        parent: _listAnimationController,
+                        curve: Interval(
+                          index * 0.05,
+                          0.5 + index * 0.05,
+                          curve: Curves.easeOutCubic,
+                        ),
+                      ),
+                    );
+                    
+                    return SlideTransition(
+                      position: animation,
+                      child: FadeTransition(
+                        opacity: _listAnimationController,
+                        child: _buildParticipantTile(user),
+                      ),
+                    );
+                  }),
+                  
+                  const SizedBox(height: 32),
+                  const Divider(),
+                  
+                  // Options section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Column(
+                      children: [
+                        _buildOptionTile(
+                          icon: Icons.notifications_off_outlined,
+                          title: 'Mute notifications',
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Mute notifications feature coming soon!'),
+                                backgroundColor: Colors.black,
+                              ),
+                            );
+                          },
+                        ),
+                        _buildOptionTile(
+                          icon: Icons.photo_library_outlined,
+                          title: 'Shared media',
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Shared media feature coming soon!'),
+                                backgroundColor: Colors.black,
+                              ),
+                            );
+                          },
+                        ),
+                        _buildOptionTile(
+                          icon: Icons.search,
+                          title: 'Search in conversation',
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Search feature coming soon!'),
+                                backgroundColor: Colors.black,
+                              ),
+                            );
+                          },
+                        ),
+                        const Divider(),
+                        _buildOptionTile(
+                          icon: Icons.exit_to_app,
+                          title: 'Leave group',
+                          textColor: ChatStyles.errorColor,
+                          iconColor: ChatStyles.errorColor,
+                          onTap: _confirmLeaveGroup,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -194,6 +357,10 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
           controller: controller,
           decoration: const InputDecoration(
             hintText: 'Enter group name',
+            border: OutlineInputBorder(),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.black),
+            ),
           ),
           autofocus: true,
         ),
@@ -210,9 +377,13 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
                 if (mounted) Navigator.pop(context);
               }
             },
+            style: TextButton.styleFrom(foregroundColor: Colors.black),
             child: const Text('Save'),
           ),
         ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
       ),
     );
   }
@@ -234,14 +405,14 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Group name updated'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.black,
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to update group name: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: ChatStyles.errorColor,
         ),
       );
     }
@@ -263,10 +434,13 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
               Navigator.pop(context); // Close dialog
               _leaveGroup();
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: ChatStyles.errorColor),
             child: const Text('Leave'),
           ),
         ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
       ),
     );
   }
@@ -281,81 +455,129 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
           List.from(widget.chatRoom.participants)
             ..remove(currentUserId);
       
-      // Remove user from participants
-      await FirebaseFirestore.instance
-          .collection('chatRooms')
-          .doc(widget.chatRoom.id)
-          .update({
-        'participants': updatedParticipants,
+      // Run leave animation
+      _fadeInController.reverse().then((_) async {
+        // Remove user from participants
+        await FirebaseFirestore.instance
+            .collection('chatRooms')
+            .doc(widget.chatRoom.id)
+            .update({
+          'participants': updatedParticipants,
+        });
+        
+        if (mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
       });
-      
-      if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to leave group: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: ChatStyles.errorColor,
         ),
       );
     }
   }
 
   Widget _buildParticipantTile(AppUser user) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: GestureDetector(
-        onTap: () => _openUserProfile(user),
-        child: Stack(
-          children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: Colors.grey[200],
-              backgroundImage: user.profilePictureUrl.isNotEmpty
-                  ? CachedNetworkImageProvider(user.profilePictureUrl)
-                  : null,
-              child: user.profilePictureUrl.isEmpty
-                  ? Text(
-                      user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                      style: const TextStyle(fontSize: 16, color: Colors.black54),
-                    )
-                  : null,
-            ),
-            if (user.isOnline)
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    border: Border.all(color: Colors.white, width: 2),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade100),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: GestureDetector(
+          onTap: () => _openUserProfile(user),
+          child: Hero(
+            tag: 'profile_${user.id}',
+            child: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Colors.grey[200],
+                  backgroundImage: user.profilePictureUrl.isNotEmpty
+                      ? CachedNetworkImageProvider(user.profilePictureUrl)
+                      : null,
+                  child: user.profilePictureUrl.isEmpty
+                      ? Text(
+                          user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                          style: const TextStyle(fontSize: 16, color: Colors.black54),
+                        )
+                      : null,
                 ),
-              ),
-          ],
+                if (user.isOnline)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: ChatStyles.statusIndicatorDecoration(isOnline: true),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
+        title: Text(
+          user.id == _currentUserId ? '${user.name} (You)' : user.name,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Text(
+          user.isOnline 
+              ? 'Online'
+              : user.lastSeen != null 
+                  ? 'Last seen ${timeago.format(user.lastSeen!)}'
+                  : 'Offline',
+          style: TextStyle(
+            color: user.isOnline ? ChatStyles.onlineColor : Colors.grey,
+          ),
+        ),
+        trailing: user.id != _currentUserId 
+            ? IconButton(
+                icon: const Icon(Icons.message, size: 20),
+                onPressed: () => _openUserProfile(user),
+              )
+            : null,
+        onTap: () => _openUserProfile(user),
+      ),
+    );
+  }
+
+  Widget _buildOptionTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Color? iconColor,
+    Color? textColor,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 20, color: iconColor ?? Colors.black),
       ),
       title: Text(
-        user.id == _currentUserId ? '${user.name} (You)' : user.name,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      subtitle: Text(
-        user.isOnline 
-            ? 'Online'
-            : user.lastSeen != null 
-                ? 'Last seen ${timeago.format(user.lastSeen!)}'
-                : 'Offline',
+        title,
         style: TextStyle(
-          color: user.isOnline ? Colors.green : Colors.grey,
+          fontWeight: FontWeight.w500,
+          color: textColor ?? Colors.black87,
         ),
       ),
-      onTap: () => _openUserProfile(user),
+      onTap: onTap,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
     );
   }
 
@@ -364,8 +586,8 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
     
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => UserProfilePage(
+      PageTransitions.heroDetailTransition(
+        page: UserProfilePage(
           userId: user.id,
           userName: user.name,
           initialAvatarUrl: user.profilePictureUrl,
