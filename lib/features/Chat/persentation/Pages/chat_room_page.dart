@@ -7,6 +7,7 @@ import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_states.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/components/animated_message_bubble.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/components/animated_typing_indicator.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/components/voice_note_recorder.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/user_profile_page.dart';
@@ -36,6 +37,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
   final List<Message> _messages = [];
   bool _otherUserIsOnline = false;
   Stream<DocumentSnapshot>? _userStatusStream;
+  bool _isRecordingVoice = false;
 
   @override
   void initState() {
@@ -693,96 +695,73 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
               },
             ),
 
-            // Message input area
+            // Chat input at the bottom
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8.0,
+                vertical: 8.0,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white,
-                border: Border(
-                  top: BorderSide(
-                    color: Colors.grey.shade200,
-                  ),
-                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
                     offset: const Offset(0, -1),
-                    blurRadius: 4,
+                    blurRadius: 5,
                   ),
                 ],
               ),
-              child: Row(
-                children: [
-                  Material(
-                    borderRadius: BorderRadius.circular(30),
-                    color: Colors.grey[100],
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(30),
-                      onTap: _pickAndSendFile,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        child: const Icon(Icons.attach_file, color: Colors.black, size: 20),
+              child: _isRecordingVoice 
+                ? VoiceNoteRecorder(
+                    chatRoomId: widget.chatRoom.id,
+                    onCancelRecording: () {
+                      setState(() {
+                        _isRecordingVoice = false;
+                      });
+                    },
+                  )
+                : Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.add, color: Colors.grey),
+                        onPressed: _showAttachmentOptions,
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Message...',
-                        hintStyle: TextStyle(color: Colors.grey[600]),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(color: Colors.black),
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey[50],
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        prefixIcon: Icon(Icons.emoji_emotions_outlined, color: Colors.grey[600]),
-                        suffixIcon: IconButton(
-                          icon: Icon(Icons.mic, color: Colors.grey[600]),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Voice message feature coming soon!'),
-                                backgroundColor: Colors.black,
-                              ),
-                            );
-                          },
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: TextField(
+                            controller: _messageController,
+                            maxLines: null,
+                            keyboardType: TextInputType.multiline,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: InputDecoration(
+                              hintText: 'Type a message...',
+                              hintStyle: TextStyle(color: Colors.grey.shade600),
+                              border: InputBorder.none,
+                            ),
+                          ),
                         ),
                       ),
-                      maxLines: null,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
+                      const SizedBox(width: 8),
+                      _messageController.text.trim().isEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.mic, color: Colors.black),
+                              onPressed: () {
+                                setState(() {
+                                  _isRecordingVoice = true;
+                                });
+                              },
+                            )
+                          : IconButton(
+                              icon: const Icon(Icons.send, color: Colors.black),
+                              onPressed: _sendMessage,
+                            ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Material(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(30),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(30),
-                      onTap: _sendMessage,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        child: const Icon(Icons.send, color: Colors.white, size: 20),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ],
         ),
@@ -999,5 +978,131 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
     
     // Otherwise use the first letter of the group name
     return groupName.isNotEmpty ? groupName[0].toUpperCase() : 'G';
+  }
+
+  void _showAttachmentOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildAttachmentOption(
+                  icon: Icons.photo,
+                  label: 'Photo',
+                  color: Colors.purple,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickAndSendFile();
+                  },
+                ),
+                _buildAttachmentOption(
+                  icon: Icons.camera_alt,
+                  label: 'Camera',
+                  color: Colors.red,
+                  onTap: () {
+                    Navigator.pop(context);
+                    // TODO: Implement camera capture
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Camera feature coming soon')),
+                    );
+                  },
+                ),
+                _buildAttachmentOption(
+                  icon: Icons.mic,
+                  label: 'Voice',
+                  color: Colors.orange,
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() {
+                      _isRecordingVoice = true;
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildAttachmentOption(
+                  icon: Icons.insert_drive_file,
+                  label: 'Document',
+                  color: Colors.blue,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickAndSendFile();
+                  },
+                ),
+                _buildAttachmentOption(
+                  icon: Icons.location_on,
+                  label: 'Location',
+                  color: Colors.green,
+                  onTap: () {
+                    Navigator.pop(context);
+                    // TODO: Implement location sharing
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Location sharing coming soon')),
+                    );
+                  },
+                ),
+                _buildAttachmentOption(
+                  icon: Icons.person,
+                  label: 'Contact',
+                  color: Colors.indigo,
+                  onTap: () {
+                    Navigator.pop(context);
+                    // TODO: Implement contact sharing
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Contact sharing coming soon')),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildAttachmentOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: color, size: 30),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[800],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 } 

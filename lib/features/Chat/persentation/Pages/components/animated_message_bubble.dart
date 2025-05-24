@@ -8,6 +8,7 @@ import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_states.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/user_profile_page.dart';
 import 'package:talkifyapp/features/Chat/Utils/chat_styles.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/components/audio_message_player.dart';
 
 class AnimatedMessageBubble extends StatefulWidget {
   final Message message;
@@ -523,53 +524,9 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
   }
 
   Widget _buildAudioMessage(BuildContext context) {
-    // Audio message implementation (unchanged but styled)
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: widget.isFromCurrentUser 
-            ? Colors.black.withOpacity(0.2)
-            : Colors.grey.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.audiotrack,
-            color: widget.isFromCurrentUser ? Colors.white : Colors.black,
-            size: 24,
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.message.fileName ?? 'Audio',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: widget.isFromCurrentUser
-                        ? Colors.white
-                        : Colors.black87,
-                  ),
-                ),
-                if (widget.message.fileSize != null)
-                  Text(
-                    _formatFileSize(widget.message.fileSize!),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: widget.isFromCurrentUser
-                          ? Colors.white.withOpacity(0.7)
-                          : Colors.grey[600],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return AudioMessagePlayer(
+      message: widget.message,
+      isCurrentUser: widget.isFromCurrentUser,
     );
   }
 
