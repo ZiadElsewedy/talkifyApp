@@ -20,7 +20,9 @@ class FirebaseAuthRepo implements AuthRepo {
         email: email, 
         password: password,
       );
-
+      await firestore.collection('users').doc(userCredential.user!.uid).update({
+        'isOnline': true,
+      });
 
       // check if the user is signed in
       if (userCredential.user?.emailVerified == true) {
@@ -88,9 +90,11 @@ class FirebaseAuthRepo implements AuthRepo {
         'name': user.name,
         'email': user.email,
         'phoneNumber': user.phoneNumber,
+        'profilePictureUrl': user.profilePictureUrl,
         'isVerified': false,
+        'isOnline': true,
+        'lastSeen': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
-        
       });
     } catch (e) {
       throw Exception('Failed to save user data: $e');
@@ -122,8 +126,35 @@ class FirebaseAuthRepo implements AuthRepo {
 
   @override
   Future<void> LogOut() async {
-    await firebaseAuth.signOut();
-    // handle any additional logout logic here
+    try {
+      // Get the current user ID before signing out
+      final userId = firebaseAuth.currentUser?.uid;
+      
+      // Update online status if user ID exists
+      if (userId != null) {
+        // Use a try-catch here to ensure we still log out even if Firestore update fails
+        try {
+          await firestore.collection('users').doc(userId).update({
+            'isOnline': false,
+            'lastSeen': FieldValue.serverTimestamp(),
+          });
+          print('User status updated to offline');
+        } catch (firestoreError) {
+          // Log error but continue with sign out
+          print('Failed to update online status: $firestoreError');
+        }
+      }
+      
+      // Ensure sign out completes by waiting for it explicitly
+      await firebaseAuth.signOut();
+      print('User signed out successfully');
+      
+      // Return immediately to ensure navigation works
+      return;
+    } catch (e) {
+      print('LogOut error: $e');
+      throw Exception('Logout failed: $e');
+    }
   }
 
   @override
@@ -132,15 +163,25 @@ class FirebaseAuthRepo implements AuthRepo {
       final user = firebaseAuth.currentUser;
       if (user == null) return null;
 
+      // Update online status when getting current user
+      await firestore.collection('users').doc(user.uid).update({
+        'isOnline': true,
+        'lastSeen': FieldValue.serverTimestamp(),
+      });
+
       final userData = await firestore.collection('users').doc(user.uid).get();
       if (!userData.exists) return null;
 
+      final data = userData.data()!;
+      
       return AppUser(
         id: user.uid,
-        name: userData.data()?['name'] ?? '',
+        name: data['name'] ?? '',
         email: user.email ?? '',
-        phoneNumber: userData.data()?['phoneNumber'] ?? '',
-        profilePictureUrl: userData.data()?['profilePictureUrl'] ?? '',
+        phoneNumber: data['phoneNumber'] ?? '',
+        profilePictureUrl: data['profilePictureUrl'] ?? '',
+        isOnline: data['isOnline'] ?? false,
+        lastSeen: data['lastSeen'] != null ? (data['lastSeen'] as Timestamp).toDate() : null,
       );
     } catch (e) {
       throw Exception('Failed to get current user: $e');
