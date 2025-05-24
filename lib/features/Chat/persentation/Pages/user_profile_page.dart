@@ -9,12 +9,14 @@ class UserProfilePage extends StatefulWidget {
   final String userId;
   final String userName;
   final String initialAvatarUrl;
+  final String? heroTag;
 
   const UserProfilePage({
     super.key,
     required this.userId,
     required this.userName,
     required this.initialAvatarUrl,
+    this.heroTag,
   });
 
   @override
@@ -84,21 +86,40 @@ class _UserProfilePageState extends State<UserProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Profile Picture
-          CircleAvatar(
-            radius: 60,
-            backgroundColor: Colors.grey[200],
-            backgroundImage: widget.initialAvatarUrl.isNotEmpty
-                ? CachedNetworkImageProvider(widget.initialAvatarUrl)
-                : null,
-            child: widget.initialAvatarUrl.isEmpty
-                ? Text(
-                    widget.userName.isNotEmpty
-                        ? widget.userName[0].toUpperCase()
-                        : 'U',
-                    style: const TextStyle(fontSize: 40, color: Colors.black54),
-                  )
-                : null,
-          ),
+          widget.heroTag != null
+              ? Hero(
+                  tag: widget.heroTag!,
+                  child: CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Colors.grey[200],
+                    backgroundImage: widget.initialAvatarUrl.isNotEmpty
+                        ? CachedNetworkImageProvider(widget.initialAvatarUrl)
+                        : null,
+                    child: widget.initialAvatarUrl.isEmpty
+                        ? Text(
+                            widget.userName.isNotEmpty
+                                ? widget.userName[0].toUpperCase()
+                                : 'U',
+                            style: const TextStyle(fontSize: 40, color: Colors.black54),
+                          )
+                        : null,
+                  ),
+                )
+              : CircleAvatar(
+                  radius: 60,
+                  backgroundColor: Colors.grey[200],
+                  backgroundImage: widget.initialAvatarUrl.isNotEmpty
+                      ? CachedNetworkImageProvider(widget.initialAvatarUrl)
+                      : null,
+                  child: widget.initialAvatarUrl.isEmpty
+                      ? Text(
+                          widget.userName.isNotEmpty
+                              ? widget.userName[0].toUpperCase()
+                              : 'U',
+                          style: const TextStyle(fontSize: 40, color: Colors.black54),
+                        )
+                      : null,
+                ),
           const SizedBox(height: 16),
           
           // Name
@@ -157,19 +178,36 @@ class _UserProfilePageState extends State<UserProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Profile Picture
-          CircleAvatar(
-            radius: 60,
-            backgroundColor: Colors.grey[200],
-            backgroundImage: user.profilePictureUrl.isNotEmpty
-                ? CachedNetworkImageProvider(user.profilePictureUrl)
-                : null,
-            child: user.profilePictureUrl.isEmpty
-                ? Text(
-                    user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                    style: const TextStyle(fontSize: 40, color: Colors.black54),
-                  )
-                : null,
-          ),
+          widget.heroTag != null
+              ? Hero(
+                  tag: widget.heroTag!,
+                  child: CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Colors.grey[200],
+                    backgroundImage: user.profilePictureUrl.isNotEmpty
+                        ? CachedNetworkImageProvider(user.profilePictureUrl)
+                        : null,
+                    child: user.profilePictureUrl.isEmpty
+                        ? Text(
+                            user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                            style: const TextStyle(fontSize: 40, color: Colors.black54),
+                          )
+                        : null,
+                  ),
+                )
+              : CircleAvatar(
+                  radius: 60,
+                  backgroundColor: Colors.grey[200],
+                  backgroundImage: user.profilePictureUrl.isNotEmpty
+                      ? CachedNetworkImageProvider(user.profilePictureUrl)
+                      : null,
+                  child: user.profilePictureUrl.isEmpty
+                      ? Text(
+                          user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                          style: const TextStyle(fontSize: 40, color: Colors.black54),
+                        )
+                      : null,
+                ),
           const SizedBox(height: 16),
           
           // Name

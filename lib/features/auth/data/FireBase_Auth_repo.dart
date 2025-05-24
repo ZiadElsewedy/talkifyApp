@@ -132,16 +132,24 @@ class FirebaseAuthRepo implements AuthRepo {
       
       // Update online status if user ID exists
       if (userId != null) {
-        await firestore.collection('users').doc(userId).update({
-          'isOnline': false,
-          'lastSeen': FieldValue.serverTimestamp(),
-        });
+        // Use a try-catch here to ensure we still log out even if Firestore update fails
+        try {
+          await firestore.collection('users').doc(userId).update({
+            'isOnline': false,
+            'lastSeen': FieldValue.serverTimestamp(),
+          });
+          print('User status updated to offline');
+        } catch (firestoreError) {
+          // Log error but continue with sign out
+          print('Failed to update online status: $firestoreError');
+        }
       }
       
-      // Sign out after updating the status
+      // Sign out from Firebase Auth
       await firebaseAuth.signOut();
       print('Logged out successfully');
     } catch (e) {
+      print('Logout error: $e');
       throw Exception('Logout failed: $e');
     }
   }

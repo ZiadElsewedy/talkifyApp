@@ -131,9 +131,14 @@ class _MyDrawerState extends State<MyDrawer> {
 
                   if (shouldLogout == true) {
                     try {
+                      // Use Navigator.of(context).pushAndRemoveUntil to ensure we 
+                      // clear the navigation stack when logout is complete
                       await context.read<AuthCubit>().logout();
-                      // No need for snackbar here as the App.dart BlocConsumer will handle navigation
-                      // The navigation will happen automatically when UnAuthanticated state is emitted
+                      
+                      // Force navigation to the login page by popping all routes
+                      if (mounted) {
+                        Navigator.of(context).popUntil((route) => route.isFirst);
+                      }
                     } catch (e) {
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(

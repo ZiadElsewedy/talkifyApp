@@ -614,6 +614,84 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                 return const SizedBox.shrink();
               },
             ),
+            
+            // Last seen message indicator
+            BlocBuilder<ChatCubit, ChatState>(
+              builder: (context, state) {
+                if (state is MessagesLoaded && state.chatRoomId == widget.chatRoom.id) {
+                  final currentUser = context.read<AuthCubit>().GetCurrentUser();
+                  if (currentUser == null) return const SizedBox.shrink();
+                  
+                  // Filter messages sent by the current user
+                  final myMessages = state.messages
+                      .where((msg) => msg.senderId == currentUser.id)
+                      .toList();
+                  
+                  if (myMessages.isEmpty) return const SizedBox.shrink();
+                  
+                  // Get the last read message (messages with status == MessageStatus.read)
+                  final readMessages = myMessages
+                      .where((msg) => msg.status == MessageStatus.read)
+                      .toList();
+                  
+                  if (readMessages.isEmpty) return const SizedBox.shrink();
+                  
+                  final lastReadMessage = readMessages.last;
+                  
+                  // Get the other participant (for 1-on-1 chats)
+                  String otherParticipantId = '';
+                  String otherParticipantName = '';
+                  String otherParticipantAvatar = '';
+                  
+                  if (widget.chatRoom.participants.length == 2) {
+                    otherParticipantId = widget.chatRoom.participants.firstWhere(
+                      (id) => id != currentUser.id,
+                      orElse: () => '',
+                    );
+                    
+                    otherParticipantName = widget.chatRoom.participantNames[otherParticipantId] ?? 'User';
+                    otherParticipantAvatar = widget.chatRoom.participantAvatars[otherParticipantId] ?? '';
+                  } else {
+                    // For group chats, we could show multiple users who have seen the message
+                    // For simplicity, we'll just note that it's been seen in the group
+                    otherParticipantName = 'Someone';
+                  }
+                  
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    color: Colors.grey[50],
+                    child: Row(
+                      children: [
+                        const Icon(Icons.done_all, size: 16, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        if (otherParticipantAvatar.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: CircleAvatar(
+                              radius: 10,
+                              backgroundImage: CachedNetworkImageProvider(otherParticipantAvatar),
+                            ),
+                          ),
+                        Expanded(
+                          child: Text(
+                            widget.chatRoom.participants.length == 2
+                                ? '$otherParticipantName has seen your message'
+                                : 'Seen in group',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                              fontStyle: FontStyle.italic,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
 
             // Message input area
             Container(

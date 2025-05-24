@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:talkifyapp/features/Chat/domain/entite/message.dart';
+import 'package:talkifyapp/features/Chat/domain/entite/chat_room.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
+import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_states.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/user_profile_page.dart';
 import 'package:talkifyapp/features/Chat/Utils/chat_styles.dart';
@@ -104,7 +106,7 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
                     child: Stack(
                       children: [
                         Hero(
-                          tag: 'avatar_${widget.message.senderId}',
+                          tag: 'avatar_${widget.message.senderId}_${widget.message.id}',
                           child: CircleAvatar(
                             radius: 16,
                             backgroundColor: Colors.grey[200],
@@ -180,6 +182,10 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
                             if (widget.isFromCurrentUser) ...[
                               const SizedBox(width: 4),
                               _buildStatusIcon(context),
+                              if (widget.message.status == MessageStatus.read) ...[
+                                const SizedBox(width: 4),
+                                _buildReadReceiptAvatar(context),
+                              ],
                             ],
                             
                             // Edited indicator
@@ -225,6 +231,7 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
             userId: widget.message.senderId,
             userName: widget.message.senderName,
             initialAvatarUrl: widget.message.senderAvatar,
+            heroTag: 'avatar_${widget.message.senderId}_${widget.message.id}',
           ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(0.0, 0.05);
@@ -620,41 +627,56 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
   Widget _buildStatusIcon(BuildContext context) {
     switch (widget.message.status) {
       case MessageStatus.sending:
-        return const SizedBox(
-          width: 12,
-          height: 12,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        return Tooltip(
+          message: 'Sending...',
+          child: const SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
           ),
         );
       
       case MessageStatus.sent:
-        return const Icon(
-          Icons.check,
-          size: 12,
-          color: Colors.white,
+        return Tooltip(
+          message: 'Sent',
+          child: const Icon(
+            Icons.done_all,
+            size: 12,
+            color: Colors.white,
+          ),
         );
       
       case MessageStatus.delivered:
-        return const Icon(
-          Icons.done_all,
-          size: 12,
-          color: Colors.white,
+        return Tooltip(
+          message: 'Delivered',
+          child: const Icon(
+            Icons.done_all,
+            size: 12,
+            color: Colors.white,
+          ),
         );
       
       case MessageStatus.read:
-        return const Icon(
-          Icons.done_all,
-          size: 12,
-          color: Colors.blue,
+        return Tooltip(
+          message: 'Read',
+          child: const Icon(
+            Icons.done_all,
+            size: 12,
+            color: Colors.blue,
+          ),
         );
       
       case MessageStatus.failed:
-        return const Icon(
-          Icons.error_outline,
-          size: 12,
-          color: Colors.red,
+        return Tooltip(
+          message: 'Failed to send',
+          child: const Icon(
+            Icons.error_outline,
+            size: 12,
+            color: Colors.red,
+          ),
         );
       
       default:
@@ -667,6 +689,96 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
     const suffixes = ["B", "KB", "MB", "GB"];
     int i = (bytes.bitLength - 1) ~/ 10;
     return '${(bytes / (1 << (i * 10))).toStringAsFixed(1)} ${suffixes[i]}';
+  }
+
+  Widget _buildReadReceiptAvatar(BuildContext context) {
+    // Get the chat room to access participant information
+    final chatRoomState = context.read<ChatCubit>().state;
+    
+    if (chatRoomState is MessagesLoaded) {
+      final chatRoomId = chatRoomState.chatRoomId;
+      
+      // Get the chat room from the cubit state
+      final chatRoomsState = context.read<ChatCubit>().state;
+      
+      if (chatRoomsState is ChatRoomsLoaded) {
+        // Find the chatRoom matching the current chatRoomId or return null
+        ChatRoom? chatRoom;
+        try {
+          chatRoom = chatRoomsState.chatRooms.firstWhere(
+            (room) => room.id == chatRoomId,
+          );
+        } catch (e) {
+          // If no matching chat room is found, chatRoom will remain null
+        }
+        
+        if (chatRoom != null) {
+          // For simplicity, we'll show the first participant that's not the sender
+          // In a real implementation, you might want to show multiple avatars
+          // or the avatar of the user who most recently read the message
+          final otherParticipantId = chatRoom.participants.firstWhere(
+            (id) => id != widget.message.senderId,
+            orElse: () => '',
+          );
+          
+          if (otherParticipantId.isNotEmpty) {
+            final avatarUrl = chatRoom.participantAvatars[otherParticipantId] ?? '';
+            
+            return Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 2,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: avatarUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: avatarUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: Colors.grey[200],
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.person, size: 10, color: Colors.grey),
+                        ),
+                      )
+                    : Container(
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.person, size: 10, color: Colors.grey),
+                      ),
+              ),
+            );
+          }
+        }
+      }
+    }
+    
+    // Fallback if we can't find the avatar
+    return Container(
+      width: 16,
+      height: 16,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.blue,
+        border: Border.all(color: Colors.white, width: 1),
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.visibility,
+          color: Colors.white,
+          size: 10,
+        ),
+      ),
+    );
   }
 }
 
