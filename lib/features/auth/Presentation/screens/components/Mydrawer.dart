@@ -131,13 +131,32 @@ class _MyDrawerState extends State<MyDrawer> {
 
                   if (shouldLogout == true) {
                     try {
-                      // Use Navigator.of(context).pushAndRemoveUntil to ensure we 
-                      // clear the navigation stack when logout is complete
+                      // Show loading indicator
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Logging out...'),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      }
+                      
+                      // Perform logout
                       await context.read<AuthCubit>().logout();
                       
-                      // Force navigation to the login page by popping all routes
+                      // Force immediate navigation to the auth page
                       if (mounted) {
+                        // Clear the entire navigation stack and go to first route (auth page)
                         Navigator.of(context).popUntil((route) => route.isFirst);
+                        
+                        // If that doesn't work, try pushing a replacement route
+                        // This is a fallback approach
+                        if (mounted) {
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/', // Root route - usually your auth page
+                            (route) => false, // Remove all previous routes
+                          );
+                        }
                       }
                     } catch (e) {
                       if (mounted) {

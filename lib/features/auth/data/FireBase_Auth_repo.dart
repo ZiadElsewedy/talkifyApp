@@ -145,11 +145,14 @@ class FirebaseAuthRepo implements AuthRepo {
         }
       }
       
-      // Sign out from Firebase Auth
+      // Ensure sign out completes by waiting for it explicitly
       await firebaseAuth.signOut();
-      print('Logged out successfully');
+      print('User signed out successfully');
+      
+      // Return immediately to ensure navigation works
+      return;
     } catch (e) {
-      print('Logout error: $e');
+      print('LogOut error: $e');
       throw Exception('Logout failed: $e');
     }
   }
