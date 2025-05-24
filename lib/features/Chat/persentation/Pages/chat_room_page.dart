@@ -259,15 +259,10 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
       );
       
       if (otherParticipantId.isNotEmpty) {
-        Navigator.push(
-          context,
-          PageTransitions.heroDetailTransition(
-            page: UserProfilePage(
-              userId: otherParticipantId,
-              userName: widget.chatRoom.participantNames[otherParticipantId] ?? 'Unknown User',
-              initialAvatarUrl: widget.chatRoom.participantAvatars[otherParticipantId] ?? '',
-            ),
-          ),
+        _navigateToUserProfile(
+          userId: otherParticipantId,
+          userName: widget.chatRoom.participantNames[otherParticipantId] ?? 'Unknown User',
+          avatarUrl: widget.chatRoom.participantAvatars[otherParticipantId] ?? '',
         );
       }
     } else {
@@ -281,6 +276,23 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
         ),
       );
     }
+  }
+
+  void _navigateToUserProfile({
+    required String userId,
+    required String userName,
+    required String avatarUrl,
+  }) {
+    Navigator.push(
+      context,
+      PageTransitions.heroDetailTransition(
+        page: UserProfilePage(
+          userId: userId,
+          userName: userName,
+          initialAvatarUrl: avatarUrl,
+        ),
+      ),
+    );
   }
 
   @override
@@ -823,35 +835,42 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
     final avatarUrl = widget.chatRoom.participantAvatars[otherParticipantId] ?? '';
     final userName = widget.chatRoom.participantNames[otherParticipantId] ?? 'User';
     
-    return Hero(
-      tag: 'avatar_$otherParticipantId',
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 2,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: CircleAvatar(
-          radius: 18,
-          backgroundColor: Colors.grey[200],
-          backgroundImage: avatarUrl.isNotEmpty 
-              ? CachedNetworkImageProvider(avatarUrl)
-              : null,
-          child: avatarUrl.isEmpty
-              ? Text(
-                  userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    color: Colors.black87,
-                  ),
-                )
-              : null,
+    return GestureDetector(
+      onTap: () => _navigateToUserProfile(
+        userId: otherParticipantId,
+        userName: userName,
+        avatarUrl: avatarUrl,
+      ),
+      child: Hero(
+        tag: 'avatar_$otherParticipantId',
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 2,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: CircleAvatar(
+            radius: 18,
+            backgroundColor: Colors.grey[200],
+            backgroundImage: avatarUrl.isNotEmpty 
+                ? CachedNetworkImageProvider(avatarUrl)
+                : null,
+            child: avatarUrl.isEmpty
+                ? Text(
+                    userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.black87,
+                    ),
+                  )
+                : null,
+          ),
         ),
       ),
     );

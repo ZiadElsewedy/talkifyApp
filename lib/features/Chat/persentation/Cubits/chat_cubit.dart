@@ -87,13 +87,20 @@ class ChatCubit extends Cubit<ChatState> {
     required Map<String, String> participantAvatars,
   }) async {
     try {
-      // First try to find existing chat room
-      final existingChatRoom = await chatRepo.findChatRoomBetweenUsers(participantIds);
-      if (existingChatRoom != null) {
-        return existingChatRoom;
+      final bool isGroupChat = participantIds.length > 2;
+      final bool hasCustomGroupName = participantNames.containsKey('groupName') && 
+                                     participantNames['groupName']!.isNotEmpty;
+      
+      // For 1-on-1 chats or group chats without custom names, try to find existing ones
+      if (!isGroupChat || (isGroupChat && !hasCustomGroupName)) {
+        final existingChatRoom = await chatRepo.findChatRoomBetweenUsers(participantIds);
+        if (existingChatRoom != null) {
+          return existingChatRoom;
+        }
       }
 
-      // If no existing chat room, create a new one
+      // If no existing chat room found, or if it's a group chat with a custom name,
+      // create a new one
       final chatRoom = await chatRepo.createChatRoom(
         participantIds: participantIds,
         participantNames: participantNames,

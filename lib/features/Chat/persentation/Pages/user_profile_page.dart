@@ -3,6 +3,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
 
 class UserProfilePage extends StatefulWidget {
   final String userId;
@@ -101,11 +102,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
           const SizedBox(height: 16),
           
           // Name
-          Text(
-            widget.userName,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+          GestureDetector(
+            onTap: () => _navigateToUserProfile(),
+            child: Text(
+              widget.userName,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -169,11 +173,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
           const SizedBox(height: 16),
           
           // Name
-          Text(
-            user.name,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+          GestureDetector(
+            onTap: () => _navigateToUserProfile(),
+            child: Text(
+              user.name,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -287,6 +294,15 @@ class _UserProfilePageState extends State<UserProfilePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _navigateToUserProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfilePage(userId: widget.userId),
       ),
     );
   }

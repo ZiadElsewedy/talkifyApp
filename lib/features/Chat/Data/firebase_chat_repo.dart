@@ -22,9 +22,21 @@ class FirebaseChatRepo implements ChatRepo {
   }) async {
     try {
       // Check if chat room already exists between these users
-      final existingChatRoom = await findChatRoomBetweenUsers(participantIds);
-      if (existingChatRoom != null) {
-        return existingChatRoom;
+      // For 1-on-1 chats, we should find existing rooms to avoid duplicates
+      // For group chats (with a group name), we should allow creating new ones
+      final bool isGroupChat = participantIds.length > 2;
+      final bool hasCustomGroupName = participantNames.containsKey('groupName') && 
+                                      participantNames['groupName']!.isNotEmpty;
+      
+      // Only search for existing chat rooms if this is a 1-on-1 chat
+      // or if it's a group without a custom name
+      if (!isGroupChat || (isGroupChat && !hasCustomGroupName)) {
+        final existingChatRoom = await findChatRoomBetweenUsers(participantIds);
+        if (existingChatRoom != null) {
+          // For 1-on-1 chats, always return the existing chat room
+          // For groups without custom names, also return existing chat room
+          return existingChatRoom;
+        }
       }
 
       final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc();
