@@ -11,6 +11,8 @@ class ChatRoom {
   final Map<String, int> unreadCount; // Map of userId -> unread count
   final DateTime createdAt;
   final DateTime updatedAt;
+  final List<String> admins; // List of admin user IDs
+  final Map<String, bool> leftParticipants; // Map of userId -> left status (to track users who left)
 
   ChatRoom({
     required this.id,
@@ -23,7 +25,10 @@ class ChatRoom {
     required this.unreadCount,
     required this.createdAt,
     required this.updatedAt,
-  });
+    List<String>? admins,
+    Map<String, bool>? leftParticipants,
+  }) : this.admins = admins ?? [],
+       this.leftParticipants = leftParticipants ?? {};
 
   // Convert ChatRoom to JSON
   Map<String, dynamic> toJson() {
@@ -38,6 +43,8 @@ class ChatRoom {
       'unreadCount': unreadCount,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'admins': admins,
+      'leftParticipants': leftParticipants,
     };
   }
 
@@ -56,6 +63,10 @@ class ChatRoom {
       unreadCount: Map<String, int>.from(json['unreadCount'] ?? {}),
       createdAt: (json['createdAt'] as Timestamp).toDate(),
       updatedAt: (json['updatedAt'] as Timestamp).toDate(),
+      admins: json['admins'] != null ? List<String>.from(json['admins']) : [],
+      leftParticipants: json['leftParticipants'] != null 
+        ? Map<String, bool>.from(json['leftParticipants']) 
+        : {},
     );
   }
 
@@ -71,6 +82,8 @@ class ChatRoom {
     Map<String, int>? unreadCount,
     DateTime? createdAt,
     DateTime? updatedAt,
+    List<String>? admins,
+    Map<String, bool>? leftParticipants,
   }) {
     return ChatRoom(
       id: id ?? this.id,
@@ -83,8 +96,23 @@ class ChatRoom {
       unreadCount: unreadCount ?? this.unreadCount,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      admins: admins ?? this.admins,
+      leftParticipants: leftParticipants ?? this.leftParticipants,
     );
   }
+
+  // Check if a user is an admin
+  bool isUserAdmin(String userId) {
+    // For backward compatibility with older records
+    if (admins.isEmpty) {
+      // Default: creator (first participant) is admin
+      return participants.isNotEmpty && participants.first == userId;
+    }
+    return admins.contains(userId);
+  }
+  
+  // Check if this is a group chat (more than 2 participants)
+  bool get isGroupChat => participants.length > 2;
 
   @override
   String toString() {

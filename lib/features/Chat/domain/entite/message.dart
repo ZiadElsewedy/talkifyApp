@@ -6,6 +6,7 @@ enum MessageType {
   file,
   audio,
   video,
+  system, // For system notifications (user joined, left, etc.)
 }
 
 enum MessageStatus {
@@ -32,6 +33,7 @@ class Message {
   final int? fileSize;
   final String? replyToMessageId;
   final Map<String, dynamic>? metadata; // For additional data like image dimensions, audio duration, etc.
+  final List<String> readBy; // List of user IDs who have read the message
 
   Message({
     required this.id,
@@ -49,7 +51,8 @@ class Message {
     this.fileSize,
     this.replyToMessageId,
     this.metadata,
-  });
+    List<String>? readBy,
+  }) : this.readBy = readBy ?? [];
 
   // Convert Message to JSON
   Map<String, dynamic> toJson() {
@@ -69,6 +72,7 @@ class Message {
       'fileSize': fileSize,
       'replyToMessageId': replyToMessageId,
       'metadata': metadata,
+      'readBy': readBy,
     };
   }
 
@@ -98,6 +102,9 @@ class Message {
       fileSize: json['fileSize'] as int?,
       replyToMessageId: json['replyToMessageId'] as String?,
       metadata: json['metadata'] as Map<String, dynamic>?,
+      readBy: json['readBy'] != null 
+        ? List<String>.from(json['readBy']) 
+        : [],
     );
   }
 
@@ -118,6 +125,7 @@ class Message {
     int? fileSize,
     String? replyToMessageId,
     Map<String, dynamic>? metadata,
+    List<String>? readBy,
   }) {
     return Message(
       id: id ?? this.id,
@@ -135,6 +143,7 @@ class Message {
       fileSize: fileSize ?? this.fileSize,
       replyToMessageId: replyToMessageId ?? this.replyToMessageId,
       metadata: metadata ?? this.metadata,
+      readBy: readBy ?? this.readBy,
     );
   }
 
@@ -150,7 +159,10 @@ class Message {
   bool get isReply => replyToMessageId != null;
 
   // Check if message has media content
-  bool get hasMedia => type != MessageType.text;
+  bool get hasMedia => type != MessageType.text && type != MessageType.system;
+  
+  // Check if message is a system message
+  bool get isSystemMessage => type == MessageType.system;
 
   @override
   String toString() {

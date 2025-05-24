@@ -19,35 +19,22 @@ class FirebaseChatRepo implements ChatRepo {
     required List<String> participantIds,
     required Map<String, String> participantNames,
     required Map<String, String> participantAvatars,
+    List<String>? adminIds,
   }) async {
     try {
-      // Check if chat room already exists between these users
-      // For 1-on-1 chats, we should find existing rooms to avoid duplicates
-      // For group chats (with a group name), we should allow creating new ones
-      final bool isGroupChat = participantIds.length > 2;
-      final bool hasCustomGroupName = participantNames.containsKey('groupName') && 
-                                      participantNames['groupName']!.isNotEmpty;
-      
-      // Only search for existing chat rooms if this is a 1-on-1 chat
-      // or if it's a group without a custom name
-      if (!isGroupChat || (isGroupChat && !hasCustomGroupName)) {
-        final existingChatRoom = await findChatRoomBetweenUsers(participantIds);
-        if (existingChatRoom != null) {
-          // For 1-on-1 chats, always return the existing chat room
-          // For groups without custom names, also return existing chat room
-          return existingChatRoom;
-        }
+      // Initialize unreadCount for all participants to 0
+      Map<String, int> unreadCount = {};
+      for (final userId in participantIds) {
+        unreadCount[userId] = 0;
       }
 
+      // Create initial admins list - by default, first user is admin
+      List<String> finalAdminIds = adminIds ?? [participantIds.first];
+
+      // Create new chat room document
       final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc();
       final now = DateTime.now();
-
-      // Initialize unread count for all participants
-      Map<String, int> unreadCount = {};
-      for (String participantId in participantIds) {
-        unreadCount[participantId] = 0;
-      }
-
+      
       final chatRoom = ChatRoom(
         id: chatRoomRef.id,
         participants: participantIds,
@@ -56,9 +43,22 @@ class FirebaseChatRepo implements ChatRepo {
         unreadCount: unreadCount,
         createdAt: now,
         updatedAt: now,
+        admins: finalAdminIds,
+        leftParticipants: {},
       );
-
+      
+      // Save to Firestore
       await chatRoomRef.set(chatRoom.toJson());
+      
+      // If this is a group chat, send a system message about creation
+      if (participantIds.length > 2) {
+        final creatorName = participantNames[participantIds.first] ?? 'Someone';
+        await sendSystemMessage(
+          chatRoomId: chatRoomRef.id,
+          content: '$creatorName created this group',
+        );
+      }
+      
       return chatRoom;
     } catch (e) {
       throw Exception('Failed to create chat room: $e');
@@ -110,9 +110,24 @@ class FirebaseChatRepo implements ChatRepo {
         .where('participants', arrayContains: userId)
         .snapshots()
         .map((snapshot) {
-      final chatRooms = snapshot.docs
-          .map((doc) => ChatRoom.fromJson(doc.data()))
-          .toList();
+      List<ChatRoom> chatRooms = [];
+      
+      for (var doc in snapshot.docs) {
+        try {
+          final chatRoom = ChatRoom.fromJson(doc.data());
+          
+          // Skip this chat room if the user has marked it as left/hidden
+          if (chatRoom.leftParticipants.containsKey(userId) && 
+              chatRoom.leftParticipants[userId] == true) {
+            // User has left or hidden this chat, don't include it
+            continue;
+          }
+          
+          chatRooms.add(chatRoom);
+        } catch (e) {
+          print('Error parsing chat room: $e');
+        }
+      }
       
       // Sort by updatedAt in memory instead of in query to avoid index requirement
       chatRooms.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
@@ -426,15 +441,41 @@ class FirebaseChatRepo implements ChatRepo {
     try {
       // Get reference to the chat room
       final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc(chatRoomId);
+      final chatRoomDoc = await chatRoomRef.get();
+      
+      if (!chatRoomDoc.exists) {
+        throw Exception('Chat room does not exist');
+      }
       
       // Get all messages in the chat room
       final messagesSnapshot = await chatRoomRef.collection(_messagesCollection).get();
       
-      // Use a batch to delete all messages
+      // Create a batch for more efficient updates
       final batch = _firestore.batch();
       
-      // Add all message deletions to the batch
+      // Delete all associated media files first
       for (final messageDoc in messagesSnapshot.docs) {
+        final messageData = messageDoc.data();
+        
+        // Check if the message has media that needs to be deleted
+        if (messageData['fileUrl'] != null && messageData['fileUrl'].toString().isNotEmpty) {
+          try {
+            // Extract the file path from the URL
+            final String fileUrl = messageData['fileUrl'];
+            
+            // Get the storage reference from the URL
+            final ref = _storage.refFromURL(fileUrl);
+            
+            // Delete the file from storage
+            await ref.delete();
+            print('Deleted media file: ${ref.fullPath}');
+          } catch (storageError) {
+            // Continue even if media deletion fails
+            print('Warning: Unable to delete media file: $storageError');
+          }
+        }
+        
+        // Add message to batch for deletion
         batch.delete(messageDoc.reference);
       }
       
@@ -444,12 +485,15 @@ class FirebaseChatRepo implements ChatRepo {
         batch.delete(typingDoc.reference);
       }
       
+      // Delete the chat room document itself
+      batch.delete(chatRoomRef);
+      
       // Execute the batch
       await batch.commit();
       
-      // Finally, delete the chat room itself
-      await chatRoomRef.delete();
+      print('Successfully deleted chat room: $chatRoomId');
     } catch (e) {
+      print('Error deleting chat room: $e');
       throw Exception('Failed to delete chat room: $e');
     }
   }
@@ -549,6 +593,274 @@ class FirebaseChatRepo implements ChatRepo {
           .toList();
     } catch (e) {
       throw Exception('Failed to search messages: $e');
+    }
+  }
+
+  @override
+  Future<void> leaveGroupChat({
+    required String chatRoomId,
+    required String userId,
+    required String userName,
+  }) async {
+    try {
+      // Get reference to the chat room
+      final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc(chatRoomId);
+      final chatRoomDoc = await chatRoomRef.get();
+      
+      if (!chatRoomDoc.exists) {
+        throw Exception('Chat room does not exist');
+      }
+      
+      final chatRoom = ChatRoom.fromJson(chatRoomDoc.data()!);
+      
+      // Verify this is a group chat
+      if (chatRoom.participants.length <= 2) {
+        throw Exception('Cannot leave a one-on-one chat');
+      }
+      
+      // Prepare all updates
+      Map<String, dynamic> updates = {};
+      
+      // Update the leftParticipants map
+      Map<String, bool> leftParticipants = Map<String, bool>.from(chatRoom.leftParticipants);
+      leftParticipants[userId] = true;
+      updates['leftParticipants'] = leftParticipants;
+      
+      // If user is an admin and the only admin, assign admin role to oldest member
+      List<String> admins = List<String>.from(chatRoom.admins);
+      
+      if (chatRoom.isUserAdmin(userId) && admins.length == 1) {
+        // Find the oldest member who hasn't left
+        final remainingParticipants = chatRoom.participants
+            .where((id) => id != userId && !(chatRoom.leftParticipants[id] ?? false))
+            .toList();
+            
+        if (remainingParticipants.isNotEmpty) {
+          admins.add(remainingParticipants.first);
+        }
+      }
+      
+      // Remove user from admins if they are an admin
+      admins.remove(userId);
+      updates['admins'] = admins;
+      
+      // Update the chat room document
+      await chatRoomRef.update(updates);
+      
+      // Send system message about user leaving
+      await sendSystemMessage(
+        chatRoomId: chatRoomId,
+        content: '$userName left the group',
+      );
+      
+      print('User $userId (${userName}) left group chat: $chatRoomId');
+    } catch (e) {
+      print('Error leaving group chat: $e');
+      throw Exception('Failed to leave group chat: $e');
+    }
+  }
+  
+  @override
+  Future<void> hideChatForUser({
+    required String chatRoomId,
+    required String userId,
+  }) async {
+    try {
+      // Get reference to the chat room
+      final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc(chatRoomId);
+      final chatRoomDoc = await chatRoomRef.get();
+      
+      if (!chatRoomDoc.exists) {
+        throw Exception('Chat room does not exist');
+      }
+      
+      // For one-on-one chats, we mark as hidden differently than group chats
+      final chatRoom = ChatRoom.fromJson(chatRoomDoc.data()!);
+      
+      // Update the leftParticipants map to mark this chat as hidden for this user
+      Map<String, dynamic> updates = {};
+      
+      // Handle existing leftParticipants field or create it if it doesn't exist
+      Map<String, bool> leftParticipants = Map<String, bool>.from(chatRoom.leftParticipants);
+      leftParticipants[userId] = true;
+      updates['leftParticipants'] = leftParticipants;
+      
+      // Update the document
+      await chatRoomRef.update(updates);
+      
+      print('Chat hidden successfully for user $userId: $chatRoomId');
+    } catch (e) {
+      print('Error hiding chat: $e');
+      throw Exception('Failed to hide chat for user: $e');
+    }
+  }
+  
+  @override
+  Future<void> addGroupChatAdmin({
+    required String chatRoomId,
+    required String userId,
+  }) async {
+    try {
+      final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc(chatRoomId);
+      final chatRoomDoc = await chatRoomRef.get();
+      
+      if (!chatRoomDoc.exists) {
+        throw Exception('Chat room does not exist');
+      }
+      
+      final chatRoom = ChatRoom.fromJson(chatRoomDoc.data()!);
+      
+      // Check if the user is already an admin
+      if (chatRoom.admins.contains(userId)) {
+        return; // Already an admin, nothing to do
+      }
+      
+      // Add user to admins
+      List<String> updatedAdmins = List.from(chatRoom.admins)..add(userId);
+      
+      await chatRoomRef.update({
+        'admins': updatedAdmins,
+      });
+      
+      // Add system message
+      final userName = chatRoom.participantNames[userId] ?? 'Someone';
+      await sendSystemMessage(
+        chatRoomId: chatRoomId,
+        content: '$userName is now an admin',
+      );
+    } catch (e) {
+      throw Exception('Failed to add admin: $e');
+    }
+  }
+  
+  @override
+  Future<void> removeGroupChatAdmin({
+    required String chatRoomId,
+    required String userId,
+  }) async {
+    try {
+      final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc(chatRoomId);
+      final chatRoomDoc = await chatRoomRef.get();
+      
+      if (!chatRoomDoc.exists) {
+        throw Exception('Chat room does not exist');
+      }
+      
+      final chatRoom = ChatRoom.fromJson(chatRoomDoc.data()!);
+      
+      // Check if the user is not an admin
+      if (!chatRoom.admins.contains(userId)) {
+        return; // Not an admin, nothing to do
+      }
+      
+      // Make sure there will be at least one admin left
+      if (chatRoom.admins.length <= 1) {
+        throw Exception('Cannot remove the last admin');
+      }
+      
+      // Remove user from admins
+      List<String> updatedAdmins = List.from(chatRoom.admins)..remove(userId);
+      
+      await chatRoomRef.update({
+        'admins': updatedAdmins,
+      });
+      
+      // Add system message
+      final userName = chatRoom.participantNames[userId] ?? 'Someone';
+      await sendSystemMessage(
+        chatRoomId: chatRoomId,
+        content: '$userName is no longer an admin',
+      );
+    } catch (e) {
+      throw Exception('Failed to remove admin: $e');
+    }
+  }
+  
+  @override
+  Future<Message> sendSystemMessage({
+    required String chatRoomId,
+    required String content,
+    Map<String, dynamic>? metadata,
+  }) async {
+    try {
+      final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc(chatRoomId);
+      final chatRoomDoc = await chatRoomRef.get();
+      
+      if (!chatRoomDoc.exists) {
+        throw Exception('Chat room does not exist');
+      }
+      
+      // Create a new message document
+      final messageRef = chatRoomRef.collection(_messagesCollection).doc();
+      final now = DateTime.now();
+      
+      // Create system message
+      final message = Message(
+        id: messageRef.id,
+        chatRoomId: chatRoomId,
+        senderId: 'system',  // Special sender ID for system messages
+        senderName: 'System',
+        senderAvatar: '',
+        content: content,
+        timestamp: now,
+        type: MessageType.system,
+        status: MessageStatus.sent,
+        readBy: [],
+        metadata: metadata ?? {},
+      );
+      
+      // Save message to Firestore
+      await messageRef.set(message.toJson());
+      
+      // Update chat room's last message
+      await chatRoomRef.update({
+        'lastMessage': content,
+        'lastMessageSenderId': 'system',
+        'lastMessageTime': now,
+        'updatedAt': now,
+      });
+      
+      return message;
+    } catch (e) {
+      throw Exception('Failed to send system message: $e');
+    }
+  }
+
+  // Migration helper method to update old chat rooms
+  Future<void> migrateOldChatRooms() async {
+    try {
+      // Get all chat rooms
+      final chatRoomsSnapshot = await _firestore.collection(_chatRoomsCollection).get();
+      
+      final batch = _firestore.batch();
+      
+      for (final doc in chatRoomsSnapshot.docs) {
+        final data = doc.data();
+        
+        // Check if admins field is missing
+        if (!data.containsKey('admins') || data['admins'] == null) {
+          // Set the first participant as admin by default
+          final List<String> participants = List<String>.from(data['participants'] ?? []);
+          final List<String> admins = participants.isNotEmpty ? [participants.first] : [];
+          
+          batch.update(doc.reference, {
+            'admins': admins,
+          });
+        }
+        
+        // Check if leftParticipants field is missing
+        if (!data.containsKey('leftParticipants') || data['leftParticipants'] == null) {
+          batch.update(doc.reference, {
+            'leftParticipants': {},
+          });
+        }
+      }
+      
+      // Commit all updates
+      await batch.commit();
+      print('Migrated old chat rooms to new format');
+    } catch (e) {
+      print('Error migrating old chat rooms: $e');
     }
   }
 }

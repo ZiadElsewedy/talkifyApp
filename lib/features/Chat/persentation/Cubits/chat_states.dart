@@ -63,6 +63,33 @@ class MessagesMarkedAsRead extends ChatState {
   MessagesMarkedAsRead(this.chatRoomId);
 }
 
+// Group chat states
+class GroupChatLeft extends ChatState {
+  final String chatRoomId;
+  
+  GroupChatLeft(this.chatRoomId);
+}
+
+class ChatHiddenForUser extends ChatState {
+  final String chatRoomId;
+  
+  ChatHiddenForUser(this.chatRoomId);
+}
+
+class GroupAdminAdded extends ChatState {
+  final String chatRoomId;
+  final String userId;
+  
+  GroupAdminAdded(this.chatRoomId, this.userId);
+}
+
+class GroupAdminRemoved extends ChatState {
+  final String chatRoomId;
+  final String userId;
+  
+  GroupAdminRemoved(this.chatRoomId, this.userId);
+}
+
 // Typing states
 class TypingStatusUpdated extends ChatState {
   final String chatRoomId;

@@ -65,7 +65,13 @@ class MyApp extends StatelessWidget {
         
         // chat cubit
         BlocProvider<ChatCubit>(
-          create: (context) => ChatCubit(chatRepo: firebaseChatRepo)
+          create: (context) {
+            // Initialize with migration and return the cubit
+            final cubit = ChatCubit(chatRepo: firebaseChatRepo);
+            // Run initialization immediately
+            cubit.initialize();
+            return cubit;
+          }
         ),
       ],
     

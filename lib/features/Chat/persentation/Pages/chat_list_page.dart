@@ -178,21 +178,55 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
               });
             } else if (state is ChatRoomsError) {
               print("ChatListPage: Error loading chat rooms: ${state.message}");
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error loading chats: ${state.message}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
             } else if (state is ChatRoomDeleted) {
-              // Remove the deleted chat room from the local list
-              setState(() {
-                _chatRooms.removeWhere((room) => room.id == state.chatRoomId);
-              });
+              // Just show a success message - don't modify the list directly
+              // We'll reload the list instead
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Chat deleted successfully'),
                   backgroundColor: Colors.black,
                 ),
               );
+              // Delay the reload to avoid race conditions
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (mounted) _loadChatRooms();
+              });
+            } else if (state is ChatHiddenForUser) {
+              // Just show a success message - don't modify the list directly
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Chat removed from your list'),
+                  backgroundColor: Colors.black,
+                ),
+              );
+              // Delay the reload to avoid race conditions
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (mounted) _loadChatRooms();
+              });
+            } else if (state is GroupChatLeft) {
+              // Just show a success message - don't modify the list directly
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('You have left the group'),
+                  backgroundColor: Colors.black,
+                ),
+              );
+              // Delay the reload to avoid race conditions
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (mounted) _loadChatRooms();
+              });
             }
           },
           builder: (context, state) {
-            if (state is ChatRoomsLoading && _chatRooms.isEmpty) {
+            // Show loading indicator if initial loading or deleting operations are in progress
+            if ((state is ChatRoomsLoading && _chatRooms.isEmpty) || 
+                 state is ChatLoading) {
               return const Center(
                 child: PercentCircleIndicator(),
               );
@@ -223,7 +257,7 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                         ),
                       ).then((_) {
                         // Reload chat rooms when returning from chat
-                        _loadChatRooms();
+                        if (mounted) _loadChatRooms();
                       });
                     },
                   );

@@ -4,6 +4,7 @@ import 'package:talkifyapp/features/Chat/domain/repo/chat_repo.dart';
 import 'package:talkifyapp/features/Chat/domain/entite/chat_room.dart';
 import 'package:talkifyapp/features/Chat/domain/entite/message.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_states.dart';
+import 'package:talkifyapp/features/Chat/Data/firebase_chat_repo.dart';
 
 class ChatCubit extends Cubit<ChatState> {
   final ChatRepo chatRepo;
@@ -66,6 +67,7 @@ class ChatCubit extends Cubit<ChatState> {
     required List<String> participantIds,
     required Map<String, String> participantNames,
     required Map<String, String> participantAvatars,
+    List<String>? adminIds,
   }) async {
     emit(ChatLoading());
     try {
@@ -73,6 +75,7 @@ class ChatCubit extends Cubit<ChatState> {
         participantIds: participantIds,
         participantNames: participantNames,
         participantAvatars: participantAvatars,
+        adminIds: adminIds,
       );
       emit(ChatRoomCreated(chatRoom));
     } catch (e) {
@@ -85,6 +88,7 @@ class ChatCubit extends Cubit<ChatState> {
     required List<String> participantIds,
     required Map<String, String> participantNames,
     required Map<String, String> participantAvatars,
+    List<String>? adminIds,
   }) async {
     try {
       final bool isGroupChat = participantIds.length > 2;
@@ -105,6 +109,7 @@ class ChatCubit extends Cubit<ChatState> {
         participantIds: participantIds,
         participantNames: participantNames,
         participantAvatars: participantAvatars,
+        adminIds: adminIds,
       );
       return chatRoom;
     } catch (e) {
@@ -258,9 +263,122 @@ class ChatCubit extends Cubit<ChatState> {
     emit(ChatLoading());
     try {
       await chatRepo.deleteChatRoom(chatRoomId);
+      
+      // Emit the deleted state after successful deletion
       emit(ChatRoomDeleted(chatRoomId));
+      
+      // After a short delay, refresh the chat rooms list
+      await Future.delayed(const Duration(milliseconds: 300));
+      final currentState = state;
+      if (currentState is ChatRoomDeleted) {
+        emit(ChatRoomsLoading());
+      }
     } catch (e) {
       emit(ChatError('Failed to delete chat room: $e'));
+    }
+  }
+  
+  // Leave group chat
+  Future<void> leaveGroupChat({
+    required String chatRoomId,
+    required String userId,
+    required String userName,
+  }) async {
+    emit(ChatLoading());
+    try {
+      await chatRepo.leaveGroupChat(
+        chatRoomId: chatRoomId,
+        userId: userId,
+        userName: userName,
+      );
+      
+      // Emit the left group state
+      emit(GroupChatLeft(chatRoomId));
+      
+      // After a short delay, refresh the chat rooms list
+      await Future.delayed(const Duration(milliseconds: 300));
+      final currentState = state;
+      if (currentState is GroupChatLeft) {
+        emit(ChatRoomsLoading());
+      }
+    } catch (e) {
+      emit(ChatError('Failed to leave group chat: $e'));
+    }
+  }
+  
+  // Hide chat for user
+  Future<void> hideChatForUser({
+    required String chatRoomId,
+    required String userId,
+  }) async {
+    emit(ChatLoading());
+    try {
+      await chatRepo.hideChatForUser(
+        chatRoomId: chatRoomId,
+        userId: userId,
+      );
+      
+      // Emit the hidden chat state
+      emit(ChatHiddenForUser(chatRoomId));
+      
+      // After a short delay, refresh the chat rooms list
+      await Future.delayed(const Duration(milliseconds: 300));
+      final currentState = state;
+      if (currentState is ChatHiddenForUser) {
+        emit(ChatRoomsLoading());
+      }
+    } catch (e) {
+      emit(ChatError('Failed to hide chat: $e'));
+    }
+  }
+  
+  // Add group chat admin
+  Future<void> addGroupAdmin({
+    required String chatRoomId,
+    required String userId,
+  }) async {
+    try {
+      await chatRepo.addGroupChatAdmin(
+        chatRoomId: chatRoomId,
+        userId: userId,
+      );
+      emit(GroupAdminAdded(chatRoomId, userId));
+    } catch (e) {
+      emit(ChatError('Failed to add admin: $e'));
+    }
+  }
+  
+  // Remove group chat admin
+  Future<void> removeGroupAdmin({
+    required String chatRoomId,
+    required String userId,
+  }) async {
+    try {
+      await chatRepo.removeGroupChatAdmin(
+        chatRoomId: chatRoomId,
+        userId: userId,
+      );
+      emit(GroupAdminRemoved(chatRoomId, userId));
+    } catch (e) {
+      emit(ChatError('Failed to remove admin: $e'));
+    }
+  }
+  
+  // Send system message
+  Future<void> sendSystemMessage({
+    required String chatRoomId,
+    required String content,
+    Map<String, dynamic>? metadata,
+  }) async {
+    try {
+      await chatRepo.sendSystemMessage(
+        chatRoomId: chatRoomId,
+        content: content,
+        metadata: metadata,
+      );
+      // System message will be received through the stream
+    } catch (e) {
+      emit(ChatError('Failed to send system message: $e'));
     }
   }
 
@@ -308,6 +426,18 @@ class ChatCubit extends Cubit<ChatState> {
       );
     } catch (e) {
       // Don't emit error for status update failures
+    }
+  }
+
+  // Initialize chat functionality and perform migrations if needed
+  Future<void> initialize() async {
+    try {
+      // Cast to FirebaseChatRepo to access migration method
+      if (chatRepo is FirebaseChatRepo) {
+        await (chatRepo as FirebaseChatRepo).migrateOldChatRooms();
+      }
+    } catch (e) {
+      print('Error initializing chat: $e');
     }
   }
 } 

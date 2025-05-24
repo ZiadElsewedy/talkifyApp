@@ -7,6 +7,7 @@ abstract class ChatRepo {
     required List<String> participantIds,
     required Map<String, String> participantNames,
     required Map<String, String> participantAvatars,
+    List<String>? adminIds,
   });
   
   Future<ChatRoom?> getChatRoom(String chatRoomId);
@@ -28,6 +29,34 @@ abstract class ChatRepo {
   });
   
   Future<void> deleteChatRoom(String chatRoomId);
+  
+  // New methods for group chat management
+  Future<void> leaveGroupChat({
+    required String chatRoomId,
+    required String userId,
+    required String userName,
+  });
+  
+  Future<void> addGroupChatAdmin({
+    required String chatRoomId,
+    required String userId,
+  });
+  
+  Future<void> removeGroupChatAdmin({
+    required String chatRoomId, 
+    required String userId,
+  });
+  
+  Future<void> hideChatForUser({
+    required String chatRoomId,
+    required String userId,
+  });
+  
+  Future<Message> sendSystemMessage({
+    required String chatRoomId,
+    required String content,
+    Map<String, dynamic>? metadata,
+  });
   
   // Message operations
   Future<Message> sendMessage({

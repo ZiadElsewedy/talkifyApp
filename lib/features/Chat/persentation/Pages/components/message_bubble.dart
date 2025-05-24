@@ -18,6 +18,11 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Special handling for system messages
+    if (message.isSystemMessage) {
+      return _buildSystemMessage(context);
+    }
+    
     return GestureDetector(
       onLongPress: () => _showMessageOptions(context),
       child: Padding(
@@ -141,6 +146,44 @@ class MessageBubble extends StatelessWidget {
             // Spacer for current user messages
             if (isFromCurrentUser) const SizedBox(width: 8),
           ],
+        ),
+      ),
+    );
+  }
+  
+  // Build system message (centered, gray, italic)
+  Widget _buildSystemMessage(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                message.content,
+                style: TextStyle(
+                  color: Colors.grey[800],
+                  fontStyle: FontStyle.italic,
+                  fontSize: 13,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                timeago.format(message.timestamp),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

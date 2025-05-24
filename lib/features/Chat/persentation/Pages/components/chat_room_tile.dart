@@ -625,36 +625,159 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
   }
 
   void _confirmDeleteChat(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Chat'),
-        content: const Text(
-          'Are you sure you want to delete this chat? This action cannot be undone.'
+    final bool isGroupChat = widget.chatRoom.participants.length > 2;
+    // Safely check if user is admin - handle case where admins list may be null in existing records
+    final bool isAdmin = widget.chatRoom.admins.any((adminId) => adminId == widget.currentUserId);
+    
+    // Keep a reference to cubit to avoid widget deactivation issues
+    final chatCubit = context.read<ChatCubit>();
+    
+    if (isGroupChat) {
+      if (isAdmin) {
+        // Admin can delete the group chat for everyone
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Delete Group Chat'),
+            content: const Text(
+              'As an admin, you can either delete this group for everyone or just leave the group. What would you like to do?'
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _leaveGroupChat(context);
+                },
+                child: const Text('Leave Group'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  
+                  // Show confirmation for deleting the entire group
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Delete for Everyone'),
+                      content: const Text(
+                        'This will delete the group and all messages for all members. This action cannot be undone.'
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            
+                            // Run delete animation and delete the chat room
+                            _animationController.reverse().then((_) {
+                              // Use the stored reference to avoid widget deactivation issues
+                              chatCubit.deleteChatRoom(widget.chatRoom.id);
+                            });
+                          },
+                          style: TextButton.styleFrom(foregroundColor: ChatStyles.errorColor),
+                          child: const Text('Delete for Everyone'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                style: TextButton.styleFrom(foregroundColor: ChatStyles.errorColor),
+                child: const Text('Delete for Everyone'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        // Regular members can only leave the group
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Leave Group Chat'),
+            content: const Text(
+              'You cannot delete the group chat as you are not an admin. Would you like to leave the group instead?'
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _leaveGroupChat(context);
+                },
+                style: TextButton.styleFrom(foregroundColor: Colors.black),
+                child: const Text('Leave Group'),
+              ),
+            ],
+          ),
+        );
+      }
+    } else {
+      // For one-on-one chats, we just hide the chat for the current user
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Delete Chat'),
+          content: const Text(
+            'This will delete the chat history from your view. The other person will still see the conversation.'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                
+                // Run delete animation
+                _animationController.reverse().then((_) {
+                  // Use the stored reference to avoid widget deactivation issues
+                  chatCubit.hideChatForUser(
+                    chatRoomId: widget.chatRoom.id,
+                    userId: widget.currentUserId,
+                  );
+                });
+              },
+              style: TextButton.styleFrom(foregroundColor: ChatStyles.errorColor),
+              child: const Text('Delete'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              
-              // Run delete animation
-              _animationController.reverse().then((_) {
-                context.read<ChatCubit>().deleteChatRoom(widget.chatRoom.id);
-              });
-            },
-            style: TextButton.styleFrom(foregroundColor: ChatStyles.errorColor),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
+      );
+    }
+  }
+
+  void _leaveGroupChat(BuildContext context) {
+    // Get the user name from the chat room
+    final String userName = 
+        widget.chatRoom.participantNames[widget.currentUserId] ?? 'A user';
+    
+    // Keep a reference to cubit to avoid widget deactivation issues
+    final chatCubit = context.read<ChatCubit>();
+    
+    // Run leave animation and leave the group chat
+    _animationController.reverse().then((_) {
+      chatCubit.leaveGroupChat(
+        chatRoomId: widget.chatRoom.id,
+        userId: widget.currentUserId,
+        userName: userName,
+      );
+    });
   }
 
   void _confirmLeaveGroup(BuildContext context) {
+    // Keep a reference to cubit to avoid widget deactivation issues
+    final chatCubit = context.read<ChatCubit>();
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -668,40 +791,9 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.of(context).pop();
-              
-              // Run leave animation
-              _animationController.reverse().then((_) async {
-                try {
-                  // Get the updated list of participants
-                  List<String> updatedParticipants = 
-                      List.from(widget.chatRoom.participants)
-                        ..remove(widget.currentUserId);
-                  
-                  // Remove user from participants
-                  await FirebaseFirestore.instance
-                      .collection('chatRooms')
-                      .doc(widget.chatRoom.id)
-                      .update({
-                    'participants': updatedParticipants,
-                  });
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('You have left the group'),
-                      backgroundColor: Colors.black,
-                    ),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Failed to leave group: $e'),
-                      backgroundColor: ChatStyles.errorColor,
-                    ),
-                  );
-                }
-              });
+              _leaveGroupChat(context);
             },
             style: TextButton.styleFrom(foregroundColor: ChatStyles.errorColor),
             child: const Text('Leave'),
