@@ -127,4 +127,14 @@ Future<void> deleteComment(String postId, String commentId) async {
     emit(PostsError("Failed to delete comment: $e"));
   }
 }  
+
+// update post caption
+Future<void> updatePostCaption(String postId, String newCaption) async {
+  try {
+    await postRepo.updatePostCaption(postId, newCaption);
+    await fetechAllPosts();
+  } catch (e) {
+    emit(PostsError('Failed to update caption: $e'));
+  }
+}
 }

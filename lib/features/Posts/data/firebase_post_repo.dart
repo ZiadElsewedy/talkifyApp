@@ -213,5 +213,17 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
       throw Exception("Error deleting comment: $e");
     }
   }
+
+  @override
+  Future<void> updatePostCaption(String postId, String newCaption) async {
+    try {
+      await postsCollection.doc(postId).update({
+        'text': newCaption,
+      });
+    } catch (e) {
+      print('Error updating post caption: $e');
+      throw Exception('Error updating post caption: $e');
+    }
+  }
 }
 
