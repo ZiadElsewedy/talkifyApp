@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Posts/PostComponents/CommentsPage.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
@@ -11,6 +12,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
 import 'package:talkifyapp/features/Posts/PostComponents/commentTile.dart';
+//import 'package:talkifyapp/features/Posts/presentation/Pages/CommentsPage.dart';
 
 import '../../Profile/presentation/Cubits/ProfileCubit.dart';
 
@@ -228,7 +230,6 @@ void addComment() async {
       // Update UI immediately with new comment
       setState(() {
         widget.post.comments.add(newComment);
-        showAllComments = true; // Show all comments including new one
       });
       
       // Clear the input field
@@ -512,7 +513,19 @@ void addComment() async {
                     Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: OpenCommentBox,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CommentsPage(
+                                comments: widget.post.comments,
+                                currentUserId: currentUser!.id,
+                                postOwnerId: widget.post.UserId,
+                                postId: widget.post.id,
+                              ),
+                            ),
+                          );
+                        },
                         borderRadius: BorderRadius.circular(24),
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),
@@ -599,7 +612,7 @@ void addComment() async {
           ),
 
           // Comments section
-          if (widget.post.comments.isNotEmpty) ...[
+          if (widget.post.comments.isNotEmpty && showAllComments) ...[
             Container(
               padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
               decoration: BoxDecoration(
@@ -650,7 +663,10 @@ void addComment() async {
                       ? widget.post.comments.length 
                       : 2,
                   itemBuilder: (context, index) {
-                    final comment = widget.post.comments[index];
+                    // Sort comments by creation date in descending order (newest first)
+                    final sortedComments = List<Comments>.from(widget.post.comments)
+                      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+                    final comment = sortedComments[index];
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: CommentTile(
