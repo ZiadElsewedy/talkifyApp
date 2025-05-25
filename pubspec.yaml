@@ -76,6 +76,7 @@ flutter:
     - lib\assets\Verfiy.json
     - lib\assets\Search.json
     - lib\assets\profile.json
+    - lib\assets\Logo5.json
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
