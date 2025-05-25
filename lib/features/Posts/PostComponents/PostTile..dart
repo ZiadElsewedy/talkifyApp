@@ -591,15 +591,16 @@ void addComment() async {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: Colors.grey.shade100,
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.grey.shade300, width: 1),
             ),
             child: Row(
               children: [
                 Icon(
                   Icons.bookmark_border,
                   size: 16,
-                  color: Colors.blue.shade600,
+                  color: Colors.black87,
                 ),
                 const SizedBox(width: 4),
                 Text(
@@ -607,7 +608,7 @@ void addComment() async {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Colors.blue.shade600,
+                    color: Colors.black87,
                   ),
                 ),
               ],
