@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:math';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_states.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/chat_room_page.dart';
@@ -21,7 +22,10 @@ class ChatListPage extends StatefulWidget {
 class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMixin {
   // Keep a local list of chat rooms
   List<ChatRoom> _chatRooms = [];
+  List<ChatRoom> _filteredChatRooms = [];
   late AnimationController _fadeInController;
+  TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
 
   @override
   void initState() {
@@ -37,6 +41,7 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
   @override
   void dispose() {
     _fadeInController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -52,6 +57,84 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
       print("ChatListPage: Loading chat rooms for user ${currentUser.id}");
       context.read<ChatCubit>().loadUserChatRooms(currentUser.id);
     }
+  }
+
+  void _filterChatRooms(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredChatRooms = List.from(_chatRooms);
+      } else {
+        _filteredChatRooms = _chatRooms.where((chatRoom) {
+          // Search in chat name (group name or participant name)
+          String chatName = '';
+          if (chatRoom.isGroupChat) {
+            // For group chats, use the first participant's name as a fallback
+            // Since there's no explicit "groupName" field in the model
+            chatName = chatRoom.participants.length > 2 
+                ? "Group: ${chatRoom.participantNames.values.join(", ").substring(0, 
+                    min(chatRoom.participantNames.values.join(", ").length, 20))}..."
+                : "";
+          } else {
+            // For direct chats, find the other participant's name
+            final currentUserName = context.read<AuthCubit>().GetCurrentUser()?.name ?? '';
+            chatName = chatRoom.participantNames.entries
+                .where((entry) => entry.value != currentUserName)
+                .map((entry) => entry.value)
+                .join(", ");
+          }
+          
+          // Search in last message
+          final String lastMessageContent = chatRoom.lastMessage ?? '';
+          
+          return chatName.toLowerCase().contains(query.toLowerCase()) ||
+                 lastMessageContent.toLowerCase().contains(query.toLowerCase());
+        }).toList();
+      }
+    });
+  }
+
+  Widget _buildSearchBar() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      height: 60,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: _isSearching ? [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          )
+        ] : [],
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: _filterChatRooms,
+        decoration: InputDecoration(
+          hintText: 'Search chats...',
+          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.close, color: Colors.grey),
+                  onPressed: () {
+                    setState(() {
+                      _searchController.clear();
+                      _filterChatRooms('');
+                    });
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: Colors.grey[100],
+          contentPadding: const EdgeInsets.symmetric(vertical: 0),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -97,16 +180,20 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                 color: Colors.grey[100],
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.search, size: 20, color: Colors.black),
+              child: Icon(
+                _isSearching ? Icons.close : Icons.search,
+                size: 20,
+                color: Colors.black
+              ),
             ),
             onPressed: () {
-              // TODO: Implement search functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Search feature coming soon!'),
-                  backgroundColor: Colors.black,
-                ),
-              );
+              setState(() {
+                _isSearching = !_isSearching;
+                if (!_isSearching) {
+                  _searchController.clear();
+                  _filterChatRooms('');
+                }
+              });
             },
           ),
           PopupMenuButton(
@@ -164,108 +251,141 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
           const SizedBox(width: 8),
         ],
       ),
-      body: RefreshIndicator(
-        color: Colors.black,
-        onRefresh: () async {
-          _loadChatRooms();
-        },
-        child: BlocConsumer<ChatCubit, ChatState>(
-          listener: (context, state) {
-            if (state is ChatRoomsLoaded) {
-              print("ChatListPage: Received ${state.chatRooms.length} chat rooms");
-              setState(() {
-                _chatRooms = state.chatRooms;
-              });
-            } else if (state is ChatRoomsError) {
-              print("ChatListPage: Error loading chat rooms: ${state.message}");
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Error loading chats: ${state.message}'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            } else if (state is ChatRoomDeleted) {
-              // Just show a success message - don't modify the list directly
-              // We'll reload the list instead
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Chat deleted successfully'),
-                  backgroundColor: Colors.black,
-                ),
-              );
-              // Delay the reload to avoid race conditions
-              Future.delayed(const Duration(milliseconds: 500), () {
-                if (mounted) _loadChatRooms();
-              });
-            } else if (state is ChatHiddenForUser) {
-              // Just show a success message - don't modify the list directly
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Chat removed from your list'),
-                  backgroundColor: Colors.black,
-                ),
-              );
-              // Delay the reload to avoid race conditions
-              Future.delayed(const Duration(milliseconds: 500), () {
-                if (mounted) _loadChatRooms();
-              });
-            } else if (state is GroupChatLeft) {
-              // Just show a success message - don't modify the list directly
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('You have left the group'),
-                  backgroundColor: Colors.black,
-                ),
-              );
-              // Delay the reload to avoid race conditions
-              Future.delayed(const Duration(milliseconds: 500), () {
-                if (mounted) _loadChatRooms();
-              });
-            }
-          },
-          builder: (context, state) {
-            // Show loading indicator if initial loading or deleting operations are in progress
-            if ((state is ChatRoomsLoading && _chatRooms.isEmpty) || 
-                 state is ChatLoading) {
-              return const Center(
-                child: PercentCircleIndicator(),
-              );
-            }
+      body: Column(
+        children: [
+          if (_isSearching) _buildSearchBar(),
+          Expanded(
+            child: RefreshIndicator(
+              color: Colors.black,
+              onRefresh: () async {
+                _loadChatRooms();
+              },
+              child: BlocConsumer<ChatCubit, ChatState>(
+                listener: (context, state) {
+                  if (state is ChatRoomsLoaded) {
+                    print("ChatListPage: Received ${state.chatRooms.length} chat rooms");
+                    setState(() {
+                      _chatRooms = state.chatRooms;
+                      _filteredChatRooms = state.chatRooms;
+                    });
+                  } else if (state is ChatRoomsError) {
+                    print("ChatListPage: Error loading chat rooms: ${state.message}");
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error loading chats: ${state.message}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  } else if (state is ChatRoomDeleted) {
+                    // Just show a success message - don't modify the list directly
+                    // We'll reload the list instead
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Chat deleted successfully'),
+                        backgroundColor: Colors.black,
+                      ),
+                    );
+                    // Delay the reload to avoid race conditions
+                    Future.delayed(const Duration(milliseconds: 500), () {
+                      if (mounted) _loadChatRooms();
+                    });
+                  } else if (state is ChatHiddenForUser) {
+                    // Just show a success message - don't modify the list directly
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Chat removed from your list'),
+                        backgroundColor: Colors.black,
+                      ),
+                    );
+                    // Delay the reload to avoid race conditions
+                    Future.delayed(const Duration(milliseconds: 500), () {
+                      if (mounted) _loadChatRooms();
+                    });
+                  } else if (state is GroupChatLeft) {
+                    // Just show a success message - don't modify the list directly
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('You have left the group'),
+                        backgroundColor: Colors.black,
+                      ),
+                    );
+                    // Delay the reload to avoid race conditions
+                    Future.delayed(const Duration(milliseconds: 500), () {
+                      if (mounted) _loadChatRooms();
+                    });
+                  }
+                },
+                builder: (context, state) {
+                  // Show loading indicator if initial loading or deleting operations are in progress
+                  if ((state is ChatRoomsLoading && _chatRooms.isEmpty) || 
+                       state is ChatLoading) {
+                    return const Center(
+                      child: PercentCircleIndicator(),
+                    );
+                  }
 
-            // Always use the local list to render
-            if (_chatRooms.isEmpty) {
-              return _buildEmptyState();
-            }
-
-            return FadeTransition(
-              opacity: _fadeInController,
-              child: ListView.builder(
-                itemCount: _chatRooms.length,
-                itemBuilder: (context, index) {
-                  final chatRoom = _chatRooms[index];
-                  return ChatRoomTile(
-                    chatRoom: chatRoom,
-                    currentUserId: currentUser?.id ?? '',
-                    index: index,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        PageTransitions.slideRightTransition(
-                          page: ChatRoomPage(
-                            chatRoom: chatRoom,
-                          ),
+                  // Always use the filtered list to render
+                  if (_filteredChatRooms.isEmpty) {
+                    // Check if empty because of filter or because no chats exist
+                    if (_chatRooms.isEmpty) {
+                      return _buildEmptyState();
+                    } else {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 60,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No matches found',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ],
                         ),
-                      ).then((_) {
-                        // Reload chat rooms when returning from chat
-                        if (mounted) _loadChatRooms();
-                      });
-                    },
+                      );
+                    }
+                  }
+
+                  return FadeTransition(
+                    opacity: _fadeInController,
+                    child: ListView.builder(
+                      itemCount: _filteredChatRooms.length,
+                      itemBuilder: (context, index) {
+                        final chatRoom = _filteredChatRooms[index];
+                        return ChatRoomTile(
+                          chatRoom: chatRoom,
+                          currentUserId: currentUser?.id ?? '',
+                          index: index,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              PageTransitions.slideRightTransition(
+                                page: ChatRoomPage(
+                                  chatRoom: chatRoom,
+                                ),
+                              ),
+                            ).then((_) {
+                              // Reload chat rooms when returning from chat
+                              if (mounted) _loadChatRooms();
+                            });
+                          },
+                        );
+                      },
+                    ),
                   );
                 },
               ),
-            );
-          },
-        ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
