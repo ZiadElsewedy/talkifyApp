@@ -4,7 +4,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Posts/PostComponents/CommentsPage.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
-import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
@@ -12,7 +11,6 @@ import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
-import 'package:talkifyapp/features/Posts/PostComponents/commentTile.dart';
 //import 'package:talkifyapp/features/Posts/presentation/Pages/CommentsPage.dart';
 
 import '../../Profile/presentation/Cubits/ProfileCubit.dart';
@@ -370,7 +368,7 @@ void addComment() async {
       child: Row(
         children: [
           Hero(
-            tag: 'avatar_${widget.post.UserId}',
+            tag: 'avatar_${widget.post.UserId}_${widget.post.id}',
             child: GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -385,23 +383,10 @@ void addComment() async {
                 height: 48,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.purple.shade400,
-                      Colors.pink.shade400,
-                      Colors.orange.shade400,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 3,
-                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.purple.withOpacity(0.3),
-                      blurRadius: 10,
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
                   ],
@@ -416,7 +401,7 @@ void addComment() async {
                       ? Text(
                           widget.post.UserName[0].toUpperCase(),
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: Colors.black87,
                             fontWeight: FontWeight.bold,
                             fontSize: 20,
                           ),
