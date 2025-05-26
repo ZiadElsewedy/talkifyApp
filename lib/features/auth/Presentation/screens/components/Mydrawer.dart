@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/ProfilePicFunction.dart';
 import 'package:talkifyapp/features/Search/Presentation/SearchPage.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/chat_list_page.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/ConfirmLogOut.dart';
@@ -86,6 +87,18 @@ class _MyDrawerState extends State<MyDrawer> {
                 },
               ),
               MyDrawerTile(
+                icon: Icons.chat,
+                title: 'C H A T S',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => const ChatListPage(),
+                    ),
+                  );
+                },
+              ),
+              MyDrawerTile(
                 icon: Icons.search,
                 title: 'S E A R C H',
                 onTap: () {
@@ -121,15 +134,45 @@ class _MyDrawerState extends State<MyDrawer> {
                 title: 'L O G O U T',
                 onTap: () async {
                   final shouldLogout = await showConfirmLogoutDialog(context);
+
                   if (shouldLogout == true) {
-                    context.read<AuthCubit>().logout();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Logged out successfully'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
+                    try {
+                      // Show loading indicator
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Logging out...'),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      }
+                      
+                      // Perform logout
+                      await context.read<AuthCubit>().logout();
+                      
+                      // Force immediate navigation to the auth page
+                      if (mounted) {
+                        // Clear the entire navigation stack and go to first route (auth page)
+                        Navigator.of(context).popUntil((route) => route.isFirst);
+                        
+                        // If that doesn't work, try pushing a replacement route
+                        // This is a fallback approach
+                        if (mounted) {
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/', // Root route - usually your auth page
+                            (route) => false, // Remove all previous routes
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Logout failed: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     }
                   }
                 },

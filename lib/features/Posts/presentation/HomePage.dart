@@ -9,11 +9,17 @@ import 'package:talkifyapp/features/Search/Presentation/SearchPage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/Mydrawer.dart';
 
 class HomePage extends StatefulWidget {
-   HomePage({super.key});
+  final int initialTabIndex;
+
+  const HomePage({
+    super.key,
+    this.initialTabIndex = 0, // Default to home tab (index 0)
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
+
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late final postCubit = context.read<PostCubit>();
@@ -25,6 +31,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialTabIndex;
     fetchPosts();
     
     _backgroundController = AnimationController(

@@ -10,7 +10,7 @@ import 'package:talkifyapp/features/Profile/presentation/Pages/EditProfilePage.d
 import 'package:talkifyapp/features/Profile/presentation/Pages/Follower.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/Bio.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/FollowButtom.dart';
-import 'package:talkifyapp/features/Profile/presentation/Pages/components/Message.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/components/message_button.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/ProfilePicFunction.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/profileStats.dart';
@@ -18,6 +18,8 @@ import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dar
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING!.dart';
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
+import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/chat_room_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, this.userId});
@@ -165,6 +167,75 @@ class ProfilePageState extends State<ProfilePage> {
       await profileCubit.fetchUserProfile(widget.userId!);
       await fetchUserPostCount();
       await Future.delayed(const Duration(milliseconds: 800));
+    }
+  }
+
+  Future<void> _startChatWithUser() async {
+    if (currentUser == null || widget.userId == null) return;
+
+    try {
+      // Show loading state
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              SizedBox(width: 16),
+              Text('Starting chat...'),
+            ],
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      final profileState = profileCubit.state;
+      if (profileState is ProfileLoadedState) {
+        final user = profileState.profileuser;
+        
+        // Create participant lists
+        final participantIds = [currentUser!.id, widget.userId!];
+        final participantNames = {
+          currentUser!.id: currentUser!.name,
+          widget.userId!: user.name,
+        };
+        final participantAvatars = {
+          currentUser!.id: currentUser!.profilePictureUrl,
+          widget.userId!: user.profilePictureUrl,
+        };
+
+        // Find or create chat room
+        final chatRoom = await context.read<ChatCubit>().findOrCreateChatRoom(
+          participantIds: participantIds,
+          participantNames: participantNames,
+          participantAvatars: participantAvatars,
+        );
+
+        if (chatRoom != null && mounted) {
+          // Navigate to chat room
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatRoomPage(chatRoom: chatRoom),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to start chat: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -410,15 +481,7 @@ class ProfilePageState extends State<ProfilePage> {
                                       children: [
                                         Expanded(
                                           child: MessageButton(
-                                            onPressed: () {
-                                              // Handle message button tap
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('Message feature coming soon!'),
-                                                  duration: Duration(seconds: 2),
-                                                ),
-                                              );
-                                            },
+                                            onPressed: _startChatWithUser,
                                           ),
                                         ),
                                         const SizedBox(width: 12),
