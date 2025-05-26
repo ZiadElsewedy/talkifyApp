@@ -5,6 +5,7 @@ import 'package:talkifyapp/features/Chat/domain/entite/chat_room.dart';
 import 'package:talkifyapp/features/Chat/domain/entite/message.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_states.dart';
 import 'package:talkifyapp/features/Chat/Data/firebase_chat_repo.dart';
+import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
 
 class ChatCubit extends Cubit<ChatState> {
   final ChatRepo chatRepo;
@@ -251,8 +252,16 @@ class ChatCubit extends Cubit<ChatState> {
   // Delete message
   Future<void> deleteMessage(String messageId) async {
     try {
+      // Delete the message from the repository first
       await chatRepo.deleteMessage(messageId);
       emit(MessageDeleted(messageId));
+      
+      // Get the audio handler and clean up after message deletion is complete
+      // Use microtask to ensure this happens after the current execution
+      Future.microtask(() {
+        final audioHandler = AudioHandler();
+        audioHandler.handleVoiceNoteDeleted(messageId);
+      });
     } catch (e) {
       emit(ChatError('Failed to delete message: $e'));
     }

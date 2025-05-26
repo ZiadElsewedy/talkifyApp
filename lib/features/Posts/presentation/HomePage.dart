@@ -27,6 +27,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late final ScrollController _scrollController;
   bool _showFab = true;
   double _previousScrollPosition = 0.0;
+  int _currentIndex = 0;
 
   @override
   void initState() {

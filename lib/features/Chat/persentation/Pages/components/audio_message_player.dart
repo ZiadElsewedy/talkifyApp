@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:talkifyapp/features/Chat/domain/entite/message.dart';
+import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
 
 class AudioMessagePlayer extends StatefulWidget {
   final Message message;
@@ -17,7 +18,8 @@ class AudioMessagePlayer extends StatefulWidget {
 }
 
 class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  late AudioPlayer _audioPlayer;
+  final _audioHandler = AudioHandler();
   bool _isPlaying = false;
   bool _isLoading = false;
   Duration _duration = Duration.zero;
@@ -27,13 +29,26 @@ class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
   @override
   void initState() {
     super.initState();
+    // Get player from global handler using message ID as unique identifier
+    _audioPlayer = _audioHandler.getPlayer(widget.message.id);
     _initAudioPlayer();
   }
   
   @override
   void dispose() {
     _isDisposed = true;
-    _audioPlayer.dispose();
+    
+    // Store a local reference to avoid context access during disposal
+    final String messageId = widget.message.id;
+    
+    // Use Future.microtask to ensure disposal happens after the current frame
+    Future.microtask(() {
+      // Only dispose if we have a valid ID
+      if (messageId.isNotEmpty) {
+        _audioHandler.disposePlayer(messageId);
+      }
+    });
+    
     super.dispose();
   }
   
@@ -54,9 +69,11 @@ class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
         _isLoading = true;
       });
       
-      // Set the audio source
-      if (!mounted || _isDisposed) return;
-      await _audioPlayer.setUrl(widget.message.fileUrl!);
+      // Set the audio source if not already set
+      if (_audioPlayer.duration == null) {
+        if (!mounted || _isDisposed) return;
+        await _audioPlayer.setUrl(widget.message.fileUrl!);
+      }
       
       // Get the duration
       if (!mounted || _isDisposed) return;

@@ -329,6 +329,12 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
   }
 
   void _confirmDeleteMessage(BuildContext context) {
+    // Store message ID locally to avoid widget reference issues
+    final String messageId = widget.message.id;
+    
+    // Store a reference to the cubit to avoid context issues later
+    final chatCubit = context.read<ChatCubit>();
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -347,7 +353,8 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
               
               // Run a delete animation before actually removing the message
               _animationController.reverse().then((_) {
-                context.read<ChatCubit>().deleteMessage(widget.message.id);
+                // Use stored references instead of accessing widget or context
+                chatCubit.deleteMessage(messageId);
               });
             },
             style: TextButton.styleFrom(foregroundColor: ChatStyles.errorColor),

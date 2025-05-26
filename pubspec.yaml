@@ -51,6 +51,7 @@ dependencies:
   # Audio recording and playback
   record: ^5.0.4
   just_audio: ^0.9.36
+  audio_service: ^0.18.12
   path_provider: ^2.1.2
   permission_handler: ^11.3.0
 

@@ -16,6 +16,7 @@ import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 import 'package:talkifyapp/features/Chat/Data/firebase_chat_repo.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
+import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
 // things need to do ! 
 // 1. add firebase options
 // bloc providers for state management
@@ -39,6 +40,7 @@ class MyApp extends StatelessWidget {
   final firebasePostRepo = FirebasePostRepo();
   final firebaseSearchRepo = FirebaseSearchRepo();
   final firebaseChatRepo = FirebaseChatRepo();
+  final audioHandler = AudioHandler();
   // Initialize the ProfileRepo
   // Initialize the AuthRepo
   @override
@@ -51,88 +53,95 @@ class MyApp extends StatelessWidget {
         BlocProvider<ProfileCubit>(
           create: (context) => ProfileCubit(
             profileRepo: FirebaseprofileRepo,
-            Storage: FirebasestorageRepo ) // Pass the StorageRepo to ProfileCubit),
-           // Pass the authRepo to ProfileCubit
+            Storage: FirebasestorageRepo,
+          ),
         ),
-
-        // post cubit 
         BlocProvider<PostCubit>(
-          create: (context) => PostCubit(postRepo: firebasePostRepo, storageRepo: FirebasestorageRepo)
+          create: (context) => PostCubit(
+            postRepo: firebasePostRepo, 
+            storageRepo: FirebasestorageRepo,
+          ),
         ),
         BlocProvider<SearchCubit>(
-          create: (context) => SearchCubit(searchRepo: firebaseSearchRepo)
+          create: (context) => SearchCubit(
+            searchRepo: firebaseSearchRepo,
+          ),
         ),
-        
-        // chat cubit
         BlocProvider<ChatCubit>(
           create: (context) {
-            // Initialize with migration and return the cubit
             final cubit = ChatCubit(chatRepo: firebaseChatRepo);
-            // Run initialization immediately
             cubit.initialize();
             return cubit;
-          }
+          },
         ),
       ],
     
-     child: MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Talkify',
-      home: BlocConsumer<AuthCubit, AuthStates>(
-        // listen to the auth cubit state changes
-        // this will be used to show the snackbar when there is an error
-        listener: (context, state) {
-          if (state is AuthErrorState) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.error),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          } else if (state is UnverifiedState) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.orange,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          } else if (state is EmailVerificationState) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.blue,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          } else if (state is Authanticated) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          }
-        },
-        builder: (context, state) {
-          if (state is Authanticated) {
-            return  HomePage();
-          } else if (state is UnverifiedState || state is EmailVerificationState) {
-            return const VerificationEmail();
-          } else if (state is UnAuthanticated || state is AuthErrorState) {
+     child: WillPopScope(
+       // Dispose all audio players when app is about to exit
+       onWillPop: () async {
+         audioHandler.disposeAllPlayers();
+         return true;
+       },
+       child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Talkify',
+        home: BlocConsumer<AuthCubit, AuthStates>(
+          // listen to the auth cubit state changes
+          // this will be used to show the snackbar when there is an error
+          listener: (context, state) {
+            if (state is AuthErrorState) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.error),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            } else if (state is UnverifiedState) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.orange,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            } else if (state is EmailVerificationState) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.blue,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            } else if (state is Authanticated) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          },
+          builder: (context, state) {
+            if (state is Authanticated) {
+              return  HomePage();
+            } else if (state is UnverifiedState || state is EmailVerificationState) {
+              return const VerificationEmail();
+            } else if (state is UnAuthanticated || state is AuthErrorState) {
+              return const AuthPage();
+            } else if (state is AuthLoadingState) {
+              return const Scaffold(
+                body: Center(
+                  child: PercentCircleIndicator(),
+                ),
+              );
+            }
             return const AuthPage();
-          } else if (state is AuthLoadingState) {
-            return const Scaffold(
-              body: Center(
-                child: PercentCircleIndicator(),
-              ),
-            );
           }
-          return const AuthPage();
-        }
-      )
-    ));
+        )
+      ),
+           ),
+    );
   }
 }
