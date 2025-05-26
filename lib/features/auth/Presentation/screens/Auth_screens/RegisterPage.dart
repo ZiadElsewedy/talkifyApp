@@ -278,20 +278,11 @@ class _RegisterpageState extends State<Registerpage> with TickerProviderStateMix
               return Transform.rotate(
                 angle: _backgroundAnimation.value * 0.1,
                 child: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [Colors.white, Colors.grey[300]!],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.person_add_outlined,
-                    color: Colors.black,
-                    size: 30,
+                  width: 150,
+                  height: 150,
+                  child: Lottie.asset(
+                    'lib/assets/Logo5.json',
+                    fit: BoxFit.contain,
                   ),
                 ),
               );
