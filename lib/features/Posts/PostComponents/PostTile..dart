@@ -1,8 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Posts/PostComponents/CommentsPage.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
-import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
@@ -10,7 +11,7 @@ import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
-import 'package:talkifyapp/features/Posts/PostComponents/commentTile.dart';
+//import 'package:talkifyapp/features/Posts/presentation/Pages/CommentsPage.dart';
 
 import '../../Profile/presentation/Cubits/ProfileCubit.dart';
 
@@ -28,7 +29,7 @@ class PostTile extends StatefulWidget {
   State<PostTile> createState() => _PostTileState();
 }
 
-class _PostTileState extends State<PostTile> {
+class _PostTileState extends State<PostTile> with TickerProviderStateMixin {
   late final postCubit = context.read<PostCubit>();
   late final profileCubit = context.read<ProfileCubit>();
   AppUser? currentUser;
@@ -36,10 +37,34 @@ class _PostTileState extends State<PostTile> {
   bool isOwnPost = false;
   bool showAllComments = false;
 
+  // Animation controllers
+  late AnimationController _likeAnimationController;
+  late AnimationController _scaleAnimationController;
+  late Animation<double> _scaleAnimation;
+
   @override
   void initState() {
     super.initState();
     initializeData();
+    
+    // Initialize animation controllers
+    _likeAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    
+    _scaleAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(
+      parent: _scaleAnimationController,
+      curve: Curves.easeInOut,
+    ));
   }
 
   Future<void> initializeData() async {
@@ -98,6 +123,9 @@ void toggleLikePost(){
     }
     else{
       widget.post.likes.add(currentUser!.id); // liked
+      _likeAnimationController.forward().then((_) {
+        _likeAnimationController.reverse();
+      });
     }
   });
 
@@ -125,23 +153,65 @@ void toggleLikePost(){
   void showDeleteConfirmation() {
     showDialog(
       context: context,
+      barrierColor: Colors.black54,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Post'),
-        content: const Text('Are you sure you want to delete this post?'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            Icon(Icons.delete_outline, color: Colors.red.shade700, size: 24),
+            SizedBox(width: 10),
+            Text(
+              'Delete Post',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'This action cannot be undone. Are you sure you want to delete this post?',
+          style: TextStyle(
+            fontSize: 15,
+            color: Colors.black87,
+            height: 1.4,
+          ),
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 8,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black54,
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(
+              'Cancel',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               widget.onDelete?.call();
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(
+              'Delete',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
           ),
         ],
+        actionsPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
@@ -153,44 +223,79 @@ final TextEditingController commentController = TextEditingController();
 void OpenCommentBox() {  
   showDialog(
     context: context,
+    barrierColor: Colors.black54,
     builder: (context) => AlertDialog(
-      title: const Text('Add a new comment', 
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
-        )
+      backgroundColor: Colors.white,
+      title: Row(
+        children: [
+          Icon(Icons.chat_bubble_outline, color: Colors.blue.shade700, size: 24),
+          SizedBox(width: 10),
+          Text(
+            'Add Comment',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: Colors.black87,
+            ),
+          ),
+        ],
       ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 8,
       content: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).colorScheme.surface),
-        ),
-        child: TextField(
-          controller: commentController,
-          decoration: InputDecoration(
-            hintText: 'Write your comment...',
-            hintStyle: TextStyle(color: Colors.grey),
-            contentPadding: const EdgeInsets.all(16),
-            border: InputBorder.none,
-            filled: true,
-            fillColor: Theme.of(context).colorScheme.surface,
-          ),
-          maxLines: 3,
-          style: TextStyle(fontSize: 16),
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Share your thoughts on this post',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: TextField(
+                controller: commentController,
+                maxLines: 4,
+                minLines: 2,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.black87,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Write your comment...',
+                  hintStyle: TextStyle(color: Colors.grey.shade400),
+                  contentPadding: const EdgeInsets.all(16),
+                  border: InputBorder.none,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
+      actionsPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       actions: [
-        TextButton.icon(
+        TextButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.close, color: Colors.red),
-          label: const Text('Cancel', style: TextStyle(color: Colors.red)),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.black54,
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          child: Text(
+            'Cancel',
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
         ),
-        TextButton.icon(
+        ElevatedButton(
           onPressed: () async {
             if (commentController.text.trim().isNotEmpty) {
               addComment();
@@ -199,8 +304,17 @@ void OpenCommentBox() {
               }
             }
           },
-          icon: const Icon(Icons.send, color: Colors.green),
-          label: const Text('Add', style: TextStyle(color: Colors.green)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue.shade700,
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          child: Text(
+            'Post Comment',
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
         ),
       ],
     ),
@@ -228,7 +342,6 @@ void addComment() async {
       // Update UI immediately with new comment
       setState(() {
         widget.post.comments.add(newComment);
-        showAllComments = true; // Show all comments including new one
       });
       
       // Clear the input field
@@ -260,510 +373,471 @@ void addComment() async {
 @override
   void dispose() {
     commentController.dispose();
+    _likeAnimationController.dispose();
+    _scaleAnimationController.dispose();
     super.dispose();
   }
 
+  void _onTapDown(TapDownDetails details) {
+    _scaleAnimationController.forward();
+  }
 
+  void _onTapUp(TapUpDetails details) {
+    _scaleAnimationController.reverse();
+  }
+
+  void _onTapCancel() {
+    _scaleAnimationController.reverse();
+  }
+
+  String _formatCount(int count) {
+    if (count >= 1000000) {
+      return '${(count / 1000000).toStringAsFixed(1)}M';
+    } else if (count >= 1000) {
+      return '${(count / 1000).toStringAsFixed(1)}K';
+    }
+    return count.toString();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      elevation: 4,
-      shadowColor: Colors.black.withOpacity(0.2),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with user info and options
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                // User avatar with better shadow
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Hero(
-                    tag: 'profile_${widget.post.UserId}_${widget.post.id}',
-                    child: CircleAvatar(
-                      radius: 24,
-                      backgroundColor:  Colors.white,
-                      child: widget.post.UserProfilePic.isNotEmpty
-                          ? ClipOval(
-                              child: CachedNetworkImage(
-                                imageUrl: widget.post.UserProfilePic,
-                                height: 48,
-                                width: 48,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => const PercentCircleIndicator(),
-                                errorWidget: (context, url, error) => Text(
-                                  widget.post.UserName.isNotEmpty
-                                      ? widget.post.UserName[0].toUpperCase()
-                                      : '?',
-                                  style: TextStyle(
-                                    color: colorScheme.surface,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                              ),
-                            )  
-                          : Text(
-                              widget.post.UserName.isNotEmpty
-                                  ? widget.post.UserName[0].toUpperCase()
-                                  : '?',
-                              style: TextStyle(
-                                color: colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // User name and time
-                Expanded(
+          AnimatedBuilder(
+            animation: _scaleAnimation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _scaleAnimation.value,
+                child: GestureDetector(
+                  onTapDown: _onTapDown,
+                  onTapUp: _onTapUp,
+                  onTapCancel: _onTapCancel,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ProfilePage(userId: widget.post.UserId),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          widget.post.UserName,
+                      _buildHeader(),
+                      if (widget.post.Text.isNotEmpty) _buildTextContent(),
+                      if (widget.post.imageUrl.isNotEmpty) _buildImageContent(),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          _buildActionBar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Hero(
+            tag: 'avatar_${widget.post.UserId}_${widget.post.id}',
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProfilePage(userId: widget.post.UserId),
+                  ),
+                );
+              },
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: CircleAvatar(
+                  radius: 21,
+                  backgroundImage: widget.post.UserProfilePic.isNotEmpty
+                      ? CachedNetworkImageProvider(widget.post.UserProfilePic)
+                      : null,
+                  backgroundColor: Colors.grey.shade200,
+                  child: widget.post.UserProfilePic.isEmpty
+                      ? Text(
+                          widget.post.UserName[0].toUpperCase(),
                           style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            letterSpacing: 0.1,
+                            color: Colors.black87,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        )
+                      : null,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.post.UserName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  timeago.format(widget.post.timestamp),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isOwnPost)
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.more_horiz,
+                color: Colors.grey.shade600,
+                size: 22,
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 6,
+              position: PopupMenuPosition.under,
+              color: Colors.white,
+              offset: Offset(0, 10),
+              onSelected: (value) async {
+                if (value == 'edit') {
+                  final newCaption = await showDialog<String>(
+                    context: context,
+                    barrierColor: Colors.black54,
+                    builder: (context) {
+                      final controller = TextEditingController(text: widget.post.Text);
+                      return AlertDialog(
+                        backgroundColor: Colors.white,
+                        title: Row(
+                          children: [
+                            Icon(Icons.edit_note, color: Colors.blue.shade700, size: 24),
+                            SizedBox(width: 10),
+                            Text(
+                              'Edit Caption',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 8,
+                        content: Container(
+                          width: double.maxFinite,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Update your post caption',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey.shade200),
+                                ),
+                                child: TextField(
+                                  controller: controller,
+                                  maxLines: 5,
+                                  minLines: 3,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: Colors.black87,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'What\'s on your mind?',
+                                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                                    contentPadding: const EdgeInsets.all(16),
+                                    border: InputBorder.none,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
+                        actionsPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.black54,
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, controller.text.trim()),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade700,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: Text(
+                              'Save Changes',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                  if (newCaption != null && newCaption.isNotEmpty && newCaption != widget.post.Text) {
+                    // Update the post caption in the database
+                    await postCubit.updatePostCaption(widget.post.id, newCaption);
+                    if (mounted) setState(() {});
+                  }
+                } else if (value == 'delete') {
+                  showDeleteConfirmation();
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined, size: 18, color: Colors.blue.shade700),
+                      SizedBox(width: 12),
                       Text(
-                        timeago.format(widget.post.timestamp),
+                        'Edit Caption',
                         style: TextStyle(
-                          color: colorScheme.onSurface.withOpacity(0.6),
-                          fontSize: 13,
-                          letterSpacing: 0.1,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
                         ),
                       ),
                     ],
                   ),
                 ),
-                // More options button
-                if (isOwnPost)
-                  Container(
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: IconButton(
-                      icon: Icon(Icons.more_vert, color: Colors.black, size: 22),
-                      onPressed: showDeleteConfirmation,
-                      splashRadius: 24,
-                    ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, size: 18, color: Colors.red.shade700),
+                      SizedBox(width: 12),
+                      Text(
+                        'Delete Post',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
               ],
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextContent() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Text(
+        widget.post.Text,
+        style: const TextStyle(
+          fontSize: 15,
+          height: 1.4,
+          color: Colors.black87,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageContent() {
+    return Container(
+      margin: EdgeInsets.only(
+        top: widget.post.Text.isNotEmpty ? 12 : 0,
+        left: 16,
+        right: 16,
+        bottom: 16,
+      ),
+      height: 200,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: CachedNetworkImage(
+          imageUrl: widget.post.imageUrl,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => Container(
+            color: Colors.grey.shade200,
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+          errorWidget: (context, url, error) => Container(
+            color: Colors.grey.shade200,
+            child: const Icon(Icons.error),
+          ),
+        ),
+      ),
+    );
+  }
 
-          // Caption
-          if (widget.post.Text.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-              child: RichText(
-                text: TextSpan(
-                  style: TextStyle(
-                    color: colorScheme.onSurface,
-                    fontSize: 16,
-                    height: 1.4,
-                    letterSpacing: 0.3,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: widget.post.Text,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-          // Post image with improved design
-          if (widget.post.imageUrl.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: CachedNetworkImage(
-                  imageUrl: widget.post.imageUrl,
-                  height: 400,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    height: 400,
-                    color: colorScheme.surface,
-                    child: const Center(child: PercentCircleIndicator()),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    height: 400,
-                    color: colorScheme.surface,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, color: colorScheme.error, size: 40),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Failed to load image',
-                          style: TextStyle(color: colorScheme.onSurface.withOpacity(0.6)),
-                        ),
-                      ],
-                    ),
+  Widget _buildActionBar() {
+    final isLiked = widget.post.likes.contains(currentUser?.id);
+    
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          _buildActionButton(
+            icon: isLiked ? Icons.favorite : Icons.favorite_border,
+            color: isLiked ? Colors.red : Colors.grey.shade600,
+            count: widget.post.likes.length,
+            onTap: toggleLikePost,
+            isAnimated: true,
+          ),
+          const SizedBox(width: 24),
+          _buildActionButton(
+            icon: CupertinoIcons.chat_bubble,
+            color: Colors.grey.shade600,
+            count: widget.post.comments.length,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CommentsPage(
+                    comments: widget.post.comments,
+                    currentUserId: currentUser!.id,
+                    postOwnerId: widget.post.UserId,
+                    postId: widget.post.id,
                   ),
                 ),
-              ),
-            ),
-
-          // Post actions (like, comment, share)
+              );
+            },
+          ),
+          const SizedBox(width: 24),
+          _buildActionButton(
+            icon: CupertinoIcons.share,
+            color: Colors.black87,
+            count: 0,
+            onTap: () {},
+          ),
+          const Spacer(),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-            margin: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: colorScheme.surface,
-              border: Border(
-                top: BorderSide(
-                  color: colorScheme.onSurface.withOpacity(0.05),
-                  width: 1,
-                ),
-              ),
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.grey.shade300, width: 1),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    // Like button with animation
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: toggleLikePost,
-                        borderRadius: BorderRadius.circular(24),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
-                            children: [
-                              Icon(
-                                widget.post.likes.contains(currentUser?.id) 
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
-                                color: widget.post.likes.contains(currentUser?.id) 
-                                    ? Colors.red 
-                                    : colorScheme.onSurface,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                widget.post.likes.length.toString(),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 14,
-                                  color: widget.post.likes.contains(currentUser?.id) 
-                                      ? Colors.red
-                                      : colorScheme.onSurface,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    
-                    const SizedBox(width: 8),
-                    // Comment button
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: OpenCommentBox,
-                        borderRadius: BorderRadius.circular(24),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.chat_bubble_outline, 
-                                color: colorScheme.onSurface,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                widget.post.comments.length.toString(),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 14,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    
-                    const SizedBox(width: 8),
-                    // Share button
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {},
-                        borderRadius: BorderRadius.circular(24),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Icon(
-                            Icons.share_outlined, 
-                            color: colorScheme.onSurface,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ),
-                    
-                    const Spacer(),
-                    
-                    // Delete button (only for post owner)
-                    if (isOwnPost)
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: showDeleteConfirmation,
-                          borderRadius: BorderRadius.circular(24),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Icon(
-                              Icons.delete_outline, 
-                              color: colorScheme.error,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ),
-                    
-                    // Bookmark button
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {},
-                        borderRadius: BorderRadius.circular(24),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Icon(
-                            Icons.bookmark_border, 
-                            color: colorScheme.onSurface,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                Icon(
+                  Icons.bookmark_border,
+                  size: 16,
+                  color: Colors.black87,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Save',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
 
-          // Comments section
-          if (widget.post.comments.isNotEmpty) ...[
-            Container(
-              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: colorScheme.onSurface.withOpacity(0.05),
-                    width: 1,
-                  ),
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required int count,
+    required VoidCallback onTap,
+    bool isAnimated = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        children: [
+          AnimatedBuilder(
+            animation: _likeAnimationController,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: isAnimated ? 1.0 + (_likeAnimationController.value * 0.3) : 1.0,
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 22,
                 ),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    'Comments',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                      color: Colors.grey,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 209, 209, 209),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      widget.post.comments.length.toString(),
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              );
+            },
+          ),
+          const SizedBox(width: 6),
+          Text(
+            _formatCount(count),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey.shade700,
             ),
-            Column(
-              children: [
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 8),
-                  itemCount: showAllComments || widget.post.comments.length <= 2 
-                      ? widget.post.comments.length 
-                      : 2,
-                  itemBuilder: (context, index) {
-                    final comment = widget.post.comments[index];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: CommentTile(
-                        comment: comment,
-                        isCommentOwner: comment.userId == currentUser?.id,
-                        onDelete: comment.userId == currentUser?.id ? () async {
-                          try {
-                            // Remove comment from UI immediately
-                            setState(() {
-                              widget.post.comments.removeWhere(
-                                (c) => c.commentId == comment.commentId
-                              );
-                            });
-                            
-                            // If it's a local comment (not yet saved to backend), just remove from UI
-                            if (comment.commentId.startsWith('local_')) {
-                              // No need to call backend since comment isn't saved yet
-                              return;
-                            }
-                            
-                            // Otherwise delete from backend without refreshing page
-                            await postCubit.deleteCommentLocal(
-                              widget.post.id,
-                              comment.commentId,
-                            );
-                          } catch (e) {
-                            // If error, show message but don't revert UI
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error deleting comment: $e'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          }
-                        } : null,
-                      ),
-                    );
-                  },
-                ),
-                
-                // Show more comments button
-                if (widget.post.comments.length > 2 && !showAllComments)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
-                    child: InkWell(
-                      onTap: () {
-                        setState(() {
-                          showAllComments = true;
-                        });
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: colorScheme.surface,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: colorScheme.secondary.withOpacity(0.5)),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Show all ${widget.post.comments.length} comments',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                
-                // Show less comments button (appears when showing all comments)
-                if (widget.post.comments.length > 2 && showAllComments)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
-                    child: InkWell(
-                      onTap: () {
-                        setState(() {
-                          showAllComments = false;
-                        });
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: colorScheme.surface,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey),
-                        ),
-                        child: Center(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.keyboard_arrow_up, size: 18, color: Colors.grey),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Show less',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
+          ),
         ],
       ),
     );

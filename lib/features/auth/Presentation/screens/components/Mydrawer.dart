@@ -10,7 +10,8 @@ import 'package:talkifyapp/features/auth/Presentation/screens/components/Confirm
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyDrawerTile.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
- 
+import 'package:talkifyapp/features/auth/Presentation/screens/About/AboutPage.dart';
+
 class MyDrawer extends StatefulWidget {
   const MyDrawer({super.key});
 
@@ -119,7 +120,12 @@ class _MyDrawerState extends State<MyDrawer> {
                 icon: Icons.info_outline,
                 title: 'A B O U T',
                 onTap: () {
-                  // Handle about tap
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AboutPage(),
+                    ),
+                  );
                 },
               ),
               const Spacer(),

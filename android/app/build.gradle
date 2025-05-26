@@ -59,6 +59,11 @@ android {
     }
 }
 
+dependencies {
+    // Required for image_cropper
+    implementation 'com.github.yalantis:ucrop:2.2.8'
+}
+
 flutter {
     source = "../.."
 }

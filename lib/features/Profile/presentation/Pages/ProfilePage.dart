@@ -347,7 +347,7 @@ class ProfilePageState extends State<ProfilePage> {
                                   children: [
                                     // Profile Picture
                                     Hero(
-                                      tag: 'profilepicture',
+                                      tag: 'avatar_${user.id}',
                                       child: ProfilePicFunction(
                                         state: state,
                                         profilePictureUrl: user.profilePictureUrl,

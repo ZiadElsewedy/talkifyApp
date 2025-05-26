@@ -9,5 +9,5 @@ abstract class PostRepo {
   Future <void> toggleLikePost(String postId, String userId);
   Future <void> addComment(String postId, String userId, String userName, String profilePicture, String content);
   Future <void> deleteComment(String postId, String commentId);
-
+  Future<void> updatePostCaption(String postId, String newCaption);
 }

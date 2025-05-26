@@ -27,7 +27,7 @@ class Comments {
     'userId': userId,
     'userName': userName,
     'profilePicture': profilePicture,
-    'createdAt': createdAt,
+    'createdAt': Timestamp.fromDate(createdAt),
   };
 
   //fromJson
