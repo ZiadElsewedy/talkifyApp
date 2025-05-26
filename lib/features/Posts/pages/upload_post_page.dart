@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
@@ -23,6 +24,7 @@ class UploadPostPage extends StatefulWidget {
 class _UploadPostPageState extends State<UploadPostPage> {
   // mobile image picker
   PlatformFile? imagepickedfile;
+  File? croppedImageFile;
 
   // web image picker
   Uint8List? webImage;
@@ -54,18 +56,65 @@ class _UploadPostPageState extends State<UploadPostPage> {
       withData: kIsWeb,
     );
     
-    if (result != null ) {
+    if (result != null) {
       setState(() {
         imagepickedfile = result.files.first;
+        if (kIsWeb) {
+          webImage = imagepickedfile!.bytes;
+        }
+      });
       
-
-      if (kIsWeb) {
-        webImage = imagepickedfile!.bytes;
+      // Open image editor if not on web
+      if (!kIsWeb && imagepickedfile != null) {
+        await _cropImage();
       }
+    }
+  }
+  
+  // Crop and edit image
+  Future<void> _cropImage() async {
+    if (imagepickedfile == null) return;
+    
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: imagepickedfile!.path!,
+      compressQuality: 90,
+      aspectRatio: CropAspectRatio(ratioX: 1, ratioY: 1),
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Edit Photo',
+          toolbarColor: Colors.black,
+          toolbarWidgetColor: Colors.white,
+          initAspectRatio: CropAspectRatioPreset.original,
+          lockAspectRatio: false,
+          activeControlsWidgetColor: Colors.black,
+        ),
+        IOSUiSettings(
+          title: 'Edit Photo',
+          aspectRatioLockEnabled: false,
+          minimumAspectRatio: 1.0,
+          aspectRatioPickerButtonHidden: false,
+        ),
+      ],
+    );
+
+    if (croppedFile != null) {
+      setState(() {
+        croppedImageFile = File(croppedFile.path);
       });
     }
   }
 
+  // Edit current image
+  void editCurrentImage() async {
+    if (imagepickedfile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select an image first'))
+      );
+      return;
+    }
+    
+    await _cropImage();
+  }
 
   // create & upload post
   void uploadPost() {
@@ -97,11 +146,10 @@ class _UploadPostPageState extends State<UploadPostPage> {
     if (kIsWeb) {
       postCubit.createPost(newPost, imageBytes: imagepickedfile?.bytes);
     }
-
-
-    // mobile upload 
+    // mobile upload - use cropped image if available
     else {
-      postCubit.createPost(newPost, imagePath: imagepickedfile?.path);
+      final String? imagePath = croppedImageFile?.path ?? imagepickedfile?.path;
+      postCubit.createPost(newPost, imagePath: imagePath);
     }
   }
 
@@ -143,7 +191,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
   Widget buildUploadPage() {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Upload Post'),
+        title: const Text('Create Post'),
         foregroundColor: Colors.black,
         actions: [
           // upload button 
@@ -160,7 +208,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
             children: [
               // Image preview section
               Container(
-                height: 300,
+                height: 350,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.grey[200],
@@ -174,10 +222,15 @@ class _UploadPostPageState extends State<UploadPostPage> {
                               webImage!,
                               fit: BoxFit.cover,
                             )
-                          : Image.file(
-                              File(imagepickedfile!.path!),
-                              fit: BoxFit.cover,
-                            )
+                          : croppedImageFile != null
+                              ? Image.file(
+                                  croppedImageFile!,
+                                  fit: BoxFit.cover,
+                                )
+                              : Image.file(
+                                  File(imagepickedfile!.path!),
+                                  fit: BoxFit.cover,
+                                )
                       : Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -200,18 +253,40 @@ class _UploadPostPageState extends State<UploadPostPage> {
               ),
               const SizedBox(height: 20),
 
-              // Pick image button
-              ElevatedButton.icon(
-                onPressed: pickImage,
-                icon: const Icon(Icons.add_photo_alternate , color: Colors.white,),
-                label: const Text('Pick Image' , style: TextStyle(color: Colors.white),),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
+              // Image buttons row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Pick image button
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: pickImage,
+                      icon: const Icon(Icons.add_photo_alternate, color: Colors.white),
+                      label: const Text('Select Photo', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  // Edit image button (only shown when image is selected)
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: imagepickedfile != null && !kIsWeb ? editCurrentImage : null,
+                      icon: const Icon(Icons.crop, color: Colors.white),
+                      label: const Text('Edit Photo', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: imagepickedfile != null && !kIsWeb ? Colors.black : Colors.grey,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
 
@@ -220,6 +295,25 @@ class _UploadPostPageState extends State<UploadPostPage> {
                 controller: TextController,
                 hintText: "Write a caption...",
                 obsecureText: false,
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // Upload button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: uploadPost,
+                  icon: const Icon(Icons.upload_file, color: Colors.white),
+                  label: const Text('Share Post', style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 14,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
