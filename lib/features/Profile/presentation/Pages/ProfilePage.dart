@@ -206,8 +206,8 @@ class ProfilePageState extends State<ProfilePage> {
                           ),
                           const SizedBox(width: 10),
                           SizedBox(
-                            width: 25,
-                            height: 25,
+                            width: 60,
+                            height: 70,
                             child: Lottie.asset(
                               'lib/assets/profile.json',
                               fit: BoxFit.cover,

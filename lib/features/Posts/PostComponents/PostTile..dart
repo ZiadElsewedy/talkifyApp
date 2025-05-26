@@ -223,44 +223,79 @@ final TextEditingController commentController = TextEditingController();
 void OpenCommentBox() {  
   showDialog(
     context: context,
+    barrierColor: Colors.black54,
     builder: (context) => AlertDialog(
-      title: const Text('Add a new comment', 
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
-        )
+      backgroundColor: Colors.white,
+      title: Row(
+        children: [
+          Icon(Icons.chat_bubble_outline, color: Colors.blue.shade700, size: 24),
+          SizedBox(width: 10),
+          Text(
+            'Add Comment',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: Colors.black87,
+            ),
+          ),
+        ],
       ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 8,
       content: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).colorScheme.surface),
-        ),
-        child: TextField(
-          controller: commentController,
-          decoration: InputDecoration(
-            hintText: 'Write your comment...',
-            hintStyle: TextStyle(color: Colors.grey),
-            contentPadding: const EdgeInsets.all(16),
-            border: InputBorder.none,
-            filled: true,
-            fillColor: Theme.of(context).colorScheme.surface,
-          ),
-          maxLines: 3,
-          style: TextStyle(fontSize: 16),
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Share your thoughts on this post',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: TextField(
+                controller: commentController,
+                maxLines: 4,
+                minLines: 2,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.black87,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Write your comment...',
+                  hintStyle: TextStyle(color: Colors.grey.shade400),
+                  contentPadding: const EdgeInsets.all(16),
+                  border: InputBorder.none,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
+      actionsPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       actions: [
-        TextButton.icon(
+        TextButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.close, color: Colors.red),
-          label: const Text('Cancel', style: TextStyle(color: Colors.red)),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.black54,
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          child: Text(
+            'Cancel',
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
         ),
-        TextButton.icon(
+        ElevatedButton(
           onPressed: () async {
             if (commentController.text.trim().isNotEmpty) {
               addComment();
@@ -269,8 +304,17 @@ void OpenCommentBox() {
               }
             }
           },
-          icon: const Icon(Icons.send, color: Colors.green),
-          label: const Text('Add', style: TextStyle(color: Colors.green)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue.shade700,
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          child: Text(
+            'Post Comment',
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
         ),
       ],
     ),

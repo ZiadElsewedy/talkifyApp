@@ -119,14 +119,64 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> with TickerProv
       await FirebaseAuth.instance.sendPasswordResetEmail(email: emailController.text.trim());
       if (mounted) {
         showDialog(
-          context: context, 
+          context: context,
+          barrierColor: Colors.black54,
           builder: (context) => AlertDialog(
-            title: const Text('Reset Link Sent'),
-            content: Text('If an account exists for ${emailController.text.trim()}, a reset link has been sent.'),
+            backgroundColor: Colors.white,
+            title: Row(
+              children: [
+                Icon(Icons.mark_email_read, color: Colors.green.shade600, size: 24),
+                SizedBox(width: 10),
+                Text(
+                  'Reset Link Sent',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 8,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'If an account exists for ${emailController.text.trim()}, a password reset link has been sent.',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.black87,
+                    height: 1.4,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Please check your email inbox and follow the instructions to reset your password.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+            actionsPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context), 
-                child: const Text('OK')
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(
+                  'Got it',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
               ),
             ],
           )
@@ -136,14 +186,72 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> with TickerProv
       print(e);
       if (mounted) {
         showDialog(
-          context: context, 
+          context: context,
+          barrierColor: Colors.black54,
           builder: (context) => AlertDialog(
-            title: const Text('Error'),
-            content: Text(e.toString()),
+            backgroundColor: Colors.white,
+            title: Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.red.shade600, size: 24),
+                SizedBox(width: 10),
+                Text(
+                  'Error Occurred',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 8,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'We encountered a problem while processing your request:',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                    height: 1.4,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.shade100),
+                  ),
+                  child: Text(
+                    e.toString(),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.red.shade900,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actionsPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context), 
-                child: const Text('OK')
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade800,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(
+                  'Dismiss',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
               ),
             ],
           )

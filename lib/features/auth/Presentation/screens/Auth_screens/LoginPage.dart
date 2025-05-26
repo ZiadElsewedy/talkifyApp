@@ -399,19 +399,14 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               child: Transform.rotate(
                 angle: _logoRotation.value * 0.1,
                 child: Container(
-                  width: isSmallScreen ? 120 : 140,
-                  height: isSmallScreen ? 120 : 140,
+                  width: isSmallScreen ? 120 : 170,
+                  height: isSmallScreen ? 120 : 170,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.1),
-                        blurRadius: 20,
-                        spreadRadius: -5,
-                      ),
-                    ],
+
                   ),
                   child: Lottie.asset(
+                      
                     'lib/assets/Logo5.json',
                     fit: BoxFit.contain,
                   ),
