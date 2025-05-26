@@ -153,23 +153,65 @@ void toggleLikePost(){
   void showDeleteConfirmation() {
     showDialog(
       context: context,
+      barrierColor: Colors.black54,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Post'),
-        content: const Text('Are you sure you want to delete this post?'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            Icon(Icons.delete_outline, color: Colors.red.shade700, size: 24),
+            SizedBox(width: 10),
+            Text(
+              'Delete Post',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'This action cannot be undone. Are you sure you want to delete this post?',
+          style: TextStyle(
+            fontSize: 15,
+            color: Colors.black87,
+            height: 1.4,
+          ),
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 8,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black54,
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(
+              'Cancel',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               widget.onDelete?.call();
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(
+              'Delete',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
           ),
         ],
+        actionsPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
@@ -441,30 +483,104 @@ void addComment() async {
               icon: Icon(
                 Icons.more_horiz,
                 color: Colors.grey.shade600,
-                size: 20,
+                size: 22,
               ),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 6,
+              position: PopupMenuPosition.under,
+              color: Colors.white,
+              offset: Offset(0, 10),
               onSelected: (value) async {
                 if (value == 'edit') {
                   final newCaption = await showDialog<String>(
                     context: context,
+                    barrierColor: Colors.black54,
                     builder: (context) {
                       final controller = TextEditingController(text: widget.post.Text);
                       return AlertDialog(
-                        title: const Text('Edit Caption'),
-                        content: TextField(
-                          controller: controller,
-                          maxLines: 3,
-                          decoration: const InputDecoration(hintText: 'Enter new caption'),
+                        backgroundColor: Colors.white,
+                        title: Row(
+                          children: [
+                            Icon(Icons.edit_note, color: Colors.blue.shade700, size: 24),
+                            SizedBox(width: 10),
+                            Text(
+                              'Edit Caption',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
                         ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 8,
+                        content: Container(
+                          width: double.maxFinite,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Update your post caption',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey.shade200),
+                                ),
+                                child: TextField(
+                                  controller: controller,
+                                  maxLines: 5,
+                                  minLines: 3,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: Colors.black87,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'What\'s on your mind?',
+                                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                                    contentPadding: const EdgeInsets.all(16),
+                                    border: InputBorder.none,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        actionsPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context),
-                            child: const Text('Cancel'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.black54,
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
                           ),
-                          TextButton(
+                          ElevatedButton(
                             onPressed: () => Navigator.pop(context, controller.text.trim()),
-                            child: const Text('Save'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade700,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: Text(
+                              'Save Changes',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
                           ),
                         ],
                       );
@@ -480,13 +596,39 @@ void addComment() async {
                 }
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'edit',
-                  child: Text('Edit Caption'),
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined, size: 18, color: Colors.blue.shade700),
+                      SizedBox(width: 12),
+                      Text(
+                        'Edit Caption',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
-                  child: Text('Delete Post'),
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, size: 18, color: Colors.red.shade700),
+                      SizedBox(width: 12),
+                      Text(
+                        'Delete Post',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

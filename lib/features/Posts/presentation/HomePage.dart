@@ -125,12 +125,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           IconButton(
             onPressed: () {
               // Search functionality placeholder
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Search feature coming soon'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (context) => SearchPage()));
             },
             icon: Icon(Icons.search, color: Colors.black54),
             tooltip: 'Search',
