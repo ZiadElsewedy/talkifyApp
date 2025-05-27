@@ -1,13 +1,56 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/animation.dart';
+import 'dart:async';
 
-class AboutPage extends StatelessWidget {
+class AboutPage extends StatefulWidget {
   const AboutPage({Key? key}) : super(key: key);
 
   @override
+  State<AboutPage> createState() => _AboutPageState();
+}
+
+class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  final List<Animation<double>> _fadeAnimations = [];
+  final int _totalAnimationItems = 10;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    );
+
+    // Create staggered animations for different sections
+    for (int i = 0; i < _totalAnimationItems; i++) {
+      final startInterval = i * 0.05;
+      final endInterval = startInterval + 0.3;
+      
+      _fadeAnimations.add(
+        Tween<double>(begin: 0.0, end: 1.0).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Interval(startInterval, endInterval, curve: Curves.easeOut),
+          ),
+        ),
+      );
+    }
+
+    // Start animation after a short delay
+    Timer(const Duration(milliseconds: 200), () {
+      _animationController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final primaryColor = theme.primaryColor;
-    
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -24,267 +67,342 @@ class AboutPage extends StatelessWidget {
         foregroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // App Branding Section
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 40),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
+      body: SafeArea(
+        child: AnimatedBuilder(
+          animation: _animationController,
+          builder: (context, child) {
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
               child: Column(
                 children: [
-                  // Logo
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: primaryColor.withOpacity(0.2),
-                          blurRadius: 20,
-                          spreadRadius: 5,
-                          offset: const Offset(0, 5),
+                  // App Branding Section
+                  FadeTransition(
+                    opacity: _fadeAnimations[0],
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.2),
+                        end: Offset.zero,
+                      ).animate(_fadeAnimations[0]),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 40),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(40),
+                            bottomRight: Radius.circular(40),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.chat_bubble_outline,
-                      size: 70,
-                      color: primaryColor,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // App Name
-                  const Text(
-                    'TALKIFY',
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Tagline
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: primaryColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'Connect • Share • Engage',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: primaryColor,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 1,
+                        child: Column(
+                          children: [
+                            // Logo
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 20,
+                                    spreadRadius: 5,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.chat_bubble_outline,
+                                size: 70,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            // App Name
+                            const Text(
+                              'TALKIFY',
+                              style: TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 2,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            // Tagline
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Text(
+                                'Connect • Share • Engage',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            // App Description
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 40),
+                              child: Text(
+                                'A modern messaging platform designed to bring people together through seamless communication.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[700],
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  // App Description
+                  
+                  const SizedBox(height: 30),
+                  
+                  // What is Talkify Section
+                  FadeTransition(
+                    opacity: _fadeAnimations[1],
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0.2, 0),
+                        end: Offset.zero,
+                      ).animate(_fadeAnimations[1]),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionTitle('What is Talkify?'),
+                            const SizedBox(height: 16),
+                            _buildInfoCard(
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'Talkify is a state-of-the-art messaging application that focuses on creating meaningful connections between people. Our platform provides a secure, intuitive, and feature-rich environment for personal and group conversations.',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: Colors.grey[800],
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Built with the latest technology, Talkify offers a seamless experience across devices while prioritizing your privacy and data security.',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: Colors.grey[800],
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 30),
+                  
+                  // Key Features Section
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: Text(
-                      'A modern messaging platform designed to bring people together through seamless communication.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[700],
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 30),
-            
-            // What is Talkify Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('What is Talkify?'),
-                  const SizedBox(height: 16),
-                  _buildInfoCard(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Talkify is a state-of-the-art messaging application that focuses on creating meaningful connections between people. Our platform provides a secure, intuitive, and feature-rich environment for personal and group conversations.',
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.grey[800],
-                            height: 1.6,
+                        FadeTransition(
+                          opacity: _fadeAnimations[2],
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0.2, 0),
+                              end: Offset.zero,
+                            ).animate(_fadeAnimations[2]),
+                            child: _buildSectionTitle('Key Features'),
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Text(
-                          'Built with the latest technology, Talkify offers a seamless experience across devices while prioritizing your privacy and data security.',
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.grey[800],
-                            height: 1.6,
+                        FadeTransition(
+                          opacity: _fadeAnimations[3],
+                          child: _buildFeatureCard(
+                            icon: Icons.message_rounded,
+                            title: 'Real-time Messaging',
+                            description: 'Send and receive messages instantly with typing indicators and read receipts.',
+                          ),
+                        ),
+                        FadeTransition(
+                          opacity: _fadeAnimations[4],
+                          child: _buildFeatureCard(
+                            icon: Icons.groups_rounded,
+                            title: 'Group Conversations',
+                            description: 'Create group chats with multiple participants for team collaboration or social planning.',
+                          ),
+                        ),
+                        FadeTransition(
+                          opacity: _fadeAnimations[5],
+                          child: _buildFeatureCard(
+                            icon: Icons.photo_library_rounded,
+                            title: 'Rich Media Sharing',
+                            description: 'Share photos, videos, documents, and voice messages seamlessly within your conversations.',
+                          ),
+                        ),
+                        FadeTransition(
+                          opacity: _fadeAnimations[6],
+                          child: _buildFeatureCard(
+                            icon: Icons.verified_user_rounded,
+                            title: 'Privacy & Security',
+                            description: 'Your conversations are protected with industry-standard security protocols.',
+                          ),
+                        ),
+                        FadeTransition(
+                          opacity: _fadeAnimations[7],
+                          child: _buildFeatureCard(
+                            icon: Icons.notifications_active_rounded,
+                            title: 'Smart Notifications',
+                            description: 'Stay updated with customizable notification settings for different conversations.',
                           ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 30),
-            
-            // Key Features Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('Key Features'),
-                  const SizedBox(height: 16),
-                  _buildFeatureCard(
-                    icon: Icons.message_rounded,
-                    title: 'Real-time Messaging',
-                    description: 'Send and receive messages instantly with typing indicators and read receipts.',
+                  
+                  const SizedBox(height: 30),
+                  
+                  // Our Team Section
+                  FadeTransition(
+                    opacity: _fadeAnimations[8],
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.2),
+                        end: Offset.zero,
+                      ).animate(_fadeAnimations[8]),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionTitle('Our Team'),
+                            const SizedBox(height: 16),
+                            _buildInfoCard(
+                              child: Text(
+                                'Talkify is developed by a passionate team of designers, developers, and communication experts committed to creating the best messaging experience possible. We believe in the power of connection and strive to make communication more accessible, enjoyable, and meaningful.',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.grey[800],
+                                  height: 1.6,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                  _buildFeatureCard(
-                    icon: Icons.groups_rounded,
-                    title: 'Group Conversations',
-                    description: 'Create group chats with multiple participants for team collaboration or social planning.',
+                  
+                  const SizedBox(height: 30),
+                  
+                  // Contact Section
+                  FadeTransition(
+                    opacity: _fadeAnimations[9],
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.2),
+                        end: Offset.zero,
+                      ).animate(_fadeAnimations[9]),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionTitle('Contact Us'),
+                            const SizedBox(height: 16),
+                            _buildContactInfo(
+                              icon: Icons.email_outlined,
+                              title: 'Email',
+                              info: 'support@talkify.com',
+                            ),
+                            _buildContactInfo(
+                              icon: Icons.public,
+                              title: 'Website',
+                              info: 'www.talkify.com',
+                            ),
+                            _buildContactInfo(
+                              icon: Icons.location_on_outlined,
+                              title: 'Address',
+                              info: '6th of October City, Egypt , 10211',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                  _buildFeatureCard(
-                    icon: Icons.photo_library_rounded,
-                    title: 'Rich Media Sharing',
-                    description: 'Share photos, videos, documents, and voice messages seamlessly within your conversations.',
+                  
+                  const SizedBox(height: 40),
+                  
+                  // Social Media Links
+                  FadeTransition(
+                    opacity: _fadeAnimations[9],
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildSocialIcon(Icons.facebook),
+                        _buildSocialIcon(Icons.discord),
+                        _buildSocialIcon(Icons.camera_alt),
+                        _buildSocialIcon(Icons.flutter_dash),
+                      ],
+                    ),
                   ),
-                  _buildFeatureCard(
-                    icon: Icons.verified_user_rounded,
-                    title: 'Privacy & Security',
-                    description: 'Your conversations are protected with industry-standard security protocols.',
-                  ),
-                  _buildFeatureCard(
-                    icon: Icons.notifications_active_rounded,
-                    title: 'Smart Notifications',
-                    description: 'Stay updated with customizable notification settings for different conversations.',
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 30),
-            
-            // Our Team Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('Our Team'),
-                  const SizedBox(height: 16),
-                  _buildInfoCard(
-                    child: Text(
-                      'Talkify is developed by a passionate team of designers, developers, and communication experts committed to creating the best messaging experience possible. We believe in the power of connection and strive to make communication more accessible, enjoyable, and meaningful.',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey[800],
-                        height: 1.6,
+                  
+                  const SizedBox(height: 30),
+                  
+                  // Version and Copyright Info
+                  FadeTransition(
+                    opacity: _fadeAnimations[9],
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      color: Colors.grey[50],
+                      child: Column(
+                        children: [
+                          Text(
+                            'Version 1.0.0',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '© 2024 Talkify. All rights reserved.',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ],
               ),
-            ),
-            
-            const SizedBox(height: 30),
-            
-            // Contact Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('Contact Us'),
-                  const SizedBox(height: 16),
-                  _buildContactInfo(
-                    icon: Icons.email_outlined,
-                    title: 'Email',
-                    info: 'support@talkify.com',
-                  ),
-                  _buildContactInfo(
-                    icon: Icons.public,
-                    title: 'Website',
-                    info: 'www.talkify.com',
-                  ),
-                  _buildContactInfo(
-                    icon: Icons.location_on_outlined,
-                    title: 'Address',
-                    info: '123 Tech Avenue, Innovation City, 10001',
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 40),
-            
-            // Social Media Links
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildSocialIcon(Icons.facebook),
-                _buildSocialIcon(Icons.discord),
-                _buildSocialIcon(Icons.camera_alt),
-                _buildSocialIcon(Icons.flutter_dash),
-              ],
-            ),
-            
-            const SizedBox(height: 30),
-            
-            // Version and Copyright Info
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              color: Colors.grey[50],
-              child: Column(
-                children: [
-                  Text(
-                    'Version 1.0.0',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '© 2024 Talkify. All rights reserved.',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -308,6 +426,7 @@ class AboutPage extends StatelessWidget {
             fontSize: 22,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.5,
+            color: Colors.black,
           ),
         ),
       ],
@@ -372,6 +491,7 @@ class AboutPage extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -425,6 +545,7 @@ class AboutPage extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
+                  color: Colors.black,
                 ),
               ),
             ],
