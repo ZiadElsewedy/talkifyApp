@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:talkifyapp/features/Chat/Utils/chat_styles.dart';
 
 class AnimatedTypingIndicator extends StatefulWidget {
   final List<String> typingUserNames;

@@ -23,7 +23,6 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
 
   // Define color constants
   static const Color primaryBlack = Color(0xFF1A1A1A);
-  static const Color secondaryBlack = Color(0xFF2C2C2C);
   static const Color lightGrey = Color(0xFFF5F5F5);
   static const Color mediumGrey = Color(0xFFE0E0E0);
   static const Color darkGrey = Color(0xFF757575);

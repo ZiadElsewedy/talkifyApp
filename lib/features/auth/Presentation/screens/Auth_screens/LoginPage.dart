@@ -44,7 +44,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   // State variables
   bool _obscurePassword = true;
   bool _rememberMe = false;
-  bool _isFormVisible = true;
 
   @override
   void initState() {

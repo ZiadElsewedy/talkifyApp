@@ -63,6 +63,24 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
+  // Load messages for a specific chat room for a specific user (excludes deleted messages)
+  Future<void> loadChatMessagesForUser(String chatRoomId, String userId) async {
+    emit(MessagesLoading());
+    try {
+      _messagesSubscription?.cancel();
+      _messagesSubscription = chatRepo.getChatMessagesForUser(chatRoomId, userId).listen(
+        (messages) {
+          emit(MessagesLoaded(messages, chatRoomId));
+        },
+        onError: (error) {
+          emit(MessagesError('Failed to load messages: $error'));
+        },
+      );
+    } catch (e) {
+      emit(MessagesError('Failed to load messages: $e'));
+    }
+  }
+
   // Create a new chat room
   Future<void> createChatRoom({
     required List<String> participantIds,
@@ -338,6 +356,48 @@ class ChatCubit extends Cubit<ChatState> {
       }
     } catch (e) {
       emit(ChatError('Failed to hide chat: $e'));
+    }
+  }
+  
+  // Hide chat and delete message history for user
+  Future<void> hideChatAndDeleteHistoryForUser({
+    required String chatRoomId,
+    required String userId,
+  }) async {
+    emit(ChatLoading());
+    try {
+      await chatRepo.hideChatAndDeleteHistoryForUser(
+        chatRoomId: chatRoomId,
+        userId: userId,
+      );
+      
+      // Emit the hidden chat state
+      emit(ChatHistoryDeletedForUser(chatRoomId));
+      
+      // After a short delay, refresh the chat rooms list
+      await Future.delayed(const Duration(milliseconds: 300));
+      final currentState = state;
+      if (currentState is ChatHistoryDeletedForUser) {
+        emit(ChatRoomsLoading());
+      }
+    } catch (e) {
+      emit(ChatError('Failed to hide chat and delete history: $e'));
+    }
+  }
+  
+  // Delete a message for a specific user
+  Future<void> deleteMessageForUser({
+    required String messageId,
+    required String userId,
+  }) async {
+    try {
+      await chatRepo.deleteMessageForUser(
+        messageId: messageId,
+        userId: userId,
+      );
+      emit(MessageDeletedForUser(messageId, userId));
+    } catch (e) {
+      emit(ChatError('Failed to delete message for user: $e'));
     }
   }
   

@@ -80,26 +80,67 @@ class FirebaseChatRepo implements ChatRepo {
   @override
   Future<ChatRoom?> findChatRoomBetweenUsers(List<String> userIds) async {
     try {
-      final sortedUserIds = List<String>.from(userIds)..sort();
-      
-      final querySnapshot = await _firestore
-          .collection(_chatRoomsCollection)
-          .where('participants', arrayContainsAny: sortedUserIds)
-          .get();
-
-      for (final doc in querySnapshot.docs) {
-        final chatRoom = ChatRoom.fromJson(doc.data());
-        final chatParticipants = List<String>.from(chatRoom.participants)..sort();
+      // For 1-on-1 chats, find exact matches
+      if (userIds.length == 2) {
+        final snapshot = await _firestore
+            .collection(_chatRoomsCollection)
+            .where('participants', arrayContainsAny: userIds)
+            .get();
         
-        if (chatParticipants.length == sortedUserIds.length &&
-            chatParticipants.every((id) => sortedUserIds.contains(id))) {
-          return chatRoom;
+        // Find the chat room where participants are exactly these users
+        for (var doc in snapshot.docs) {
+          final chatRoom = ChatRoom.fromJson(doc.data());
+          final participants = chatRoom.participants;
+          
+          // Check if this chat room contains exactly the two users
+          if (participants.length == 2 && 
+              participants.contains(userIds[0]) && 
+              participants.contains(userIds[1])) {
+            
+            // Check if any of the users has deleted this chat
+            final String currentUserId = userIds[0]; // Assuming the first ID is the current user
+            if (chatRoom.leftParticipants.containsKey(currentUserId) &&
+                chatRoom.leftParticipants[currentUserId] == true) {
+              // Current user has previously deleted this chat, don't return it
+              continue;
+            }
+            
+            return chatRoom;
+          }
+        }
+      } else {
+        // For group chats, we need exact participant matches
+        // This is more complex as we need to find a room with exactly these participants
+        final snapshot = await _firestore
+            .collection(_chatRoomsCollection)
+            .where('participants', arrayContains: userIds[0])
+            .get();
+        
+        for (var doc in snapshot.docs) {
+          final chatRoom = ChatRoom.fromJson(doc.data());
+          final participants = Set.from(chatRoom.participants);
+          final targetUsers = Set.from(userIds);
+          
+          // Check if both sets have exactly the same members
+          if (participants.length == targetUsers.length && 
+              participants.containsAll(targetUsers)) {
+            // Check if current user has deleted this chat
+            final String currentUserId = userIds[0]; // Assuming first ID is current user
+            if (chatRoom.leftParticipants.containsKey(currentUserId) &&
+                chatRoom.leftParticipants[currentUserId] == true) {
+              // Current user has deleted this chat, don't return it
+              continue;
+            }
+            
+            return chatRoom;
+          }
         }
       }
       
+      // No matching chat room found
       return null;
     } catch (e) {
-      throw Exception('Failed to find chat room: $e');
+      throw Exception('Failed to find chat room between users: $e');
     }
   }
 
@@ -261,28 +302,60 @@ class FirebaseChatRepo implements ChatRepo {
 
   @override
   Stream<List<Message>> getChatMessages(String chatRoomId) {
-    print('FCR: Subscribing to messages for chatRoomId: $chatRoomId');
     return _firestore
         .collection(_chatRoomsCollection)
         .doc(chatRoomId)
         .collection(_messagesCollection)
+        .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
-      print('FCR: Received snapshot with ${snapshot.docs.length} docs for chatRoomId: $chatRoomId');
-      List<Message> messages = [];
-      for (var doc in snapshot.docs) {
-        try {
-          final data = doc.data();
-          final message = Message.fromJson(data);
-          messages.add(message);
-        } catch (e) {
-          print('FCR: Error parsing message doc ${doc.id}: $e');
-        }
-      }
-      // sort by timestamp ascending
-      messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-      return messages;
+      final messages = snapshot.docs
+          .map((doc) => Message.fromJson(doc.data()))
+          .toList();
+      
+      // Reverse the messages to get ascending order (oldest to newest)
+      return messages.reversed.toList();
     });
+  }
+
+  @override
+  Stream<List<Message>> getChatMessagesForUser(String chatRoomId, String userId) {
+    // First get the chat room to check if the user has deleted message history
+    return _firestore
+        .collection(_chatRoomsCollection)
+        .doc(chatRoomId)
+        .snapshots()
+        .asyncMap((chatRoomSnapshot) async {
+          if (!chatRoomSnapshot.exists) {
+            return <Message>[];
+          }
+          
+          final chatRoom = ChatRoom.fromJson(chatRoomSnapshot.data()!);
+          DateTime? deletedAt = chatRoom.messageHistoryDeletedAt[userId];
+          
+          // Get messages, potentially filtered by deletion timestamp
+          var query = _firestore
+              .collection(_chatRoomsCollection)
+              .doc(chatRoomId)
+              .collection(_messagesCollection)
+              .orderBy('timestamp', descending: true);
+              
+          // If user has deleted history, only get messages after that time
+          if (deletedAt != null) {
+            query = query.where('timestamp', isGreaterThan: deletedAt);
+          }
+          
+          final messagesSnapshot = await query.get();
+          
+          // Filter out messages marked as deleted for this user
+          final messages = messagesSnapshot.docs
+              .map((doc) => Message.fromJson(doc.data()))
+              .where((message) => !message.deletedForUsers.contains(userId))
+              .toList();
+          
+          // Reverse the messages to get ascending order (oldest to newest)
+          return messages.reversed.toList();
+        });
   }
 
   @override
@@ -696,6 +769,62 @@ class FirebaseChatRepo implements ChatRepo {
   }
   
   @override
+  Future<void> hideChatAndDeleteHistoryForUser({
+    required String chatRoomId,
+    required String userId,
+  }) async {
+    try {
+      // Get reference to the chat room
+      final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc(chatRoomId);
+      final chatRoomDoc = await chatRoomRef.get();
+      
+      if (!chatRoomDoc.exists) {
+        throw Exception('Chat room does not exist');
+      }
+      
+      final chatRoom = ChatRoom.fromJson(chatRoomDoc.data()!);
+      
+      // Create a batch for more efficient updates
+      final batch = _firestore.batch();
+      
+      // 1. Mark all existing messages as deleted for this user
+      final messagesSnapshot = await chatRoomRef.collection(_messagesCollection).get();
+      for (final messageDoc in messagesSnapshot.docs) {
+        final message = Message.fromJson(messageDoc.data());
+        if (!message.deletedForUsers.contains(userId)) {
+          List<String> updatedDeletedForUsers = List.from(message.deletedForUsers)..add(userId);
+          batch.update(messageDoc.reference, {
+            'deletedForUsers': updatedDeletedForUsers,
+          });
+        }
+      }
+      
+      // 2. Update the chat room document to mark it as hidden and record message history deletion time
+      Map<String, bool> leftParticipants = Map<String, bool>.from(chatRoom.leftParticipants);
+      leftParticipants[userId] = true;
+      
+      Map<String, dynamic> messageHistoryDeletedAt = {};
+      chatRoom.messageHistoryDeletedAt.forEach((key, value) {
+        messageHistoryDeletedAt[key] = value;
+      });
+      messageHistoryDeletedAt[userId] = FieldValue.serverTimestamp();
+      
+      batch.update(chatRoomRef, {
+        'leftParticipants': leftParticipants,
+        'messageHistoryDeletedAt': messageHistoryDeletedAt,
+      });
+      
+      // Execute the batch
+      await batch.commit();
+      
+      print('Chat hidden and history deleted for user $userId: $chatRoomId');
+    } catch (e) {
+      print('Error hiding chat and deleting history: $e');
+      throw Exception('Failed to hide chat and delete history for user: $e');
+    }
+  }
+
+  @override
   Future<void> addGroupChatAdmin({
     required String chatRoomId,
     required String userId,
@@ -861,6 +990,38 @@ class FirebaseChatRepo implements ChatRepo {
       print('Migrated old chat rooms to new format');
     } catch (e) {
       print('Error migrating old chat rooms: $e');
+    }
+  }
+
+  @override
+  Future<void> deleteMessageForUser({
+    required String messageId,
+    required String userId,
+  }) async {
+    try {
+      // Find the message first
+      QuerySnapshot messageQuery = await _firestore
+          .collectionGroup(_messagesCollection)
+          .where('id', isEqualTo: messageId)
+          .limit(1)
+          .get();
+      
+      if (messageQuery.docs.isEmpty) {
+        throw Exception('Message not found');
+      }
+      
+      final messageDoc = messageQuery.docs.first;
+      final message = Message.fromJson(messageDoc.data() as Map<String, dynamic>);
+      
+      // Add this user to the deletedForUsers list
+      if (!message.deletedForUsers.contains(userId)) {
+        List<String> updatedDeletedForUsers = List.from(message.deletedForUsers)..add(userId);
+        await messageDoc.reference.update({
+          'deletedForUsers': updatedDeletedForUsers,
+        });
+      }
+    } catch (e) {
+      throw Exception('Failed to delete message for user: $e');
     }
   }
 }
