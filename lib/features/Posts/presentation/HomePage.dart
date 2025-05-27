@@ -6,6 +6,8 @@ import 'package:talkifyapp/features/Posts/pages/upload_post_page.dart' show Uplo
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_states.dart';
 import 'package:talkifyapp/features/Search/Presentation/SearchPage.dart';
+import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
+import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/Mydrawer.dart';
 
 class HomePage extends StatefulWidget {
@@ -25,15 +27,26 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late final postCubit = context.read<PostCubit>();
   late final AnimationController _backgroundController;
   late final ScrollController _scrollController;
+  late TabController _tabController;
   bool _showFab = true;
   double _previousScrollPosition = 0.0;
   int _currentIndex = 0;
+  AppUser? currentUser;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialTabIndex;
-    fetchPosts();
+    
+    // Initialize tab controller for post categories
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_handleTabChange);
+    
+    // Get current user
+    _getCurrentUser();
+    
+    // Fetch posts for the initial tab
+    _loadPostsForCurrentTab();
     
     _backgroundController = AnimationController(
       duration: const Duration(seconds: 10),
@@ -42,6 +55,35 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     
     _scrollController = ScrollController();
     _scrollController.addListener(_scrollListener);
+  }
+
+  void _getCurrentUser() {
+    final authCubit = context.read<AuthCubit>();
+    currentUser = authCubit.GetCurrentUser();
+  }
+
+  void _handleTabChange() {
+    if (_tabController.indexIsChanging) return;
+    _loadPostsForCurrentTab();
+  }
+
+  Future<void> _loadPostsForCurrentTab() async {
+    switch (_tabController.index) {
+      case 0: // For You (All Posts)
+        await fetchPosts();
+        break;
+      case 1: // Following
+        if (currentUser != null) {
+          await fetchFollowingPosts();
+        } else {
+          // If not logged in, show all posts
+          await fetchPosts();
+        }
+        break;
+      case 2: // Trending
+        await fetchTrendingPosts();
+        break;
+    }
   }
 
   void _scrollListener() {
@@ -67,6 +109,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     await postCubit.fetechAllPosts();
   }
 
+  Future<void> fetchFollowingPosts() async {
+    if (currentUser == null) {
+      return fetchPosts();
+    }
+    await postCubit.fetchFollowingPosts(currentUser!.id);
+  }
+
+  Future<void> fetchTrendingPosts() async {
+    await postCubit.fetchPostsByCategory('trending');
+  }
+
   Future<void> deletePost(String postId) async {
     try {
       await postCubit.deletePost(postId);
@@ -84,7 +137,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         );
         // Refresh the posts list after deletion
-        await fetchPosts();
+        _loadPostsForCurrentTab();
       }
     } catch (e) {
       if (mounted) {
@@ -104,8 +157,28 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> refreshPosts() async {
+    switch (_tabController.index) {
+      case 0: // For You (All Posts)
+        return fetchPosts();
+      case 1: // Following
+        if (currentUser != null) {
+          return fetchFollowingPosts();
+        } else {
+          // If not logged in, show all posts
+          return fetchPosts();
+        }
+      case 2: // Trending
+        return fetchTrendingPosts();
+      default:
+        return fetchPosts();
+    }
+  }
+
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChange);
+    _tabController.dispose();
     _backgroundController.dispose();
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
@@ -139,6 +212,61 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             tooltip: 'Search',
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(48),
+          child: Container(
+            color: Colors.white,
+            child: TabBar(
+              controller: _tabController,
+              indicatorWeight: 3,
+              indicatorColor: Colors.black,
+              labelColor: Colors.black,
+              unselectedLabelColor: Colors.grey,
+              labelStyle: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+              tabs: [
+                Tab(
+                  icon: _tabController.index == 0 
+                      ? Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text('For You', style: TextStyle(color: Colors.black)),
+                        )
+                      : Text('For You'),
+                ),
+                Tab(
+                  icon: _tabController.index == 1
+                      ? Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text('Following', style: TextStyle(color: Colors.black)),
+                        )
+                      : Text('Following'),
+                ),
+                Tab(
+                  icon: _tabController.index == 2
+                      ? Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text('Trending', style: TextStyle(color: Colors.black)),
+                        )
+                      : Text('Trending'),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
       drawer: const MyDrawer(),
       body: BlocBuilder<PostCubit, PostState>(
@@ -175,7 +303,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     ),
                     SizedBox(height: 16),
                     Text(
-                      'No posts yet',
+                      _tabController.index == 1 && currentUser != null
+                          ? 'No posts from people you follow'
+                          : _tabController.index == 2
+                              ? 'No trending posts yet'
+                              : 'No posts yet',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w500,
@@ -184,7 +316,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Be the first to share something!',
+                      _tabController.index == 1 && currentUser != null
+                          ? 'Follow more people to see their posts'
+                          : 'Be the first to share something!',
                       style: TextStyle(
                         color: Colors.grey[600],
                       ),
@@ -209,26 +343,26 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ],
                 ),
               );
-            } else {
-              return RefreshIndicator(
-                color: Colors.black,
-                backgroundColor: Colors.white,
-                onRefresh: fetchPosts,
-                child: ListView.builder(
-                  controller: _scrollController,
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(top: 8, bottom: 80),
-                  itemCount: allPosts.length,
-                  itemBuilder: (context, index) {
-                    final post = allPosts[index];
-                    return PostTile(
-                      post: post,
-                      onDelete: () => deletePost(post.id),
-                    );
-                  },
-                ),
-              );
             }
+            
+            return RefreshIndicator(
+              color: Colors.black,
+              backgroundColor: Colors.white,
+              onRefresh: refreshPosts,
+              child: ListView.builder(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.only(top: 8, bottom: 80),
+                itemCount: allPosts.length,
+                itemBuilder: (context, index) {
+                  final post = allPosts[index];
+                  return PostTile(
+                    post: post,
+                    onDelete: () => deletePost(post.id),
+                  );
+                },
+              ),
+            );
           } else if (state is PostsError) {
             return Center(
               child: Column(
@@ -236,12 +370,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 children: [
                   Icon(
                     Icons.error_outline,
-                    size: 60,
+                    size: 80,
                     color: Colors.red[300],
                   ),
                   SizedBox(height: 16),
                   Text(
-                    'Error loading posts',
+                    'Something went wrong',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
@@ -249,19 +383,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     ),
                   ),
                   SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Text(
-                      state.message,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                      ),
+                  Text(
+                    state.message,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.grey[600],
                     ),
                   ),
                   SizedBox(height: 24),
                   ElevatedButton.icon(
-                    onPressed: fetchPosts,
+                    onPressed: _loadPostsForCurrentTab,
                     icon: Icon(Icons.refresh),
                     label: Text('Try Again'),
                     style: ElevatedButton.styleFrom(
@@ -275,7 +406,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
             );
           }
-
+          
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

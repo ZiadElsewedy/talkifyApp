@@ -99,6 +99,133 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
   }
 
   @override
+  Future<List<Post>> fetchFollowingPosts(String userId) async {
+    try {
+      // Step 1: Get the list of users that the current user is following
+      final userDoc = await firestore.collection('users').doc(userId).get();
+      
+      if (!userDoc.exists) {
+        throw Exception("User not found");
+      }
+      
+      final userData = userDoc.data() as Map<String, dynamic>;
+      final List<String> following = List<String>.from(userData['following'] ?? []);
+      
+      // If user isn't following anyone, return empty list
+      if (following.isEmpty) {
+        return [];
+      }
+      
+      // Step 2: Fetch all posts first
+      final snapshot = await postsCollection.get();
+      final allPosts = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return Post.fromJson(data);
+      }).toList();
+      
+      // Step 3: Filter posts by followed users and sort by timestamp
+      final followingPosts = allPosts.where((post) => 
+        following.contains(post.UserId)
+      ).toList();
+      
+      // Sort by timestamp (most recent first)
+      followingPosts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      
+      return followingPosts;
+    } catch (e) {
+      print('Error fetching following posts: $e');
+      throw Exception("Error fetching following posts: $e");
+    }
+  }
+
+  @override
+  Future<List<Post>> fetchPostsByCategory(String category, {int limit = 20}) async {
+    try {
+      late QuerySnapshot snapshot;
+      
+      switch (category.toLowerCase()) {
+        case 'trending':
+          // For trending posts, fetch posts with most likes
+          final allPostsDocs = await postsCollection.get();
+          
+          // Convert to list for sorting
+          final allPosts = allPostsDocs.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            // Get likes count for sorting
+            final likesCount = (data['likes'] as List?)?.length ?? 0;
+            return {'doc': doc, 'likesCount': likesCount};
+          }).toList();
+          
+          // Sort by likes count (descending)
+          allPosts.sort((a, b) => (b['likesCount'] as int).compareTo(a['likesCount'] as int));
+          
+          // Take only the top posts based on limit
+          final limitedPosts = allPosts.take(limit).map((item) {
+            final doc = item['doc'] as QueryDocumentSnapshot;
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
+            return Post.fromJson(data);
+          }).toList();
+          
+          return limitedPosts;
+          
+        case 'latest':
+          // For latest posts, order by timestamp
+          snapshot = await postsCollection
+              .orderBy('timestamp', descending: true)
+              .limit(limit)
+              .get();
+          break;
+          
+        case 'popular':
+          // For popular posts, sort by number of comments
+          final allPostsDocs = await postsCollection.get();
+          
+          // Convert to list for sorting by comment count
+          final allPosts = allPostsDocs.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            // Get comments count for sorting
+            final commentsCount = (data['comments'] as List?)?.length ?? 0;
+            return {'doc': doc, 'commentsCount': commentsCount};
+          }).toList();
+          
+          // Sort by comment count (descending)
+          allPosts.sort((a, b) => (b['commentsCount'] as int).compareTo(a['commentsCount'] as int));
+          
+          // Take only the top posts based on limit
+          final limitedPosts = allPosts.take(limit).map((item) {
+            final doc = item['doc'] as QueryDocumentSnapshot;
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
+            return Post.fromJson(data);
+          }).toList();
+          
+          return limitedPosts;
+          
+        default:
+          // Default to latest posts
+          snapshot = await postsCollection
+              .orderBy('timestamp', descending: true)
+              .limit(limit)
+              .get();
+      }
+      
+      // Convert snapshot to Post objects (for cases that use snapshot)
+      final posts = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return Post.fromJson(data);
+      }).toList();
+      
+      return posts;
+    } catch (e) {
+      print('Error fetching posts by category: $e');
+      throw Exception("Error fetching posts by category: $e");
+    }
+  }
+
+  @override
   Future<void> toggleLikePost(String postId, String userId) async {
     try {
       // Validate parameters
