@@ -399,8 +399,9 @@ void addComment() async {
     return count.toString();
   }
 
-  @override
-  Widget build(BuildContext context) {    
+
+  Widget build(BuildContext context) {
+    // check if the post is owned by the current user
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -700,7 +701,7 @@ void addComment() async {
         right: 16,
         bottom: 16,
       ),
-      height: 200,
+      height: 350,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
