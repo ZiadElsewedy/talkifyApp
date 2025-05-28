@@ -63,6 +63,32 @@ fetechAllPosts();
     }
 }
 
+// fetch posts from followed accounts
+Future<void> fetchFollowingPosts(String userId) async {
+  try {
+    emit(PostsLoading());
+    final posts = await postRepo.fetchFollowingPosts(userId);
+    print('Fetched ${posts.length} following posts'); // Debug print
+    emit(PostsLoaded(posts));
+  } catch (e) {
+    print('Error fetching following posts: $e'); // Debug print
+    emit(PostsError("Failed to fetch following posts: $e"));
+  }
+}
+
+// fetch posts by category
+Future<void> fetchPostsByCategory(String category) async {
+  try {
+    emit(PostsLoading());
+    final posts = await postRepo.fetchPostsByCategory(category);
+    print('Fetched ${posts.length} ${category} posts'); // Debug print
+    emit(PostsLoaded(posts));
+  } catch (e) {
+    print('Error fetching ${category} posts: $e'); // Debug print
+    emit(PostsError("Failed to fetch ${category} posts: $e"));
+  }
+}
+
 // delete a post 
 Future<void> deletePost(String postId) async{
   try{

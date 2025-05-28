@@ -26,122 +26,136 @@ import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
 // search 
 // Theme
 
+/// Main application widget that sets up dependencies and app structure
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
 
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
 
+class _MyAppState extends State<MyApp> {
+  // Repository instances
+  final _firebaseProfileRepo = FirebaseProfileRepo();
+  final _firebaseStorageRepo = FirebaseStorageRepo();
+  final _firebaseAuthRepo = FirebaseAuthRepo();
+  final _firebasePostRepo = FirebasePostRepo();
+  final _firebaseSearchRepo = FirebaseSearchRepo();
+  final _firebaseChatRepo = FirebaseChatRepo();
+  final _audioHandler = AudioHandler();
+  
+  // Key for SnackBar management
+  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
-
-
-class MyApp extends StatelessWidget {
-   MyApp({super.key});
-   // 
-  final FirebaseprofileRepo =  FirebaseProfileRepo();
-  final FirebasestorageRepo = FirebaseStorageRepo();
-  final FirebaseauthRepo = FirebaseAuthRepo();
-  final firebasePostRepo = FirebasePostRepo();
-  final firebaseSearchRepo = FirebaseSearchRepo();
-  final firebaseChatRepo = FirebaseChatRepo();
-  final audioHandler = AudioHandler();
-  // Initialize the ProfileRepo
-  // Initialize the AuthRepo
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthCubit>(
-          create: (context) => AuthCubit(FirebaseauthRepo)..checkAuth(),
+          create: (context) => AuthCubit(_firebaseAuthRepo)..checkAuth(),
         ),
         BlocProvider<ProfileCubit>(
           create: (context) => ProfileCubit(
-            profileRepo: FirebaseprofileRepo,
-            Storage: FirebasestorageRepo,
+            profileRepo: _firebaseProfileRepo,
+            Storage: _firebaseStorageRepo,
           ),
         ),
         BlocProvider<PostCubit>(
           create: (context) => PostCubit(
-            postRepo: firebasePostRepo, 
-            storageRepo: FirebasestorageRepo,
+            postRepo: _firebasePostRepo, 
+            storageRepo: _firebaseStorageRepo,
           ),
         ),
         BlocProvider<SearchCubit>(
           create: (context) => SearchCubit(
-            searchRepo: firebaseSearchRepo,
+            searchRepo: _firebaseSearchRepo,
           ),
         ),
         BlocProvider<ChatCubit>(
           create: (context) {
-            final cubit = ChatCubit(chatRepo: firebaseChatRepo);
-            cubit.initialize();
+            final cubit = ChatCubit(chatRepo: _firebaseChatRepo);
+            // Wrap in try-catch to prevent crashes during initialization
+            try {
+              cubit.initialize();
+            } catch (e) {
+              print('Failed to initialize chat: $e');
+            }
             return cubit;
           },
         ),
       ],
     
-     child: WillPopScope(
-       // Dispose all audio players when app is about to exit
-       onWillPop: () async {
-         audioHandler.disposeAllPlayers();
-         return true;
-       },
-       child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Talkify',
-        home: BlocConsumer<AuthCubit, AuthStates>(
-          // listen to the auth cubit state changes
-          // this will be used to show the snackbar when there is an error
-          listener: (context, state) {
-            if (state is AuthErrorState) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.error),
-                  backgroundColor: Colors.red,
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-            } else if (state is UnverifiedState) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.orange,
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-            } else if (state is EmailVerificationState) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.blue,
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-            } else if (state is Authanticated) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.green,
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-            }
-          },
-          builder: (context, state) {
-            if (state is Authanticated) {
-              return  HomePage();
-            } else if (state is UnverifiedState || state is EmailVerificationState) {
-              return const VerificationEmail();
-            } else if (state is UnAuthanticated || state is AuthErrorState) {
-              return const AuthPage();
-            } else if (state is AuthLoadingState) {
-              return const Scaffold(
-                body: Center(
-                  child: PercentCircleIndicator(),
-                ),
-              );
-            }
-            return const AuthPage();
+      child: WillPopScope(
+        // Dispose all audio players when app is about to exit
+        onWillPop: () async {
+          try {
+            _audioHandler.disposeAllPlayers();
+          } catch (e) {
+            print('Error disposing audio players: $e');
           }
-        )
+          return true;
+        },
+        child: MaterialApp(
+          scaffoldMessengerKey: _scaffoldMessengerKey,
+          debugShowCheckedModeBanner: false,
+          title: 'Talkify',
+          home: BlocConsumer<AuthCubit, AuthStates>(
+            // Listen to the auth cubit state changes
+            listener: (context, state) {
+              // Hide any previous SnackBar to prevent multiple SnackBars error
+              _scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+              
+              if (state is AuthErrorState) {
+                _showSnackBar(state.error, Colors.red);
+              } else if (state is UnverifiedState) {
+                _showSnackBar(state.message, Colors.orange);
+              } else if (state is EmailVerificationState) {
+                _showSnackBar(state.message, Colors.blue);
+              } else if (state is Authanticated) {
+                _showSnackBar("Welcome back", Colors.green);
+              }
+            },
+            builder: (context, state) {
+              if (state is Authanticated) {
+                return HomePage();
+              } else if (state is UnverifiedState || state is EmailVerificationState) {
+                return const VerificationEmail();
+              } else if (state is UnAuthanticated || state is AuthErrorState) {
+                return const AuthPage();
+              } else if (state is AuthLoadingState) {
+                return const Scaffold(
+                  body: Center(
+                    child: PercentCircleIndicator(),
+                  ),
+                );
+              }
+              return const AuthPage();
+            }
+          ),
+        ),
       ),
-           ),
+    );
+  }
+  
+  /// Shows a SnackBar with the given message and color
+  void _showSnackBar(String message, Color backgroundColor) {
+    _scaffoldMessengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        
+        margin: const EdgeInsets.only(
+            bottom: 10, // Position under the bottom navigation bar but below New Post button
+            left: 16,
+            right: 16,
+           
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
     );
   }
 }
