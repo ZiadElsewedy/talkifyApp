@@ -52,6 +52,12 @@ abstract class ChatRepo {
     required String userId,
   });
   
+  // New method to hide chat and delete message history for a user
+  Future<void> hideChatAndDeleteHistoryForUser({
+    required String chatRoomId,
+    required String userId,
+  });
+  
   Future<Message> sendSystemMessage({
     required String chatRoomId,
     required String content,
@@ -75,6 +81,9 @@ abstract class ChatRepo {
   
   Stream<List<Message>> getChatMessages(String chatRoomId);
   
+  // New method to get messages excluding those deleted by a specific user
+  Stream<List<Message>> getChatMessagesForUser(String chatRoomId, String userId);
+  
   Future<void> updateMessageStatus({
     required String messageId,
     required MessageStatus status,
@@ -86,6 +95,12 @@ abstract class ChatRepo {
   });
   
   Future<void> deleteMessage(String messageId);
+  
+  // New method to mark a message as deleted for a specific user
+  Future<void> deleteMessageForUser({
+    required String messageId,
+    required String userId,
+  });
   
   // Typing indicator
   Future<void> setTypingStatus({

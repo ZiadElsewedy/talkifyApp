@@ -89,7 +89,14 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
   }
 
   void _loadMessages() {
-    context.read<ChatCubit>().loadChatMessages(widget.chatRoom.id);
+    final currentUser = context.read<AuthCubit>().GetCurrentUser();
+    if (currentUser != null) {
+      // Use the user-specific message loading method
+      context.read<ChatCubit>().loadChatMessagesForUser(widget.chatRoom.id, currentUser.id);
+    } else {
+      // Fallback to regular message loading if no user is authenticated
+      context.read<ChatCubit>().loadChatMessages(widget.chatRoom.id);
+    }
   }
 
   void _markMessagesAsRead() {
@@ -159,9 +166,14 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
   }
 
   void _scrollToBottomOnNewMessages() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Use a small delay to ensure the list has been updated
+    Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
       }
     });
   }
@@ -637,9 +649,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                       .toList();
                   
                   if (readMessages.isEmpty) return const SizedBox.shrink();
-                  
-                  final lastReadMessage = readMessages.last;
-                  
+                                    
                   // Get the other participant (for 1-on-1 chats)
                   String otherParticipantId = '';
                   String otherParticipantName = '';

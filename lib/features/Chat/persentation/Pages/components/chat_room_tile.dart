@@ -727,7 +727,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
         builder: (context) => AlertDialog(
           title: const Text('Delete Chat'),
           content: const Text(
-            'This will delete the chat history from your view. The other person will still see the conversation.'
+            'How would you like to delete this chat?'
           ),
           actions: [
             TextButton(
@@ -747,8 +747,24 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
                   );
                 });
               },
+              style: TextButton.styleFrom(foregroundColor: Colors.black),
+              child: const Text('Hide Chat Only'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                
+                // Run delete animation
+                _animationController.reverse().then((_) {
+                  // Use the stored reference to avoid widget deactivation issues
+                  chatCubit.hideChatAndDeleteHistoryForUser(
+                    chatRoomId: widget.chatRoom.id,
+                    userId: widget.currentUserId,
+                  );
+                });
+              },
               style: TextButton.styleFrom(foregroundColor: ChatStyles.errorColor),
-              child: const Text('Delete'),
+              child: const Text('Delete Chat & History'),
             ),
           ],
         ),

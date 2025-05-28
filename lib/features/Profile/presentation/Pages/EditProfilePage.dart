@@ -75,7 +75,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final String newName = nameController.text.isNotEmpty ? nameController.text : widget.user.name;
     final String newHintDescription = hintDescriptionController.text.isNotEmpty ? hintDescriptionController.text : widget.user.HintDescription;
 
-    if (ProfileimagePickedFile != null || backgroundImagePickedFile != null || newBio != null) {
+    if (ProfileimagePickedFile != null || backgroundImagePickedFile != null || newBio != widget.user.bio || newName != widget.user.name || newHintDescription != widget.user.HintDescription) {
       profilecubit.updateUserProfile(
         id: id,
         newName: newName,

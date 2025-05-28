@@ -34,6 +34,7 @@ class Message {
   final String? replyToMessageId;
   final Map<String, dynamic>? metadata; // For additional data like image dimensions, audio duration, etc.
   final List<String> readBy; // List of user IDs who have read the message
+  final List<String> deletedForUsers; // Users who have deleted this message
 
   Message({
     required this.id,
@@ -52,7 +53,9 @@ class Message {
     this.replyToMessageId,
     this.metadata,
     List<String>? readBy,
-  }) : this.readBy = readBy ?? [];
+    List<String>? deletedForUsers,
+  }) : this.readBy = readBy ?? [],
+      this.deletedForUsers = deletedForUsers ?? [];
 
   // Convert Message to JSON
   Map<String, dynamic> toJson() {
@@ -73,6 +76,7 @@ class Message {
       'replyToMessageId': replyToMessageId,
       'metadata': metadata,
       'readBy': readBy,
+      'deletedForUsers': deletedForUsers,
     };
   }
 
@@ -105,6 +109,9 @@ class Message {
       readBy: json['readBy'] != null 
         ? List<String>.from(json['readBy']) 
         : [],
+      deletedForUsers: json['deletedForUsers'] != null 
+        ? List<String>.from(json['deletedForUsers']) 
+        : [],
     );
   }
 
@@ -126,6 +133,7 @@ class Message {
     String? replyToMessageId,
     Map<String, dynamic>? metadata,
     List<String>? readBy,
+    List<String>? deletedForUsers,
   }) {
     return Message(
       id: id ?? this.id,
@@ -144,6 +152,7 @@ class Message {
       replyToMessageId: replyToMessageId ?? this.replyToMessageId,
       metadata: metadata ?? this.metadata,
       readBy: readBy ?? this.readBy,
+      deletedForUsers: deletedForUsers ?? this.deletedForUsers,
     );
   }
 

@@ -1,0 +1,83 @@
+flowchart TD
+    A[Start] --> B{Choose Action}
+    
+    %% Login Flow
+    B -->|Login| C[Enter Email & Password]
+    C --> D[FirebaseAuthRepo.loginWithEmailPassword]
+    D --> E[FirebaseAuth.signInWithEmailAndPassword]
+    E --> F{Sign In Successful?}
+    F -->|No| G[Throw Exception: Failed to login]
+    F -->|Yes| H{Email Verified?}
+    H -->|Yes| I[Update Firestore: isOnline = true]
+    I --> J[Get User Document from Firestore]
+    J --> K{User Document Exists?}
+    K -->|No| L[Throw Exception: User data not found]
+    K -->|Yes| M[Create AppUser from Firestore data]
+    H -->|No| N[Create Basic AppUser with limited info]
+    M --> O[Return AppUser]
+    N --> O
+    
+    %% Registration Flow
+    B -->|Register| P[Enter Name, Email, Password, Phone]
+    P --> Q[FirebaseAuthRepo.registerWithEmailPassword]
+    Q --> R[FirebaseAuth.createUserWithEmailAndPassword]
+    R --> S{Account Created?}
+    S -->|No| T[Throw Exception: Failed to register]
+    S -->|Yes| U[Send Email Verification]
+    U --> V[Create AppUser Object]
+    V --> W[Return AppUser - Not Saved to Firestore Yet]
+    
+    %% Save User Flow
+    W --> X[User Verifies Email]
+    X --> Y[FirebaseAuthRepo.saveUserToFirestore]
+    Y --> Z[Save User Data to Firestore Collection]
+    Z --> AA[FirebaseAuthRepo.updateUserVerificationStatus]
+    AA --> BB[Update isVerified = true in Firestore]
+    
+    %% Get Current User Flow
+    B -->|Get Current User| CC[FirebaseAuthRepo.GetCurrentUser]
+    CC --> DD{Firebase User Exists?}
+    DD -->|No| EE[Return null]
+    DD -->|Yes| FF[Update Firestore: isOnline = true, lastSeen]
+    FF --> GG[Get User Document from Firestore]
+    GG --> HH{Document Exists?}
+    HH -->|No| II[Return null]
+    HH -->|Yes| JJ[Create AppUser from Firestore Data]
+    JJ --> KK[Return AppUser]
+    
+    %% Logout Flow
+    B -->|Logout| LL[FirebaseAuthRepo.LogOut]
+    LL --> MM{Current User Exists?}
+    MM -->|Yes| NN[Update Firestore: isOnline = false, lastSeen]
+    MM -->|No| PP[Skip Firestore Update]
+    NN --> OO[FirebaseAuth.signOut]
+    PP --> OO
+    OO --> QQ[Complete Logout]
+    
+    %% Email Verification Flow
+    B -->|Check Email Verification| RR[FirebaseAuthRepo.checkEmailVerification]
+    RR --> SS[FirebaseAuth.currentUser.reload]
+    SS --> TT[Check emailVerified Status]
+    
+    B -->|Resend Verification| UU[FirebaseAuthRepo.sendVerificationEmail]
+    UU --> VV[FirebaseAuth.currentUser.sendEmailVerification]
+    
+    %% End States
+    O --> WW[Login Complete]
+    EE --> XX[No Current User]
+    KK --> YY[User Retrieved]
+    QQ --> ZZ[Logout Complete]
+    G --> AAA[Login Failed]
+    T --> BBB[Registration Failed]
+    L --> CCC[User Data Error]
+    
+    %% Styling
+    classDef errorClass fill:#ffcccc,stroke:#ff0000,stroke-width:2px
+    classDef successClass fill:#ccffcc,stroke:#00aa00,stroke-width:2px
+    classDef processClass fill:#cceeff,stroke:#0066cc,stroke-width:2px
+    classDef decisionClass fill:#ffffcc,stroke:#ffaa00,stroke-width:2px
+    
+    class G,T,L,AAA,BBB,CCC errorClass
+    class WW,XX,YY,ZZ successClass
+    class D,E,I,J,Q,R,U,Y,Z,AA,CC,FF,GG,LL,NN,OO,RR,SS,UU,VV processClass
+    class F,H,K,S,DD,HH,MM decisionClass

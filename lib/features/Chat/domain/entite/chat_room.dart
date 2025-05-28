@@ -13,6 +13,7 @@ class ChatRoom {
   final DateTime updatedAt;
   final List<String> admins; // List of admin user IDs
   final Map<String, bool> leftParticipants; // Map of userId -> left status (to track users who left)
+  final Map<String, DateTime> messageHistoryDeletedAt; // Map of userId -> timestamp when message history was deleted
 
   ChatRoom({
     required this.id,
@@ -27,8 +28,10 @@ class ChatRoom {
     required this.updatedAt,
     List<String>? admins,
     Map<String, bool>? leftParticipants,
+    Map<String, DateTime>? messageHistoryDeletedAt,
   }) : this.admins = admins ?? [],
-       this.leftParticipants = leftParticipants ?? {};
+       this.leftParticipants = leftParticipants ?? {},
+       this.messageHistoryDeletedAt = messageHistoryDeletedAt ?? {};
 
   // Convert ChatRoom to JSON
   Map<String, dynamic> toJson() {
@@ -45,11 +48,22 @@ class ChatRoom {
       'updatedAt': updatedAt,
       'admins': admins,
       'leftParticipants': leftParticipants,
+      'messageHistoryDeletedAt': messageHistoryDeletedAt.map((key, value) => MapEntry(key, value)),
     };
   }
 
   // Convert JSON to ChatRoom
   factory ChatRoom.fromJson(Map<String, dynamic> json) {
+    // Convert messageHistoryDeletedAt from Timestamps to DateTime
+    Map<String, DateTime> messageHistoryDeletedAt = {};
+    if (json['messageHistoryDeletedAt'] != null) {
+      (json['messageHistoryDeletedAt'] as Map<String, dynamic>).forEach((key, value) {
+        if (value is Timestamp) {
+          messageHistoryDeletedAt[key] = value.toDate();
+        }
+      });
+    }
+
     return ChatRoom(
       id: json['id'] as String,
       participants: List<String>.from(json['participants'] ?? []),
@@ -67,6 +81,7 @@ class ChatRoom {
       leftParticipants: json['leftParticipants'] != null 
         ? Map<String, bool>.from(json['leftParticipants']) 
         : {},
+      messageHistoryDeletedAt: messageHistoryDeletedAt,
     );
   }
 
@@ -84,6 +99,7 @@ class ChatRoom {
     DateTime? updatedAt,
     List<String>? admins,
     Map<String, bool>? leftParticipants,
+    Map<String, DateTime>? messageHistoryDeletedAt,
   }) {
     return ChatRoom(
       id: id ?? this.id,
@@ -98,6 +114,7 @@ class ChatRoom {
       updatedAt: updatedAt ?? this.updatedAt,
       admins: admins ?? this.admins,
       leftParticipants: leftParticipants ?? this.leftParticipants,
+      messageHistoryDeletedAt: messageHistoryDeletedAt ?? this.messageHistoryDeletedAt,
     );
   }
 

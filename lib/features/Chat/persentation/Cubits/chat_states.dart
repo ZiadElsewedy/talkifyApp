@@ -70,10 +70,26 @@ class GroupChatLeft extends ChatState {
   GroupChatLeft(this.chatRoomId);
 }
 
+// Hidden chat state
 class ChatHiddenForUser extends ChatState {
   final String chatRoomId;
   
   ChatHiddenForUser(this.chatRoomId);
+}
+
+// Chat history deleted for user state
+class ChatHistoryDeletedForUser extends ChatState {
+  final String chatRoomId;
+  
+  ChatHistoryDeletedForUser(this.chatRoomId);
+}
+
+// Message deleted for user state
+class MessageDeletedForUser extends ChatState {
+  final String messageId;
+  final String userId;
+  
+  MessageDeletedForUser(this.messageId, this.userId);
 }
 
 class GroupAdminAdded extends ChatState {

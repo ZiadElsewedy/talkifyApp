@@ -399,7 +399,7 @@ void addComment() async {
     return count.toString();
   }
 
-  @override
+
   Widget build(BuildContext context) {
     // check if the post is owned by the current user
     return Container(
