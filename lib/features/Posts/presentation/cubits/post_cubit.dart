@@ -163,4 +163,98 @@ Future<void> updatePostCaption(String postId, String newCaption) async {
     emit(PostsError('Failed to update caption: $e'));
   }
 }
+
+// COMMENT LIKES AND REPLIES
+
+// Toggle like on a comment
+Future<void> toggleLikeComment(String postId, String commentId, String userId) async {
+  try {
+    await postRepo.toggleLikeComment(postId, commentId, userId);
+    await fetechAllPosts();
+  } catch (e) {
+    emit(PostsError('Failed to like comment: $e'));
+  }
+}
+
+// Add a reply to a comment
+Future<void> addReplyToComment(String postId, String commentId, String userId, String userName, String profilePicture, String content) async {
+  try {
+    await postRepo.addReplyToComment(postId, commentId, userId, userName, profilePicture, content);
+    await fetechAllPosts();
+  } catch (e) {
+    emit(PostsError('Failed to add reply: $e'));
+  }
+}
+
+// Delete a reply
+Future<void> deleteReply(String postId, String commentId, String replyId) async {
+  try {
+    await postRepo.deleteReply(postId, commentId, replyId);
+    await fetechAllPosts();
+  } catch (e) {
+    emit(PostsError('Failed to delete reply: $e'));
+  }
+}
+
+// Toggle like on a reply
+Future<void> toggleLikeReply(String postId, String commentId, String replyId, String userId) async {
+  try {
+    await postRepo.toggleLikeReply(postId, commentId, replyId, userId);
+    await fetechAllPosts();
+  } catch (e) {
+    emit(PostsError('Failed to like reply: $e'));
+  }
+}
+
+// Local versions that don't refresh the entire post list
+
+// Toggle like on a comment without refreshing
+Future<void> toggleLikeCommentLocal(String postId, String commentId, String userId) async {
+  try {
+    await postRepo.toggleLikeComment(postId, commentId, userId);
+    // Don't emit a loading state or fetch all posts
+  } catch (e) {
+    // Just throw the error to be handled by the UI
+    throw Exception('Failed to like comment: $e');
+  }
+}
+
+// Add a reply to a comment without refreshing
+Future<void> addReplyToCommentLocal(String postId, String commentId, String userId, String userName, String profilePicture, String content) async {
+  try {
+    await postRepo.addReplyToComment(postId, commentId, userId, userName, profilePicture, content);
+    // Don't emit a loading state or fetch all posts
+  } catch (e) {
+    // Just throw the error to be handled by the UI
+    throw Exception('Failed to add reply: $e');
+  }
+}
+
+// Delete a reply without refreshing
+Future<void> deleteReplyLocal(String postId, String commentId, String replyId) async {
+  try {
+    await postRepo.deleteReply(postId, commentId, replyId);
+    // Don't emit a loading state or fetch all posts
+  } catch (e) {
+    // Just throw the error to be handled by the UI
+    throw Exception('Failed to delete reply: $e');
+  }
+}
+
+// Toggle like on a reply without refreshing
+Future<void> toggleLikeReplyLocal(String postId, String commentId, String replyId, String userId) async {
+  try {
+    print('PostCubit: Attempting to toggle like for reply: $replyId');
+    if (postId.isEmpty || commentId.isEmpty || replyId.isEmpty || userId.isEmpty) {
+      throw Exception("Invalid parameters: missing required IDs");
+    }
+    
+    await postRepo.toggleLikeReply(postId, commentId, replyId, userId);
+    print('PostCubit: Successfully toggled like for reply: $replyId');
+  } catch (e) {
+    print('PostCubit: Error toggling like for reply: $e');
+    // Rethrow with a clearer message for the UI
+    throw Exception('Failed to like reply: $e');
+  }
+}
 }

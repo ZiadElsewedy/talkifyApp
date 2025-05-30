@@ -352,5 +352,282 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
       throw Exception('Error updating post caption: $e');
     }
   }
+
+  @override
+  Future<void> toggleLikeComment(String postId, String commentId, String userId) async {
+    try {
+      // Get the post document
+      final postDoc = await postsCollection.doc(postId).get();
+      
+      if (!postDoc.exists) {
+        throw Exception("Post not found");
+      }
+      
+      final post = Post.fromJson(postDoc.data() as Map<String, dynamic>);
+      
+      // Find the comment
+      final commentIndex = post.comments.indexWhere((comment) => comment.commentId == commentId);
+      
+      if (commentIndex == -1) {
+        throw Exception("Comment not found");
+      }
+      
+      // Get the comment
+      final comment = post.comments[commentIndex];
+      
+      // Create a new list of likes
+      List<String> updatedLikes = List<String>.from(comment.likes);
+      
+      // Toggle the like
+      if (updatedLikes.contains(userId)) {
+        updatedLikes.remove(userId);
+      } else {
+        updatedLikes.add(userId);
+      }
+      
+      // Create a new comment with updated likes
+      final updatedComment = Comments(
+        commentId: comment.commentId,
+        content: comment.content,
+        postId: comment.postId,
+        userId: comment.userId,
+        userName: comment.userName,
+        profilePicture: comment.profilePicture,
+        createdAt: comment.createdAt,
+        likes: updatedLikes,
+        replies: comment.replies,
+      );
+      
+      // Update the comment in the post's comments list
+      post.comments[commentIndex] = updatedComment;
+      
+      // Update the post document
+      await postsCollection.doc(postId).update({
+        'comments': post.comments.map((c) => c.toJson()).toList(),
+      });
+    } catch (e) {
+      print('Error toggling comment like: $e');
+      throw Exception("Error toggling comment like: $e");
+    }
+  }
+
+  @override
+  Future<void> addReplyToComment(String postId, String commentId, String userId, String userName, String profilePicture, String content) async {
+    try {
+      // Get the post document
+      final postDoc = await postsCollection.doc(postId).get();
+      
+      if (!postDoc.exists) {
+        throw Exception("Post not found");
+      }
+      
+      final post = Post.fromJson(postDoc.data() as Map<String, dynamic>);
+      
+      // Find the comment
+      final commentIndex = post.comments.indexWhere((comment) => comment.commentId == commentId);
+      
+      if (commentIndex == -1) {
+        throw Exception("Comment not found");
+      }
+      
+      // Get the comment
+      final comment = post.comments[commentIndex];
+      
+      // Generate a new unique ID for the reply
+      final replyId = FirebaseFirestore.instance.collection('replies').doc().id;
+      
+      // Create a new reply
+      final newReply = Reply(
+        replyId: replyId,
+        content: content,
+        userId: userId,
+        userName: userName,
+        profilePicture: profilePicture,
+        createdAt: DateTime.now(),
+        likes: [],
+      );
+      
+      // Add the reply to the comment's replies list
+      final updatedReplies = List<Reply>.from(comment.replies)..add(newReply);
+      
+      // Create a new comment with the updated replies
+      final updatedComment = Comments(
+        commentId: comment.commentId,
+        content: comment.content,
+        postId: comment.postId,
+        userId: comment.userId,
+        userName: comment.userName,
+        profilePicture: comment.profilePicture,
+        createdAt: comment.createdAt,
+        likes: comment.likes,
+        replies: updatedReplies,
+      );
+      
+      // Update the comment in the post's comments list
+      post.comments[commentIndex] = updatedComment;
+      
+      // Update the post document
+      await postsCollection.doc(postId).update({
+        'comments': post.comments.map((c) => c.toJson()).toList(),
+      });
+    } catch (e) {
+      print('Error adding reply to comment: $e');
+      throw Exception("Error adding reply to comment: $e");
+    }
+  }
+
+  @override
+  Future<void> deleteReply(String postId, String commentId, String replyId) async {
+    try {
+      // Get the post document
+      final postDoc = await postsCollection.doc(postId).get();
+      
+      if (!postDoc.exists) {
+        throw Exception("Post not found");
+      }
+      
+      final post = Post.fromJson(postDoc.data() as Map<String, dynamic>);
+      
+      // Find the comment
+      final commentIndex = post.comments.indexWhere((comment) => comment.commentId == commentId);
+      
+      if (commentIndex == -1) {
+        throw Exception("Comment not found");
+      }
+      
+      // Get the comment
+      final comment = post.comments[commentIndex];
+      
+      // Check if reply exists
+      final replyExists = comment.replies.any((reply) => reply.replyId == replyId);
+      
+      if (!replyExists) {
+        throw Exception("Reply not found");
+      }
+      
+      // Remove the reply from the comment's replies list
+      final updatedReplies = List<Reply>.from(comment.replies)
+        ..removeWhere((reply) => reply.replyId == replyId);
+      
+      // Create a new comment with the updated replies
+      final updatedComment = Comments(
+        commentId: comment.commentId,
+        content: comment.content,
+        postId: comment.postId,
+        userId: comment.userId,
+        userName: comment.userName,
+        profilePicture: comment.profilePicture,
+        createdAt: comment.createdAt,
+        likes: comment.likes,
+        replies: updatedReplies,
+      );
+      
+      // Update the comment in the post's comments list
+      post.comments[commentIndex] = updatedComment;
+      
+      // Update the post document
+      await postsCollection.doc(postId).update({
+        'comments': post.comments.map((c) => c.toJson()).toList(),
+      });
+    } catch (e) {
+      print('Error deleting reply: $e');
+      throw Exception("Error deleting reply: $e");
+    }
+  }
+
+  @override
+  Future<void> toggleLikeReply(String postId, String commentId, String replyId, String userId) async {
+    try {
+      // Validate parameters
+      if (postId.isEmpty || commentId.isEmpty || replyId.isEmpty || userId.isEmpty) {
+        throw Exception("Invalid parameters: one or more required IDs are empty");
+      }
+      
+      print('Toggling like for reply: $replyId in comment: $commentId of post: $postId by user: $userId');
+      
+      // Get the post document
+      final postDoc = await postsCollection.doc(postId).get();
+      
+      if (!postDoc.exists) {
+        throw Exception("Post not found with ID: $postId");
+      }
+      
+      final post = Post.fromJson(postDoc.data() as Map<String, dynamic>);
+      
+      // Find the comment
+      final commentIndex = post.comments.indexWhere((comment) => comment.commentId == commentId);
+      
+      if (commentIndex == -1) {
+        throw Exception("Comment not found with ID: $commentId in post: $postId");
+      }
+      
+      // Get the comment
+      final comment = post.comments[commentIndex];
+      
+      // Find the reply
+      final replyIndex = comment.replies.indexWhere((reply) => reply.replyId == replyId);
+      
+      if (replyIndex == -1) {
+        print('Reply not found. Available replies: ${comment.replies.map((r) => r.replyId).join(', ')}');
+        throw Exception("Reply not found with ID: $replyId in comment: $commentId");
+      }
+      
+      // Get the reply
+      final reply = comment.replies[replyIndex];
+      
+      // Create a new list of likes
+      List<String> updatedLikes = List<String>.from(reply.likes);
+      
+      // Toggle the like
+      if (updatedLikes.contains(userId)) {
+        updatedLikes.remove(userId);
+        print('Removed like from reply: $replyId');
+      } else {
+        updatedLikes.add(userId);
+        print('Added like to reply: $replyId');
+      }
+      
+      // Create a new reply with updated likes
+      final updatedReply = Reply(
+        replyId: reply.replyId,
+        content: reply.content,
+        userId: reply.userId,
+        userName: reply.userName,
+        profilePicture: reply.profilePicture,
+        createdAt: reply.createdAt,
+        likes: updatedLikes,
+      );
+      
+      // Update the reply in the comment's replies list
+      final updatedReplies = List<Reply>.from(comment.replies);
+      updatedReplies[replyIndex] = updatedReply;
+      
+      // Create a new comment with the updated replies
+      final updatedComment = Comments(
+        commentId: comment.commentId,
+        content: comment.content,
+        postId: comment.postId,
+        userId: comment.userId,
+        userName: comment.userName,
+        profilePicture: comment.profilePicture,
+        createdAt: comment.createdAt,
+        likes: comment.likes,
+        replies: updatedReplies,
+      );
+      
+      // Update the comment in the post's comments list
+      post.comments[commentIndex] = updatedComment;
+      
+      // Update the post document
+      await postsCollection.doc(postId).update({
+        'comments': post.comments.map((c) => c.toJson()).toList(),
+      });
+      
+      print('Successfully toggled like for reply: $replyId');
+    } catch (e) {
+      print('Error toggling reply like: $e');
+      throw Exception("Error toggling reply like: $e");
+    }
+  }
 }
 

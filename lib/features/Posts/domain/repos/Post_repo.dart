@@ -14,4 +14,10 @@ abstract class PostRepo {
   Future <void> addComment(String postId, String userId, String userName, String profilePicture, String content);
   Future <void> deleteComment(String postId, String commentId);
   Future<void> updatePostCaption(String postId, String newCaption);
+  
+  // New methods for comment likes and replies
+  Future<void> toggleLikeComment(String postId, String commentId, String userId);
+  Future<void> addReplyToComment(String postId, String commentId, String userId, String userName, String profilePicture, String content);
+  Future<void> deleteReply(String postId, String commentId, String replyId);
+  Future<void> toggleLikeReply(String postId, String commentId, String replyId, String userId);
 }

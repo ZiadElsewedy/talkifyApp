@@ -345,6 +345,7 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
                           onDelete: isOwner 
                               ? () => _deleteComment(comment.commentId)
                               : null,
+                          postId: widget.postId,
                         ),
                       ),
                     );
@@ -353,7 +354,7 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
         ),
         if (_isLoading || state is PostsLoading)
           Container(
-            color: _blackColor.withOpacity(0.05),
+            color: _whiteColor.withOpacity(0.7),
             child: Center(
               child: CircularProgressIndicator(
                 color: _blackColor,
@@ -402,15 +403,13 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
-                  color: _mediumGrey,
+                  color: _darkGrey,
                 ),
               ),
             ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
-              onPressed: () => _commentController.text.isEmpty 
-                ? FocusScope.of(context).requestFocus(FocusNode())
-                : null,
+              onPressed: () => FocusScope.of(context).requestFocus(FocusNode()),
               icon: Icon(Icons.add_comment_rounded, color: _whiteColor),
               label: Text(
                 'Add Comment',
@@ -423,6 +422,7 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
+                elevation: 2,
               ),
             ),
           ],
@@ -445,6 +445,12 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
             offset: const Offset(0, -3),
           ),
         ],
+        border: Border(
+          top: BorderSide(
+            color: _lightGrey,
+            width: 1.0,
+          ),
+        ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SafeArea(
@@ -456,7 +462,7 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
                 decoration: BoxDecoration(
                   color: _lightGrey,
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: _mediumGrey.withOpacity(0.3)),
+                  border: Border.all(color: _lightGrey),
                 ),
                 child: TextField(
                   controller: _commentController,
