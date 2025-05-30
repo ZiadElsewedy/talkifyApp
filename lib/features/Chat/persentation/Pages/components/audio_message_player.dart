@@ -2,6 +2,65 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:talkifyapp/features/Chat/domain/entite/message.dart';
 import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
+import 'dart:math' as math;
+
+// Custom painter for audio wave pattern
+class AudioWavePainter extends CustomPainter {
+  final Color color;
+  
+  AudioWavePainter({required this.color});
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    
+    final path = Path();
+    final height = size.height;
+    final width = size.width;
+    final centerY = height / 2;
+    
+    // Number of waves to draw
+    const int waveCount = 30;
+    final double segmentWidth = width / waveCount;
+    
+    // Start at the left of the canvas
+    path.moveTo(0, centerY);
+    
+    // Create a random but consistent wave pattern
+    final random = math.Random(42); // Fixed seed for consistent pattern
+    
+    for (int i = 0; i < waveCount; i++) {
+      // Calculate x position for this segment
+      final x = i * segmentWidth;
+      
+      // Calculate a random height for this wave bar
+      // Higher probability in the middle for aesthetic appeal
+      final double amplitude = (i > waveCount / 3 && i < 2 * waveCount / 3)
+          ? random.nextDouble() * height * 0.8
+          : random.nextDouble() * height * 0.5;
+      
+      // Draw bar up from center
+      final double topY = math.max(0, centerY - amplitude / 2);
+      final double bottomY = math.min(height, centerY + amplitude / 2);
+      
+      // Draw the vertical bar
+      canvas.drawRect(
+        Rect.fromLTRB(
+          x, 
+          topY, 
+          x + segmentWidth * 0.7, // Bar width (70% of segment)
+          bottomY
+        ),
+        paint,
+      );
+    }
+  }
+  
+  @override
+  bool shouldRepaint(AudioWavePainter oldDelegate) => color != oldDelegate.color;
+}
 
 class AudioMessagePlayer extends StatefulWidget {
   final Message message;
@@ -73,6 +132,8 @@ class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
       if (_audioPlayer.duration == null) {
         if (!mounted || _isDisposed) return;
         await _audioPlayer.setUrl(widget.message.fileUrl!);
+        // Ensure we don't loop audio
+        await _audioPlayer.setLoopMode(LoopMode.off);
       }
       
       // Get the duration
@@ -92,7 +153,9 @@ class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
           _isPlaying = state.playing;
           if (state.processingState == ProcessingState.completed) {
             _position = Duration.zero;
+            // Don't automatically restart playback - just reset position
             if (!_isDisposed) {
+              _audioPlayer.pause();
               _audioPlayer.seek(Duration.zero);
             }
           }
@@ -116,6 +179,8 @@ class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
     if (_isPlaying) {
       await _audioPlayer.pause();
     } else {
+      // Pause all other players before playing this one
+      await _audioHandler.pauseAllExcept(widget.message.id);
       await _audioPlayer.play();
     }
   }
@@ -129,30 +194,42 @@ class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
   
   @override
   Widget build(BuildContext context) {
+    // Update to black and white color scheme
+    final primaryColor = widget.isCurrentUser ? Colors.white : Colors.black;
+    final bubbleColor = widget.isCurrentUser ? Colors.black : Colors.white;
+    final textColor = widget.isCurrentUser ? Colors.white : Colors.black;
+    final secondaryTextColor = widget.isCurrentUser ? Colors.white70 : Colors.black54;
+    final borderColor = widget.isCurrentUser ? Colors.transparent : Colors.grey[300];
+    
     return Container(
       width: 250,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: widget.isCurrentUser ? Colors.black : Colors.grey[200],
+        color: bubbleColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: borderColor ?? Colors.transparent,
+          width: widget.isCurrentUser ? 0 : 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.music_note,
+              Icon(
+                Icons.mic,
                 size: 16,
-                color: Colors.grey,
+                color: secondaryTextColor,
               ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  'Voice Note',
+                  'Voice Message',
                   style: TextStyle(
                     fontSize: 12,
-                    color: widget.isCurrentUser ? Colors.white70 : Colors.grey[600],
+                    color: secondaryTextColor,
+                    fontWeight: FontWeight.w500,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -163,60 +240,88 @@ class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
           const SizedBox(height: 8),
           Row(
             children: [
-              IconButton(
-                icon: Icon(
-                  _isLoading
-                      ? Icons.hourglass_empty
-                      : _isPlaying
-                          ? Icons.pause_circle_filled
-                          : Icons.play_circle_filled,
-                  color: widget.isCurrentUser ? Colors.white : Colors.black,
-                  size: 32,
+              // Play/Pause button with waveform animation effect when playing
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _isLoading ? null : _playPause,
+                  customBorder: const CircleBorder(),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      _isLoading
+                          ? Icons.hourglass_empty
+                          : _isPlaying
+                              ? Icons.pause_circle_filled
+                              : Icons.play_circle_filled,
+                      color: primaryColor,
+                      size: 32,
+                    ),
+                  ),
                 ),
-                onPressed: _isLoading ? null : _playPause,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SliderTheme(
-                      data: SliderThemeData(
-                        trackHeight: 4,
-                        thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 6,
+                    // WhatsApp-style waveform slider with custom wave design
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Audio wave pattern background
+                        Container(
+                          height: 24,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: CustomPaint(
+                              size: Size(double.infinity, 24),
+                              painter: AudioWavePainter(
+                                color: widget.isCurrentUser 
+                                    ? Colors.white.withOpacity(0.2) 
+                                    : Colors.grey.withOpacity(0.2),
+                              ),
+                            ),
+                          ),
                         ),
-                        overlayShape: const RoundSliderOverlayShape(
-                          overlayRadius: 10,
+                        // Slider on top of wave pattern
+                        SliderTheme(
+                          data: SliderThemeData(
+                            trackHeight: 2,
+                            thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 5,
+                            ),
+                            overlayShape: const RoundSliderOverlayShape(
+                              overlayRadius: 8,
+                            ),
+                            activeTrackColor: primaryColor,
+                            inactiveTrackColor: widget.isCurrentUser 
+                                ? Colors.white24 
+                                : Colors.grey[300],
+                            thumbColor: primaryColor,
+                            overlayColor: primaryColor.withOpacity(0.2),
+                          ),
+                          child: Slider(
+                            value: _position.inMilliseconds.toDouble(),
+                            min: 0.0,
+                            max: _duration.inMilliseconds.toDouble() > 0 
+                                ? _duration.inMilliseconds.toDouble() 
+                                : 1.0,
+                            onChanged: (value) {
+                              if (!_isLoading && !_isDisposed) {
+                                _audioPlayer.seek(
+                                  Duration(milliseconds: value.toInt()),
+                                );
+                              }
+                            },
+                          ),
                         ),
-                        activeTrackColor: widget.isCurrentUser 
-                            ? Colors.white 
-                            : Colors.black,
-                        inactiveTrackColor: widget.isCurrentUser 
-                            ? Colors.white30 
-                            : Colors.grey[300],
-                        thumbColor: widget.isCurrentUser 
-                            ? Colors.white 
-                            : Colors.black,
-                        overlayColor: Colors.black12,
-                      ),
-                      child: Slider(
-                        value: _position.inMilliseconds.toDouble(),
-                        min: 0.0,
-                        max: _duration.inMilliseconds.toDouble() > 0 
-                            ? _duration.inMilliseconds.toDouble() 
-                            : 1.0,
-                        onChanged: (value) {
-                          if (!_isLoading && !_isDisposed) {
-                            _audioPlayer.seek(
-                              Duration(milliseconds: value.toInt()),
-                            );
-                          }
-                        },
-                      ),
+                      ],
                     ),
+                    const SizedBox(height: 2),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -224,18 +329,14 @@ class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
                           _formatDuration(_position),
                           style: TextStyle(
                             fontSize: 12,
-                            color: widget.isCurrentUser 
-                                ? Colors.white70 
-                                : Colors.grey[600],
+                            color: secondaryTextColor,
                           ),
                         ),
                         Text(
                           _formatDuration(_duration),
                           style: TextStyle(
                             fontSize: 12,
-                            color: widget.isCurrentUser 
-                                ? Colors.white70 
-                                : Colors.grey[600],
+                            color: secondaryTextColor,
                           ),
                         ),
                       ],
