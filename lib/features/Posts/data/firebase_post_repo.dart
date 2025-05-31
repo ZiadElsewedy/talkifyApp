@@ -714,5 +714,33 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
       throw Exception("Error fetching saved posts: $e");
     }
   }
+
+  @override
+  Future<Post?> getPostById(String postId) async {
+    try {
+      // Validate parameters
+      if (postId.isEmpty) {
+        throw Exception("Invalid parameter: postId is empty");
+      }
+      
+      // Get the post document from firestore
+      final postDoc = await postsCollection.doc(postId).get();
+      
+      if (!postDoc.exists) {
+        print('Post not found with ID: $postId');
+        return null;
+      }
+      
+      // Convert the document data to a Post object
+      final data = postDoc.data() as Map<String, dynamic>;
+      // Make sure the ID is included in the data
+      data['id'] = postId;
+      
+      return Post.fromJson(data);
+    } catch (e) {
+      print('Error fetching post by ID: $e');
+      throw Exception("Error fetching post by ID: $e");
+    }
+  }
 }
 

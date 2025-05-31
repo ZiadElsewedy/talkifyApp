@@ -11,6 +11,7 @@ import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
+import 'package:talkifyapp/features/Posts/presentation/cubits/post_sharing_service.dart';
 //import 'package:talkifyapp/features/Posts/presentation/Pages/CommentsPage.dart';
 
 import '../../Profile/presentation/Cubits/ProfileCubit.dart';
@@ -198,6 +199,27 @@ void toggleSavePost() {
       SnackBar(content: Text('Failed to save post: ${error.toString()}'))
     );
   });
+}
+
+/*
+Share Post
+*/
+
+void sharePost() {
+  // Check if user is logged in
+  if (currentUser == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please log in to share posts'))
+    );
+    return;
+  }
+  
+  // Show share dialog
+  PostSharingService.showChatSelectionDialog(
+    context: context,
+    post: widget.post,
+    currentUser: currentUser!,
+  );
 }
 
   void showDeleteConfirmation() {
@@ -820,7 +842,7 @@ void addComment() async {
             icon: CupertinoIcons.share,
             color: Colors.black87,
             count: 0,
-            onTap: () {},
+            onTap: sharePost,
           ),
           const Spacer(),
           GestureDetector(

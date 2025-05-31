@@ -24,4 +24,7 @@ abstract class PostRepo {
   // Save post functionality
   Future<void> toggleSavePost(String postId, String userId);
   Future<List<Post>> fetchSavedPosts(String userId);
+  
+  // Get a specific post by ID
+  Future<Post?> getPostById(String postId);
 }

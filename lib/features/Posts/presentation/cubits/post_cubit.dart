@@ -290,4 +290,15 @@ Future<void> fetchSavedPosts(String userId) async {
     emit(PostsError('Failed to fetch saved posts: $e'));
   }
 }
+
+// Get a specific post by ID
+Future<Post?> getPostById(String postId) async {
+  try {
+    final post = await postRepo.getPostById(postId);
+    return post;
+  } catch (e) {
+    print('Error fetching post by ID: $e');
+    throw Exception('Failed to fetch post: $e');
+  }
+}
 }
