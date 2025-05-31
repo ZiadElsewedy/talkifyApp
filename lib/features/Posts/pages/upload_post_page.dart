@@ -136,6 +136,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
         timestamp: DateTime.now(),
         likes: [],
         comments: [],
+        savedBy: [],
     );
 
 

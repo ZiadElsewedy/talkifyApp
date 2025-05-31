@@ -11,6 +11,7 @@ class Post{
   final DateTime timestamp;
   final List<String> likes; // store user id who liked the post
   final List<Comments> comments;
+  final List<String> savedBy; // store user ids who saved the post
   Post({
     required this.id,
     required this.UserId,
@@ -21,6 +22,7 @@ class Post{
     required this.timestamp,
     required this.likes,
     required this.comments,
+    required this.savedBy,
   });
 
   // if u need change anything in this post
@@ -35,6 +37,7 @@ class Post{
       timestamp: timestamp,
       likes: likes,
       comments: comments,
+      savedBy: savedBy,
     );
   }
 
@@ -50,6 +53,7 @@ class Post{
       "timestamp": timestamp,
       "likes": likes,
       "comments": comments.map((comment) => comment.toJson()).toList(),
+      "savedBy": savedBy,
     };
   }
 
@@ -70,6 +74,7 @@ class Post{
       timestamp: (json["timestamp"] as Timestamp).toDate(),
       likes: List<String>.from(json["likes"] ?? []),
       comments: comments,
+      savedBy: List<String>.from(json["savedBy"] ?? []),
     );
   }
 }

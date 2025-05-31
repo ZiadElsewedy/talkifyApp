@@ -25,6 +25,7 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
         timestamp: post.timestamp,
         likes: post.likes,
         comments: post.comments,
+        savedBy: post.savedBy,
       );
       // Set the document with the post data
       await docRef.set(postWithId.toJson());
@@ -627,6 +628,90 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
     } catch (e) {
       print('Error toggling reply like: $e');
       throw Exception("Error toggling reply like: $e");
+    }
+  }
+
+  @override
+  Future<void> toggleSavePost(String postId, String userId) async {
+    try {
+      // Get the post document
+      final postDoc = await postsCollection.doc(postId).get();
+      
+      if (!postDoc.exists) {
+        throw Exception("Post not found with ID: $postId");
+      }
+      
+      final data = postDoc.data() as Map<String, dynamic>;
+      
+      // Create a list of saved users if it doesn't exist
+      List<String> savedBy = List<String>.from(data['savedBy'] ?? []);
+      
+      // Toggle the save status
+      if (savedBy.contains(userId)) {
+        // Unsave the post
+        savedBy.remove(userId);
+        print('Removed post $postId from saved by user $userId');
+      } else {
+        // Save the post
+        savedBy.add(userId);
+        print('Added post $postId to saved by user $userId');
+      }
+      
+      // Update the post document with the new savedBy list
+      await postsCollection.doc(postId).update({
+        'savedBy': savedBy,
+      });
+      
+      // Also update user's saved posts collection for faster retrieval
+      final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+      
+      if (savedBy.contains(userId)) {
+        // Add to saved collection
+        await userRef.collection('savedPosts').doc(postId).set({
+          'savedAt': FieldValue.serverTimestamp(),
+          'postId': postId
+        });
+      } else {
+        // Remove from saved collection
+        await userRef.collection('savedPosts').doc(postId).delete();
+      }
+      
+    } catch (e) {
+      print('Error toggling save post: $e');
+      throw Exception("Error toggling save post: $e");
+    }
+  }
+  
+  @override
+  Future<List<Post>> fetchSavedPosts(String userId) async {
+    try {
+      // Get the user's saved posts collection
+      final savedPostsSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('savedPosts')
+          .orderBy('savedAt', descending: true)
+          .get();
+      
+      if (savedPostsSnapshot.docs.isEmpty) {
+        return [];
+      }
+      
+      // Extract post IDs
+      final savedPostIds = savedPostsSnapshot.docs.map((doc) => doc.id).toList();
+      
+      // Fetch all posts
+      final allPosts = await fetechAllPosts();
+      
+      // Filter to only include saved posts
+      final savedPosts = allPosts.where((post) => 
+        savedPostIds.contains(post.id)
+      ).toList();
+      
+      return savedPosts;
+    } catch (e) {
+      print('Error fetching saved posts: $e');
+      throw Exception("Error fetching saved posts: $e");
     }
   }
 }

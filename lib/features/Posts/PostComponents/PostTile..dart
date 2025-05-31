@@ -150,6 +150,56 @@ void toggleLikePost(){
   });
 }
 
+/*
+Save Post
+*/
+
+// user tapped save button
+void toggleSavePost() {
+  // Check if user is logged in
+  if (currentUser == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please log in to save posts'))
+    );
+    return;
+  }
+
+  // current save status
+  final isSaved = widget.post.savedBy.contains(currentUser!.id);
+
+  // optimistically save & update UI
+  setState(() {
+    if (isSaved) {
+      widget.post.savedBy.remove(currentUser!.id); // unsave
+    } else {
+      widget.post.savedBy.add(currentUser!.id); // save
+      // Add a nice animation when saving
+      _scaleAnimationController.forward().then((_) {
+        _scaleAnimationController.reverse();
+      });
+    }
+  });
+
+  // update save in database
+  postCubit.toggleSavePostLocal(widget.post.id, currentUser!.id).catchError((error) {
+    print('Error toggling save: $error');
+    
+    // if there's an error, revert back to original values
+    setState(() {
+      if (isSaved) {
+        widget.post.savedBy.add(currentUser!.id); // revert unsave
+      } else {
+        widget.post.savedBy.remove(currentUser!.id); // revert save
+      }
+    });
+    
+    // Show error to user
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to save post: ${error.toString()}'))
+    );
+  });
+}
+
   void showDeleteConfirmation() {
     showDialog(
       context: context,
@@ -733,6 +783,7 @@ void addComment() async {
 
   Widget _buildActionBar() {
     final isLiked = widget.post.likes.contains(currentUser?.id);
+    final isSaved = widget.post.savedBy.contains(currentUser?.id);
     
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -772,30 +823,36 @@ void addComment() async {
             onTap: () {},
           ),
           const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.grey.shade300, width: 1),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.bookmark_border,
-                  size: 16,
-                  color: Colors.black87,
+          GestureDetector(
+            onTap: toggleSavePost,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSaved ? Colors.blue.shade50 : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSaved ? Colors.blue.shade300 : Colors.grey.shade300, 
+                  width: 1
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  'Save',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isSaved ? Icons.bookmark : Icons.bookmark_border,
+                    size: 16,
+                    color: isSaved ? Colors.blue.shade700 : Colors.black87,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 4),
+                  Text(
+                    isSaved ? 'Saved' : 'Save',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isSaved ? Colors.blue.shade700 : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

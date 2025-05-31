@@ -257,4 +257,37 @@ Future<void> toggleLikeReplyLocal(String postId, String commentId, String replyI
     throw Exception('Failed to like reply: $e');
   }
 }
+
+// Save/unsave post
+Future<void> toggleSavePost(String postId, String userId) async {
+  try {
+    await postRepo.toggleSavePost(postId, userId);
+    // Refresh posts to update UI
+    await fetechAllPosts();
+  } catch (e) {
+    emit(PostsError('Failed to save/unsave post: $e'));
+  }
+}
+
+// Toggle save post without refreshing the entire list
+Future<void> toggleSavePostLocal(String postId, String userId) async {
+  try {
+    await postRepo.toggleSavePost(postId, userId);
+    // Don't refresh posts - UI will handle the update
+  } catch (e) {
+    // Just throw the error to be handled by the UI
+    throw Exception('Failed to save/unsave post: $e');
+  }
+}
+
+// Fetch saved posts
+Future<void> fetchSavedPosts(String userId) async {
+  try {
+    emit(PostsLoading());
+    final posts = await postRepo.fetchSavedPosts(userId);
+    emit(PostsLoaded(posts));
+  } catch (e) {
+    emit(PostsError('Failed to fetch saved posts: $e'));
+  }
+}
 }

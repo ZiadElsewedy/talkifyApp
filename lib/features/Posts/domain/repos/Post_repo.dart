@@ -20,4 +20,8 @@ abstract class PostRepo {
   Future<void> addReplyToComment(String postId, String commentId, String userId, String userName, String profilePicture, String content);
   Future<void> deleteReply(String postId, String commentId, String replyId);
   Future<void> toggleLikeReply(String postId, String commentId, String replyId, String userId);
+  
+  // Save post functionality
+  Future<void> toggleSavePost(String postId, String userId);
+  Future<List<Post>> fetchSavedPosts(String userId);
 }
