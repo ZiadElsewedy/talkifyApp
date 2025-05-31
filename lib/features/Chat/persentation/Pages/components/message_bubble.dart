@@ -4,7 +4,11 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:talkifyapp/features/Chat/domain/entite/message.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/components/SharedPostPreview.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/user_profile_page.dart';
+import 'package:talkifyapp/features/Posts/PostComponents/PostTile..dart';
+import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
+import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 
 class MessageBubble extends StatelessWidget {
   final Message message;
@@ -322,6 +326,141 @@ class MessageBubble extends StatelessWidget {
   }
 
   Widget _buildMessageContent(BuildContext context) {
+    // Check if this is a shared post message
+    bool isSharedPost = message.replyToMessageId != null && 
+                        message.replyToMessageId!.startsWith("post:") &&
+                        (message.metadata != null && message.metadata!['sharedType'] == 'post');
+    
+    // Handle shared post that includes image (direct sharing with image)
+    if (message.type == MessageType.image && message.metadata != null && message.metadata!['sharedType'] == 'post') {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Message caption
+          if (message.content.isNotEmpty && message.content != message.fileName)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                message.content,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isFromCurrentUser ? Colors.white : Colors.black87,
+                ),
+              ),
+            ),
+          
+          // Post image
+          if (message.fileUrl != null)
+            GestureDetector(
+              onTap: () => _showFullScreenImage(context, message.fileUrl!),
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: 250,
+                  maxWidth: 300,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: CachedNetworkImage(
+                    imageUrl: message.fileUrl!,
+                    placeholder: (context, url) => Container(
+                      height: 200,
+                      width: double.infinity,
+                      color: Colors.grey[300],
+                      child: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      height: 200,
+                      width: double.infinity,
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.error),
+                    ),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+          
+          // Compact post info footer
+          Container(
+            margin: EdgeInsets.only(top: 6),
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isFromCurrentUser ? Colors.black.withOpacity(0.2) : Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.account_circle,
+                  size: 12,
+                  color: isFromCurrentUser ? Colors.white70 : Colors.grey.shade700,
+                ),
+                SizedBox(width: 4),
+                Text(
+                  message.metadata!['postUserName'] ?? 'Post',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: isFromCurrentUser ? Colors.white70 : Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+    
+    // Handle shared post as text message with SharedPostPreview (old method)
+    if (message.replyToMessageId != null && message.replyToMessageId!.startsWith("post:")) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Show the message text first
+          Text(
+            message.content,
+            style: TextStyle(
+              fontSize: 16,
+              color: isFromCurrentUser
+                  ? Colors.white
+                  : Colors.black87,
+            ),
+          ),
+          
+          // Show the shared post preview
+          SizedBox(height: 8),
+          SharedPostPreview(
+            postId: message.replyToMessageId!,
+            onTap: () async {
+              // Extract post ID
+              String postId = message.replyToMessageId!;
+              if (postId.startsWith("post:")) {
+                postId = postId.substring(5);
+              }
+              
+              // Get post and show in a dialog
+              try {
+                final postCubit = context.read<PostCubit>();
+                final post = await postCubit.getPostById(postId);
+                
+                if (post != null) {
+                  _showPostDialog(context, post);
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed to load post: $e')),
+                );
+              }
+            },
+          ),
+        ],
+      );
+    }
+    
+    // Handle regular message types
     switch (message.type) {
       case MessageType.text:
         return Text(
@@ -359,13 +498,97 @@ class MessageBubble extends StatelessWidget {
     }
   }
 
+  void _showPostDialog(BuildContext context, Post post) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          width: double.maxFinite,
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header with close button
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Shared Post',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Spacer(),
+                      IconButton(
+                        icon: Icon(Icons.close),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(),
+                // Post tile in a scrollable container
+                Flexible(
+                  child: SingleChildScrollView(
+                    physics: BouncingScrollPhysics(),
+                    child: PostTile(post: post),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildImageMessage(BuildContext context) {
+    // Check if this is a shared post image
+    bool isSharedPost = message.metadata != null && message.metadata!['sharedType'] == 'post';
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (message.fileUrl != null)
           GestureDetector(
-            onTap: () => _showFullScreenImage(context, message.fileUrl!),
+            onTap: isSharedPost 
+                ? () async {
+                    // Extract post ID
+                    String postId = '';
+                    if (message.replyToMessageId != null && message.replyToMessageId!.startsWith("post:")) {
+                      postId = message.replyToMessageId!.substring(5);
+                    } else if (message.metadata != null && message.metadata!['postId'] != null) {
+                      postId = message.metadata!['postId'];
+                    }
+                    
+                    if (postId.isNotEmpty) {
+                      // Get post and show in a dialog
+                      try {
+                        final postCubit = context.read<PostCubit>();
+                        final post = await postCubit.getPostById(postId);
+                        
+                        if (post != null) {
+                          _showPostDialog(context, post);
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to load post: $e')),
+                        );
+                      }
+                    } else {
+                      // If can't determine post ID, just show the image
+                      _showFullScreenImage(context, message.fileUrl!);
+                    }
+                  }
+                : () => _showFullScreenImage(context, message.fileUrl!),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: CachedNetworkImage(

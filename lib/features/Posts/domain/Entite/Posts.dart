@@ -11,6 +11,9 @@ class Post{
   final DateTime timestamp;
   final List<String> likes; // store user id who liked the post
   final List<Comments> comments;
+  final List<String> savedBy; // store user ids who saved the post
+  final int shareCount; // track number of times post was shared
+  
   Post({
     required this.id,
     required this.UserId,
@@ -21,10 +24,15 @@ class Post{
     required this.timestamp,
     required this.likes,
     required this.comments,
+    required this.savedBy,
+    this.shareCount = 0,
   });
 
   // if u need change anything in this post
-  Post copyWith({String? imageUrl}){
+  Post copyWith({
+    String? imageUrl,
+    int? shareCount,
+  }){
     return Post(
       id: id,
       UserId: UserId,
@@ -35,6 +43,8 @@ class Post{
       timestamp: timestamp,
       likes: likes,
       comments: comments,
+      savedBy: savedBy,
+      shareCount: shareCount ?? this.shareCount,
     );
   }
 
@@ -50,6 +60,8 @@ class Post{
       "timestamp": timestamp,
       "likes": likes,
       "comments": comments.map((comment) => comment.toJson()).toList(),
+      "savedBy": savedBy,
+      "shareCount": shareCount,
     };
   }
 
@@ -70,6 +82,8 @@ class Post{
       timestamp: (json["timestamp"] as Timestamp).toDate(),
       likes: List<String>.from(json["likes"] ?? []),
       comments: comments,
+      savedBy: List<String>.from(json["savedBy"] ?? []),
+      shareCount: json["shareCount"] as int? ?? 0,
     );
   }
 }

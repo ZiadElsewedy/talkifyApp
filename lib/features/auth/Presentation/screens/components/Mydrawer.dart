@@ -11,6 +11,7 @@ import 'package:talkifyapp/features/auth/Presentation/screens/components/MyDrawe
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/About/AboutPage.dart';
+import 'package:talkifyapp/features/Posts/pages/SavedPostsPage.dart';
 
 class MyDrawer extends StatefulWidget {
   const MyDrawer({super.key});
@@ -84,6 +85,18 @@ class _MyDrawerState extends State<MyDrawer> {
                   ).then((_) {
                     refreshProfile();
                   });
+                },
+              ),
+              MyDrawerTile(
+                icon: Icons.bookmark,
+                title: 'S A V E D   P O S T S',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const SavedPostsPage(),
+                    ),
+                  );
                 },
               ),
               MyDrawerTile(

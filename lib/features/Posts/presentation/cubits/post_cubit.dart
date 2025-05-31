@@ -163,4 +163,153 @@ Future<void> updatePostCaption(String postId, String newCaption) async {
     emit(PostsError('Failed to update caption: $e'));
   }
 }
+
+// COMMENT LIKES AND REPLIES
+
+// Toggle like on a comment
+Future<void> toggleLikeComment(String postId, String commentId, String userId) async {
+  try {
+    await postRepo.toggleLikeComment(postId, commentId, userId);
+    await fetechAllPosts();
+  } catch (e) {
+    emit(PostsError('Failed to like comment: $e'));
+  }
+}
+
+// Add a reply to a comment
+Future<void> addReplyToComment(String postId, String commentId, String userId, String userName, String profilePicture, String content) async {
+  try {
+    await postRepo.addReplyToComment(postId, commentId, userId, userName, profilePicture, content);
+    await fetechAllPosts();
+  } catch (e) {
+    emit(PostsError('Failed to add reply: $e'));
+  }
+}
+
+// Delete a reply
+Future<void> deleteReply(String postId, String commentId, String replyId) async {
+  try {
+    await postRepo.deleteReply(postId, commentId, replyId);
+    await fetechAllPosts();
+  } catch (e) {
+    emit(PostsError('Failed to delete reply: $e'));
+  }
+}
+
+// Toggle like on a reply
+Future<void> toggleLikeReply(String postId, String commentId, String replyId, String userId) async {
+  try {
+    await postRepo.toggleLikeReply(postId, commentId, replyId, userId);
+    await fetechAllPosts();
+  } catch (e) {
+    emit(PostsError('Failed to like reply: $e'));
+  }
+}
+
+// Local versions that don't refresh the entire post list
+
+// Toggle like on a comment without refreshing
+Future<void> toggleLikeCommentLocal(String postId, String commentId, String userId) async {
+  try {
+    await postRepo.toggleLikeComment(postId, commentId, userId);
+    // Don't emit a loading state or fetch all posts
+  } catch (e) {
+    // Just throw the error to be handled by the UI
+    throw Exception('Failed to like comment: $e');
+  }
+}
+
+// Add a reply to a comment without refreshing
+Future<void> addReplyToCommentLocal(String postId, String commentId, String userId, String userName, String profilePicture, String content) async {
+  try {
+    await postRepo.addReplyToComment(postId, commentId, userId, userName, profilePicture, content);
+    // Don't emit a loading state or fetch all posts
+  } catch (e) {
+    // Just throw the error to be handled by the UI
+    throw Exception('Failed to add reply: $e');
+  }
+}
+
+// Delete a reply without refreshing
+Future<void> deleteReplyLocal(String postId, String commentId, String replyId) async {
+  try {
+    await postRepo.deleteReply(postId, commentId, replyId);
+    // Don't emit a loading state or fetch all posts
+  } catch (e) {
+    // Just throw the error to be handled by the UI
+    throw Exception('Failed to delete reply: $e');
+  }
+}
+
+// Toggle like on a reply without refreshing
+Future<void> toggleLikeReplyLocal(String postId, String commentId, String replyId, String userId) async {
+  try {
+    print('PostCubit: Attempting to toggle like for reply: $replyId');
+    if (postId.isEmpty || commentId.isEmpty || replyId.isEmpty || userId.isEmpty) {
+      throw Exception("Invalid parameters: missing required IDs");
+    }
+    
+    await postRepo.toggleLikeReply(postId, commentId, replyId, userId);
+    print('PostCubit: Successfully toggled like for reply: $replyId');
+  } catch (e) {
+    print('PostCubit: Error toggling like for reply: $e');
+    // Rethrow with a clearer message for the UI
+    throw Exception('Failed to like reply: $e');
+  }
+}
+
+// Save/unsave post
+Future<void> toggleSavePost(String postId, String userId) async {
+  try {
+    await postRepo.toggleSavePost(postId, userId);
+    // Refresh posts to update UI
+    await fetechAllPosts();
+  } catch (e) {
+    emit(PostsError('Failed to save/unsave post: $e'));
+  }
+}
+
+// Toggle save post without refreshing the entire list
+Future<void> toggleSavePostLocal(String postId, String userId) async {
+  try {
+    await postRepo.toggleSavePost(postId, userId);
+    // Don't refresh posts - UI will handle the update
+  } catch (e) {
+    // Just throw the error to be handled by the UI
+    throw Exception('Failed to save/unsave post: $e');
+  }
+}
+
+// Fetch saved posts
+Future<void> fetchSavedPosts(String userId) async {
+  try {
+    emit(PostsLoading());
+    final posts = await postRepo.fetchSavedPosts(userId);
+    emit(PostsLoaded(posts));
+  } catch (e) {
+    emit(PostsError('Failed to fetch saved posts: $e'));
+  }
+}
+
+// Get a specific post by ID
+Future<Post?> getPostById(String postId) async {
+  try {
+    final post = await postRepo.getPostById(postId);
+    return post;
+  } catch (e) {
+    print('Error fetching post by ID: $e');
+    throw Exception('Failed to fetch post: $e');
+  }
+}
+
+// Increment share count for a post
+Future<void> incrementShareCount(String postId) async {
+  try {
+    await postRepo.incrementShareCount(postId);
+    // No need to refresh the entire post list for a share count update
+  } catch (e) {
+    print('Error incrementing share count: $e');
+    // Don't emit error state to avoid disrupting the UI flow
+  }
+}
 }

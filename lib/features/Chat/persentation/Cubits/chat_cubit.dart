@@ -178,14 +178,20 @@ class ChatCubit extends Cubit<ChatState> {
   }) async {
     emit(UploadingMedia());
     try {
-      // Upload media first
-      final fileUrl = await chatRepo.uploadChatMedia(
-        filePath: filePath,
-        chatRoomId: chatRoomId,
-        fileName: fileName,
-      );
-
-      emit(MediaUploaded(fileUrl, fileName));
+      // If the file path is already a URL (starting with http/https), don't upload again
+      String fileUrl;
+      if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+        fileUrl = filePath;
+        emit(MediaUploaded(fileUrl, fileName));
+      } else {
+        // Upload media first
+        fileUrl = await chatRepo.uploadChatMedia(
+          filePath: filePath,
+          chatRoomId: chatRoomId,
+          fileName: fileName,
+        );
+        emit(MediaUploaded(fileUrl, fileName));
+      }
 
       // Then send message with media URL
       emit(SendingMessage());
@@ -205,6 +211,40 @@ class ChatCubit extends Cubit<ChatState> {
       emit(MessageSent(message));
     } catch (e) {
       emit(MediaUploadError('Failed to send media: $e'));
+    }
+  }
+
+  // Send a message with an existing media URL (for sharing content)
+  Future<void> sendMediaUrlMessage({
+    required String chatRoomId,
+    required String senderId,
+    required String senderName,
+    required String senderAvatar,
+    required String mediaUrl,
+    required String displayName,
+    required MessageType type,
+    required String content,
+    String? replyToMessageId,
+    Map<String, dynamic>? metadata,
+  }) async {
+    emit(SendingMessage());
+    try {
+      final message = await chatRepo.sendMessage(
+        chatRoomId: chatRoomId,
+        senderId: senderId,
+        senderName: senderName,
+        senderAvatar: senderAvatar,
+        content: content,
+        type: type,
+        fileUrl: mediaUrl,
+        fileName: displayName,
+        replyToMessageId: replyToMessageId,
+        metadata: metadata,
+      );
+      print('ChatCubit: Media URL message sent: ${message.id}');
+      emit(MessageSent(message));
+    } catch (e) {
+      emit(SendMessageError('Failed to send media message: $e'));
     }
   }
 
