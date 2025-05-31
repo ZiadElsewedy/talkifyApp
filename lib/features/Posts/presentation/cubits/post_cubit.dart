@@ -301,4 +301,15 @@ Future<Post?> getPostById(String postId) async {
     throw Exception('Failed to fetch post: $e');
   }
 }
+
+// Increment share count for a post
+Future<void> incrementShareCount(String postId) async {
+  try {
+    await postRepo.incrementShareCount(postId);
+    // No need to refresh the entire post list for a share count update
+  } catch (e) {
+    print('Error incrementing share count: $e');
+    // Don't emit error state to avoid disrupting the UI flow
+  }
+}
 }

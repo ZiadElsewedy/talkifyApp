@@ -742,5 +742,33 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
       throw Exception("Error fetching post by ID: $e");
     }
   }
+
+  @override
+  Future<void> incrementShareCount(String postId) async {
+    try {
+      // Reference to the post document
+      final postRef = postsCollection.doc(postId);
+      
+      // Get the current post data
+      final postDoc = await postRef.get();
+      if (!postDoc.exists) {
+        throw Exception('Post not found');
+      }
+      
+      // Get current share count (default to 0 if not present)
+      final currentData = postDoc.data() as Map<String, dynamic>;
+      final currentShareCount = currentData['shareCount'] as int? ?? 0;
+      
+      // Increment the share count
+      await postRef.update({
+        'shareCount': currentShareCount + 1
+      });
+      
+      print('Share count for post $postId increased to ${currentShareCount + 1}');
+    } catch (e) {
+      print('Error incrementing share count: $e');
+      throw Exception('Error incrementing share count: $e');
+    }
+  }
 }
 

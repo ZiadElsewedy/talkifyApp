@@ -27,4 +27,7 @@ abstract class PostRepo {
   
   // Get a specific post by ID
   Future<Post?> getPostById(String postId);
+
+  // Add increment share count to the interface
+  Future<void> incrementShareCount(String postId);
 }
