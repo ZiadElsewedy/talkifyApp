@@ -1,6 +1,9 @@
 // this code for drawer 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/News/Data/news_repository_impl.dart';
+import 'package:talkifyapp/features/News/Presentation/Cubit/news_cubit.dart';
+import 'package:talkifyapp/features/News/Presentation/pages/news_page.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/ProfilePicFunction.dart';
 import 'package:talkifyapp/features/Search/Presentation/SearchPage.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/chat_list_page.dart';
@@ -85,6 +88,28 @@ class _MyDrawerState extends State<MyDrawer> {
                   ).then((_) {
                     refreshProfile();
                   });
+                },
+              ),
+              MyDrawerTile(
+                icon: Icons.newspaper,
+                title: 'N E W S',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  
+                  // Create the NewsRepositoryImpl instance
+                  final newsRepository = NewsRepositoryImpl();
+                  
+                  // Navigate to the NewsPage with NewsCubit provider
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => BlocProvider(
+                        create: (context) => NewsCubit(
+                          newsRepository: newsRepository,
+                        ),
+                        child: const NewsPage(),
+                      ),
+                    ),
+                  );
                 },
               ),
               MyDrawerTile(
