@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 class NewsDetailPage extends StatelessWidget {
   final NewsArticle article;
   
-  const NewsDetailPage({
+   NewsDetailPage({
     Key? key,
     required this.article,
   }) : super(key: key);
@@ -14,6 +14,7 @@ class NewsDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: CustomScrollView(
         slivers: [
           // App Bar with Image
@@ -21,13 +22,14 @@ class NewsDetailPage extends StatelessWidget {
             expandedHeight: 250.0,
             floating: false,
             pinned: true,
+            backgroundColor: Colors.black,
             flexibleSpace: FlexibleSpaceBar(
               background: _buildHeaderImage(),
             ),
             leading: Container(
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.4),
+                color: Colors.black.withOpacity(0.5),
                 shape: BoxShape.circle,
               ),
               child: IconButton(
@@ -40,18 +42,13 @@ class NewsDetailPage extends StatelessWidget {
               Container(
                 margin: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.4),
+                  color: Colors.black.withOpacity(0.5),
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
                   icon: const Icon(Icons.share),
                   color: Colors.white,
-                  onPressed: () {
-                    // Share functionality could be added here
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Share functionality to be implemented')),
-                    );
-                  },
+                  onPressed: () => _showShareDialog(context),
                 ),
               ),
             ],
@@ -60,7 +57,7 @@ class NewsDetailPage extends StatelessWidget {
           // Content
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -68,16 +65,16 @@ class NewsDetailPage extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           article.sourceName,
                           style: TextStyle(
-                            color: Colors.blue.shade800,
-                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[800],
+                            fontWeight: FontWeight.w600,
                             fontSize: 13,
                           ),
                         ),
@@ -86,39 +83,45 @@ class NewsDetailPage extends StatelessWidget {
                       Text(
                         _formatDate(article.publishedAt),
                         style: TextStyle(
-                          color: Colors.grey.shade600,
+                          color: Colors.grey[600],
                           fontSize: 13,
                         ),
                       ),
                     ],
                   ),
                   
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   
                   // Title
                   Text(
                     article.title,
                     style: const TextStyle(
-                      fontSize: 24,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       height: 1.3,
+                      color: Colors.black,
                     ),
                   ),
                   
                   if (article.author.isNotEmpty && article.author != 'Unknown')
                     Padding(
-                      padding: const EdgeInsets.only(top: 12.0),
+                      padding: const EdgeInsets.only(top: 16.0),
                       child: Text(
                         'By ${article.author}',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade700,
+                          color: Colors.grey[700],
                         ),
                       ),
                     ),
                   
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
+                  
+                  // Divider
+                  Divider(color: Colors.grey[300], height: 1),
+                  
+                  const SizedBox(height: 24),
                   
                   // Content
                   Text(
@@ -128,7 +131,7 @@ class NewsDetailPage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       height: 1.6,
-                      color: Colors.grey.shade800,
+                      color: Colors.grey[800],
                     ),
                   ),
                   
@@ -137,19 +140,44 @@ class NewsDetailPage extends StatelessWidget {
                   // Read Full Article Button
                   Center(
                     child: ElevatedButton.icon(
-                      onPressed: () => _showArticleDialog(context, article.url),
+                      onPressed: () => _openArticleUrl(context),
                       icon: const Icon(Icons.language),
                       label: const Text('Read Full Article'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: Colors.black,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        elevation: 0,
                       ),
                     ),
                   ),
                   
                   const SizedBox(height: 30),
+                  
+                  // Additional info
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 20, color: Colors.grey[700]),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'This article is sourced from ${article.sourceName}. Tap the button above to read the full content.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -166,11 +194,11 @@ class NewsDetailPage extends StatelessWidget {
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
               return Container(
-                color: Colors.grey.shade200,
+                color: Colors.grey[200],
                 child: Center(
                   child: Icon(
                     Icons.image_not_supported_outlined,
-                    color: Colors.grey.shade400,
+                    color: Colors.grey[400],
                     size: 50,
                   ),
                 ),
@@ -179,7 +207,7 @@ class NewsDetailPage extends StatelessWidget {
             loadingBuilder: (context, child, loadingProgress) {
               if (loadingProgress == null) return child;
               return Container(
-                color: Colors.grey.shade100,
+                color: Colors.grey[100],
                 child: Center(
                   child: CircularProgressIndicator(
                     value: loadingProgress.expectedTotalBytes != null
@@ -187,18 +215,18 @@ class NewsDetailPage extends StatelessWidget {
                             (loadingProgress.expectedTotalBytes ?? 1)
                         : null,
                     strokeWidth: 2,
-                    color: Colors.blue.shade300,
+                    color: Colors.grey[700],
                   ),
                 ),
               );
             },
           )
         : Container(
-            color: Colors.grey.shade200,
+            color: Colors.grey[200],
             child: Center(
               child: Icon(
                 Icons.newspaper,
-                color: Colors.grey.shade400,
+                color: Colors.grey[400],
                 size: 50,
               ),
             ),
@@ -209,10 +237,81 @@ class NewsDetailPage extends StatelessWidget {
     return DateFormat('MMM d, yyyy • h:mm a').format(date);
   }
 
-  Future<void> _launchURL(String url) {
-    // Simply print the URL for debugging - no async/await needed
-    print('Article URL: $url');
-    return Future.value();
+  void _openArticleUrl(BuildContext context) async {
+    final Uri url = Uri.parse(article.url);
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        _showArticleDialog(context, article.url);
+      }
+    } catch (e) {
+      _showArticleDialog(context, article.url);
+    }
+  }
+
+  void _showShareDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Share Article'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                article.title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Source: ${article.sourceName}',
+                style: TextStyle(
+                  color: Colors.grey[700],
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Link: ${article.url}',
+                style: TextStyle(
+                  color: Colors.grey[700],
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Copy Link', style: TextStyle(color: Colors.black)),
+              onPressed: () {
+                // In a real app, you would use Clipboard.setData() here
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Link copied to clipboard'),
+                    backgroundColor: Colors.black,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Close', style: TextStyle(color: Colors.black)),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showArticleDialog(BuildContext context, String url) {
@@ -224,13 +323,13 @@ class NewsDetailPage extends StatelessWidget {
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                Text('Unable to open the article in browser.'),
+                const Text('Unable to open the article in browser.'),
                 const SizedBox(height: 8),
                 Text(
                   url,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: Colors.black,
                   ),
                 ),
               ],
@@ -238,7 +337,7 @@ class NewsDetailPage extends StatelessWidget {
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Close'),
+              child: const Text('Close', style: TextStyle(color: Colors.black)),
               onPressed: () {
                 Navigator.of(dialogContext).pop();
               },

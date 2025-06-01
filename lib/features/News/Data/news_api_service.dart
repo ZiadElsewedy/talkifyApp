@@ -9,23 +9,28 @@ class NewsApiService {
   // Fetch top headlines from Egypt
   Future<List<NewsArticle>> fetchEgyptNews() async {
     // Using 'everything' endpoint with Egypt query for better results
-    return _getNewsData('$_baseUrl/everything?q=Egypt&language=en&sortBy=publishedAt&apiKey=$_apiKey');
+    return _getNewsData('$_baseUrl/everything?q=Egypt&language=en&sortBy=publishedAt&pageSize=15&apiKey=$_apiKey');
+  }
+  
+  // Fetch breaking news about Egypt
+  Future<List<NewsArticle>> fetchEgyptBreakingNews() async {
+    return _getNewsData('$_baseUrl/everything?q=Egypt+breaking&language=en&sortBy=publishedAt&pageSize=10&apiKey=$_apiKey');
+  }
+  
+  // Fetch Egypt politics news
+  Future<List<NewsArticle>> fetchEgyptPoliticsNews() async {
+    return _getNewsData('$_baseUrl/everything?q=Egypt+politics&language=en&sortBy=publishedAt&pageSize=15&apiKey=$_apiKey');
   }
   
   // Fetch news by category in Egypt
   Future<List<NewsArticle>> fetchNewsByCategory(String category) async {
     // Combining category with Egypt for better results
-    return _getNewsData('$_baseUrl/everything?q=$category AND Egypt&language=en&sortBy=publishedAt&apiKey=$_apiKey');
+    return _getNewsData('$_baseUrl/everything?q=$category+Egypt&language=en&sortBy=publishedAt&pageSize=15&apiKey=$_apiKey');
   }
   
   // Search news with query and filter for Egypt
   Future<List<NewsArticle>> searchNews(String query) async {
-    return _getNewsData('$_baseUrl/everything?q=$query AND Egypt&language=en&sortBy=publishedAt&apiKey=$_apiKey');
-  }
-  
-  // Fetch breaking news from Egypt
-  Future<List<NewsArticle>> fetchBreakingNews() async {
-    return _getNewsData('$_baseUrl/everything?q=breaking AND Egypt&language=en&sortBy=publishedAt&apiKey=$_apiKey');
+    return _getNewsData('$_baseUrl/everything?q=$query+Egypt&language=en&sortBy=publishedAt&pageSize=15&apiKey=$_apiKey');
   }
   
   // Helper method to fetch and parse data
@@ -40,7 +45,15 @@ class NewsApiService {
         if (data['status'] == 'ok') {
           final List<dynamic> articles = data['articles'] ?? [];
           print('Received ${articles.length} articles'); // Debug log
-          return articles.map((article) => NewsArticle.fromJson(article)).toList();
+          
+          // Filter out articles with null or empty fields
+          final filteredArticles = articles.where((article) {
+            return article['title'] != null && 
+                  article['description'] != null &&
+                  article['urlToImage'] != null;
+          }).toList();
+          
+          return filteredArticles.map((article) => NewsArticle.fromJson(article)).toList();
         } else {
           print('API Error: ${data['message']}'); // Debug log
           throw Exception('API Error: ${data['message']}');

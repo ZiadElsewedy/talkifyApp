@@ -22,6 +22,30 @@ class NewsRepositoryImpl implements NewsRepository {
   }
 
   @override
+  Future<List<NewsArticle>> fetchEgyptBreakingNews() async {
+    try {
+      final articles = await _apiService.fetchEgyptBreakingNews();
+      print('Repository: Got ${articles.length} Egypt breaking news articles');
+      return articles;
+    } catch (e) {
+      print('Repository Error in fetchEgyptBreakingNews: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<NewsArticle>> fetchEgyptPoliticsNews() async {
+    try {
+      final articles = await _apiService.fetchEgyptPoliticsNews();
+      print('Repository: Got ${articles.length} Egypt politics news articles');
+      return articles;
+    } catch (e) {
+      print('Repository Error in fetchEgyptPoliticsNews: $e');
+      return [];
+    }
+  }
+
+  @override
   Future<List<NewsArticle>> fetchNewsByCategory(String category) async {
     try {
       final articles = await _apiService.fetchNewsByCategory(category);
@@ -42,19 +66,6 @@ class NewsRepositoryImpl implements NewsRepository {
       return articles;
     } catch (e) {
       print('Repository Error in searchNews: $e');
-      // Return empty list instead of throwing
-      return [];
-    }
-  }
-
-  @override
-  Future<List<NewsArticle>> fetchBreakingNews() async {
-    try {
-      final articles = await _apiService.fetchBreakingNews();
-      print('Repository: Got ${articles.length} breaking news articles');
-      return articles;
-    } catch (e) {
-      print('Repository Error in fetchBreakingNews: $e');
       // Return empty list instead of throwing
       return [];
     }
