@@ -140,13 +140,13 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
             SizedBox(width: 10),
             Text(
               'Talkify News',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
                 color: Colors.black,
                 letterSpacing: 0.5,
               ),
-            ),
+          ),
           ],
         ),
         backgroundColor: Colors.white,

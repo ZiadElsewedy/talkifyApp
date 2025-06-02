@@ -15,6 +15,7 @@ import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dar
 import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/About/AboutPage.dart';
 import 'package:talkifyapp/features/Posts/pages/SavedPostsPage.dart';
+import 'package:talkifyapp/features/Posts/presentation/HomePage.dart';
 
 class MyDrawer extends StatefulWidget {
   const MyDrawer({super.key});
@@ -49,174 +50,205 @@ class _MyDrawerState extends State<MyDrawer> {
     return Drawer(
       backgroundColor: Theme.of(context).colorScheme.surface,
       child: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-              BlocBuilder<ProfileCubit, ProfileStates>(
-                builder: (context, state) {
-                  return ProfilePicFunction(
-                    state: state,
-                    profilePictureUrl: state is ProfileLoadedState ? state.profileuser.profilePictureUrl : null,
-                  );
-                },
+        child: Column(
+          children: [
+            // Header section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  BlocBuilder<ProfileCubit, ProfileStates>(
+                    builder: (context, state) {
+                      return ProfilePicFunction(
+                        state: state,
+                        profilePictureUrl: state is ProfileLoadedState ? state.profileuser.profilePictureUrl : null,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
-              const SizedBox(height: 30),
-              Divider(
-                color: Color.fromARGB(255, 92, 89, 89),
-                thickness: 1.5,
-              ), 
-              MyDrawerTile(
-                icon: Icons.home,
-                title: 'H O M E',
-                onTap: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              MyDrawerTile(
-                icon: Icons.person,
-                title: 'P R O F I L E',
-                onTap: () {
-                  final user = context.read<AuthCubit>().GetCurrentUser();
-                  final uid = user!.id;
-                  Navigator.of(context).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => ProfilePage(userId: uid),
+            ),
+            
+            Divider(
+              color: Color.fromARGB(255, 92, 89, 89),
+              thickness: 1.5,
+              height: 1,
+            ),
+            
+            // Scrollable menu items
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Column(
+                  children: [
+                    MyDrawerTile(
+                      icon: Icons.home,
+                      title: 'H O M E',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                      },
                     ),
-                  ).then((_) {
-                    refreshProfile();
-                  });
-                },
-              ),
-              MyDrawerTile(
-                icon: Icons.newspaper,
-                title: 'N E W S',
-                onTap: () {
-                  Navigator.of(context).pop();
-                  
-                  // Create the NewsRepositoryImpl instance
-                  final newsRepository = NewsRepositoryImpl();
-                  
-                  // Navigate to the NewsPage with NewsCubit provider
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => BlocProvider(
-                        create: (context) => NewsCubit(
-                          newsRepository: newsRepository,
-                        ),
-                        child: const NewsPage(),
-                      ),
+                    MyDrawerTile(
+                      icon: Icons.person,
+                      title: 'P R O F I L E',
+                      onTap: () {
+                        final user = context.read<AuthCubit>().GetCurrentUser();
+                        final uid = user!.id;
+                        Navigator.of(context).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => ProfilePage(userId: uid),
+                          ),
+                        ).then((_) {
+                          refreshProfile();
+                        });
+                      },
                     ),
-                  );
-                },
-              ),
-              MyDrawerTile(
-                icon: Icons.bookmark,
-                title: 'S A V E D   P O S T S',
-                onTap: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const SavedPostsPage(),
-                    ),
-                  );
-                },
-              ),
-              MyDrawerTile(
-                icon: Icons.chat,
-                title: 'C H A T S',
-                onTap: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                      builder: (context) => const ChatListPage(),
-                    ),
-                  );
-                },
-              ),
-              MyDrawerTile(
-                icon: Icons.search,
-                title: 'S E A R C H',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => SearchPage()),
-                  ).then((_) {
-                    refreshProfile();
-                  });
-                },
-              ),
-              MyDrawerTile(
-                icon: Icons.settings,
-                title: 'S E T T I N G S',
-                onTap: () {
-                  // Handle settings tap
-                },
-              ),
-              MyDrawerTile(
-                icon: Icons.info_outline,
-                title: 'A B O U T',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AboutPage(),
-                    ),
-                  );
-                },
-              ),
-              const Spacer(),
-              MyDrawerTile(
-                icon: Icons.logout,
-                title: 'L O G O U T',
-                onTap: () async {
-                  final shouldLogout = await showConfirmLogoutDialog(context);
-
-                  if (shouldLogout == true) {
-                    try {
-                      // Show loading indicator
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Logging out...'),
-                            duration: Duration(seconds: 1),
+                    MyDrawerTile(
+                      icon: Icons.newspaper,
+                      title: 'N E W S',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        
+                        // Create the NewsRepositoryImpl instance
+                        final newsRepository = NewsRepositoryImpl();
+                        
+                        // Navigate to the NewsPage with NewsCubit provider
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => BlocProvider(
+                              create: (context) => NewsCubit(
+                                newsRepository: newsRepository,
+                              ),
+                              child: const NewsPage(),
+                            ),
                           ),
                         );
-                      }
-                      
-                      // Perform logout
-                      await context.read<AuthCubit>().logout();
-                      
-                      // Force immediate navigation to the auth page
-                      if (mounted) {
-                        // Clear the entire navigation stack and go to first route (auth page)
-                        Navigator.of(context).popUntil((route) => route.isFirst);
-                        
-                        // If that doesn't work, try pushing a replacement route
-                        // This is a fallback approach
-                        if (mounted) {
-                          Navigator.of(context).pushNamedAndRemoveUntil(
-                            '/', // Root route - usually your auth page
-                            (route) => false, // Remove all previous routes
-                          );
+                      },
+                    ),
+                    MyDrawerTile(
+                      icon: Icons.bookmark,
+                      title: 'S A V E D   P O S T S',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const SavedPostsPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    MyDrawerTile(
+                      icon: Icons.chat,
+                      title: 'C H A T S',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (context) => const ChatListPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    MyDrawerTile(
+                      icon: Icons.search,
+                      title: 'S E A R C H',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (context) => SearchPage()),
+                        ).then((_) {
+                          refreshProfile();
+                        });
+                      },
+                    ),
+                    MyDrawerTile(
+                      icon: Icons.settings,
+                      title: 'S E T T I N G S',
+                      onTap: () {
+                        // Handle settings tap
+                      },
+                    ),
+                    MyDrawerTile(
+                      icon: Icons.info_outline,
+                      title: 'A B O U T',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AboutPage(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            // Logout button at bottom
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+              child: Column(
+                children: [
+                  Divider(
+                    color: Color.fromARGB(255, 92, 89, 89),
+                    thickness: 1,
+                    height: 1,
+                  ),
+                  MyDrawerTile(
+                    icon: Icons.logout,
+                    title: 'L O G O U T',
+                    onTap: () async {
+                      final shouldLogout = await showConfirmLogoutDialog(context);
+
+                      if (shouldLogout == true) {
+                        try {
+                          // Show loading indicator
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Logging out...'),
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                          }
+                          
+                          // Perform logout
+                          await context.read<AuthCubit>().logout();
+                          
+                          // Force immediate navigation to the auth page
+                          if (mounted) {
+                            // Clear the entire navigation stack and go to first route (auth page)
+                            Navigator.of(context).popUntil((route) => route.isFirst);
+                            
+                            // If that doesn't work, try pushing a replacement route
+                            // This is a fallback approach
+                            if (mounted) {
+                              Navigator.of(context).pushNamedAndRemoveUntil(
+                                '/', // Root route - usually your auth page
+                                (route) => false, // Remove all previous routes
+                              );
+                            }
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Logout failed: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
                         }
                       }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Logout failed: $e'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  }
-                },
+                    },
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
