@@ -1,14 +1,14 @@
 import 'package:talkifyapp/features/News/Domain/Entitie/news_article.dart';
 
 abstract class NewsRepository {
-  // Fetch top headlines related to Egypt
-  Future<List<NewsArticle>> fetchEgyptNews();
+  // Fetch top headlines worldwide
+  Future<List<NewsArticle>> fetchTopHeadlines();
   
-  // Fetch breaking news about Egypt
-  Future<List<NewsArticle>> fetchEgyptBreakingNews();
+  // Fetch breaking news
+  Future<List<NewsArticle>> fetchBreakingNews();
   
-  // Fetch Egypt politics news
-  Future<List<NewsArticle>> fetchEgyptPoliticsNews();
+  // Fetch politics news
+  Future<List<NewsArticle>> fetchPoliticsNews();
   
   // Fetch news by category (business, entertainment, health, science, sports, technology)
   Future<List<NewsArticle>> fetchNewsByCategory(String category);

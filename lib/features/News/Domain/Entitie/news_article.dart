@@ -8,6 +8,7 @@ class NewsArticle {
   final String url;
   final String imageUrl;
   final DateTime publishedAt;
+  final String category;
 
   NewsArticle({
     required this.id,
@@ -19,6 +20,7 @@ class NewsArticle {
     required this.url,
     required this.imageUrl,
     required this.publishedAt,
+    this.category = 'general',
   });
 
   // Create a copy with modified fields
@@ -32,6 +34,7 @@ class NewsArticle {
     String? url,
     String? imageUrl,
     DateTime? publishedAt,
+    String? category,
   }) {
     return NewsArticle(
       id: id ?? this.id,
@@ -43,11 +46,18 @@ class NewsArticle {
       url: url ?? this.url,
       imageUrl: imageUrl ?? this.imageUrl,
       publishedAt: publishedAt ?? this.publishedAt,
+      category: category ?? this.category,
     );
   }
 
   // Factory method to create a NewsArticle from a JSON map
   factory NewsArticle.fromJson(Map<String, dynamic> json) {
+    // Try to get category from source if available
+    String category = 'general';
+    if (json['source'] != null && json['source'] is Map) {
+      category = json['source']['category'] ?? 'general';
+    }
+
     return NewsArticle(
       id: json['url'] ?? '',  // Using URL as ID since News API doesn't provide unique IDs
       title: json['title'] ?? '',
@@ -60,6 +70,7 @@ class NewsArticle {
       publishedAt: json['publishedAt'] != null 
           ? DateTime.parse(json['publishedAt']) 
           : DateTime.now(),
+      category: category,
     );
   }
 
@@ -75,6 +86,7 @@ class NewsArticle {
       'url': url,
       'imageUrl': imageUrl,
       'publishedAt': publishedAt.toIso8601String(),
+      'category': category,
     };
   }
 } 

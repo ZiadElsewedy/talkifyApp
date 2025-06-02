@@ -19,11 +19,18 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   late final NewsCubit _newsCubit;
+  late final ScrollController _scrollController;
   List<NewsArticle> _breakingNews = [];
   bool _isLoadingBreaking = false;
+  bool _showBreakingNews = true;
+  bool _breakingNewsVisible = true;
+  
+  // Animation controller for breaking news section
+  late AnimationController _animationController;
+  late Animation<double> _breakingNewsAnimation;
   
   final List<String> _categories = [
-    'Egypt News',
+    'Top Headlines',
     'Politics',
     'Business',
     'Sports',
@@ -38,16 +45,44 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
     
     _tabController = TabController(length: _categories.length, vsync: this);
     _tabController.addListener(_handleTabChange);
+    _scrollController = ScrollController();
+    _scrollController.addListener(_handleScroll);
+    
+    // Setup animation controller
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _breakingNewsAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+    _animationController.value = 1.0; // Start visible
     
     _newsCubit = context.read<NewsCubit>();
     _loadInitialNews();
   }
+  
+  void _handleScroll() {
+    // Hide breaking news when scrolling down
+    if (_scrollController.position.pixels > 10 && _breakingNewsVisible) {
+      setState(() {
+        _breakingNewsVisible = false;
+      });
+      _animationController.reverse();
+    } else if (_scrollController.position.pixels <= 10 && !_breakingNewsVisible && _showBreakingNews) {
+      setState(() {
+        _breakingNewsVisible = true;
+      });
+      _animationController.forward();
+    }
+  }
 
   void _loadInitialNews() {
-    // Load Egypt news (general category)
-    _newsCubit.fetchEgyptNews();
+    // Load top headlines (general category)
+    _newsCubit.fetchTopHeadlines();
     
-    // Also load breaking news for the Egypt News tab
+    // Also load breaking news for the Top Headlines tab
     _loadBreakingNews();
   }
 
@@ -59,7 +94,7 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
     try {
       final cubit = context.read<NewsCubit>();
       final repository = cubit.newsRepository;
-      _breakingNews = await repository.fetchEgyptBreakingNews();
+      _breakingNews = await repository.fetchBreakingNews();
     } catch (e) {
       print('Error loading breaking news: $e');
       _breakingNews = [];
@@ -78,13 +113,23 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
       
       // Map our custom categories to API categories
       switch (_tabController.index) {
-        case 0: // Egypt News
-          _newsCubit.fetchEgyptNews();
-          // Also refresh breaking news when switching to Egypt News tab
+        case 0: // Top Headlines
+          _newsCubit.fetchTopHeadlines();
+          // Also refresh breaking news when switching to Top Headlines tab
           _loadBreakingNews();
+          setState(() {
+            _showBreakingNews = true;
+            _breakingNewsVisible = true;
+          });
+          _animationController.forward();
           return;
         case 1: // Politics
-          _newsCubit.fetchEgyptPoliticsNews();
+          _newsCubit.fetchPoliticsNews();
+          setState(() {
+            _showBreakingNews = false;
+            _breakingNewsVisible = false;
+          });
+          _animationController.reverse();
           return;
         case 2: // Business
           category = 'business';
@@ -106,6 +151,11 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
           break;
       }
       
+      setState(() {
+        _showBreakingNews = false;
+        _breakingNewsVisible = false;
+      });
+      _animationController.reverse();
       _newsCubit.fetchNewsByCategory(category);
     }
   }
@@ -113,6 +163,11 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
   void _handleSearch(String query) {
     if (query.isNotEmpty) {
       _newsCubit.searchNews(query);
+      setState(() {
+        _showBreakingNews = false;
+        _breakingNewsVisible = false;
+      });
+      _animationController.reverse();
     }
   }
 
@@ -121,6 +176,9 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
     _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     _searchController.dispose();
+    _scrollController.removeListener(_handleScroll);
+    _scrollController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -140,13 +198,13 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
             SizedBox(width: 10),
             Text(
               'Talkify News',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
                 color: Colors.black,
                 letterSpacing: 0.5,
               ),
-          ),
+            ),
           ],
         ),
         backgroundColor: Colors.white,
@@ -177,47 +235,120 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
         ),
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Search bar
-          Padding(
+          Container(
+            color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search news...',
-                hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
-                prefixIcon: Icon(Icons.search, color: Colors.grey[600], size: 20),
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.clear, color: Colors.grey[600], size: 20),
-                  onPressed: () {
-                    _searchController.clear();
-                    _loadInitialNews();
-                  },
+            child: Column(
+              children: [
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search news...',
+                    hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey[600], size: 20),
+                    suffixIcon: IconButton(
+                      icon: Icon(Icons.clear, color: Colors.grey[600], size: 20),
+                      onPressed: () {
+                        _searchController.clear();
+                        _loadInitialNews();
+                      },
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey[700]!),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.black),
+                  onSubmitted: _handleSearch,
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[700]!),
-                ),
-                filled: true,
-                fillColor: Colors.grey[100],
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-              style: TextStyle(fontSize: 14, color: Colors.black),
-              onSubmitted: _handleSearch,
+                
+                // Breaking news section (only for Top Headlines tab)
+                if (_showBreakingNews && _tabController.index == 0)
+                  SizeTransition(
+                    sizeFactor: _breakingNewsAnimation,
+                    child: FadeTransition(
+                      opacity: _breakingNewsAnimation,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'Breaking News',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Latest breaking updates',
+                                  style: TextStyle(
+                                    color: Colors.grey[800],
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            
+                            // Horizontal breaking news list
+                            SizedBox(
+                              height: 140,
+                              child: _isLoadingBreaking 
+                                ? Center(child: CircularProgressIndicator(color: Colors.grey[700]))
+                                : _breakingNews.isEmpty 
+                                    ? Center(
+                                        child: Text(
+                                          'No breaking news available',
+                                          style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                                        ),
+                                      )
+                                    : ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                        itemCount: _breakingNews.length,
+                                        itemBuilder: (context, index) {
+                                          final article = _breakingNews[index];
+                                          return _buildBreakingNewsCard(article);
+                                        },
+                                      ),
+                            ),
+                            
+                            // Divider
+                            Divider(color: Colors.grey[300], height: 1),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-          
-          // Breaking news section (only show for Egypt News tab)
-          if (_tabController.index == 0 && _breakingNews.isNotEmpty) 
-            _buildBreakingNewsSection(),
           
           // News content
           Expanded(
@@ -327,7 +458,8 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                     onRefresh: () => _newsCubit.refreshNews(),
                     color: Colors.black,
                     child: ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 24),
+                      controller: _scrollController,
+                      padding: const EdgeInsets.only(bottom: 24, top: 8),
                       itemCount: articles.length,
                       itemBuilder: (context, index) {
                         final article = articles[index];
@@ -388,7 +520,8 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                     onRefresh: () => _newsCubit.refreshNews(),
                     color: Colors.black,
                     child: ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 24),
+                      controller: _scrollController,
+                      padding: const EdgeInsets.only(bottom: 24, top: 8),
                       itemCount: articles.length,
                       itemBuilder: (context, index) {
                         final article = articles[index];
@@ -439,67 +572,6 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildBreakingNewsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  'BREAKING',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              SizedBox(width: 8),
-              Text(
-                'Latest updates from Egypt',
-                style: TextStyle(
-                  color: Colors.grey[800],
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-        
-        // Horizontal breaking news list
-        SizedBox(
-          height: 140,
-          child: _isLoadingBreaking 
-            ? Center(child: CircularProgressIndicator(color: Colors.grey[700]))
-            : ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: 12),
-                itemCount: _breakingNews.length,
-                itemBuilder: (context, index) {
-                  final article = _breakingNews[index];
-                  return _buildBreakingNewsCard(article);
-                },
-              ),
-        ),
-        
-        // Divider
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Divider(color: Colors.grey[300], height: 1),
-        ),
-      ],
-    );
-  }
-
   Widget _buildBreakingNewsCard(NewsArticle article) {
     return GestureDetector(
       onTap: () {
@@ -512,7 +584,7 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
       },
       child: Container(
         width: 250,
-        margin: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        margin: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),

@@ -9,38 +9,38 @@ class NewsRepositoryImpl implements NewsRepository {
       : _apiService = apiService ?? NewsApiService();
 
   @override
-  Future<List<NewsArticle>> fetchEgyptNews() async {
+  Future<List<NewsArticle>> fetchTopHeadlines() async {
     try {
       final articles = await _apiService.fetchEgyptNews();
-      print('Repository: Got ${articles.length} Egypt news articles');
+      print('Repository: Got ${articles.length} top headlines');
       return articles;
     } catch (e) {
-      print('Repository Error in fetchEgyptNews: $e');
+      print('Repository Error in fetchTopHeadlines: $e');
       // Return empty list instead of throwing to avoid app crashes
       return [];
     }
   }
 
   @override
-  Future<List<NewsArticle>> fetchEgyptBreakingNews() async {
+  Future<List<NewsArticle>> fetchBreakingNews() async {
     try {
       final articles = await _apiService.fetchEgyptBreakingNews();
-      print('Repository: Got ${articles.length} Egypt breaking news articles');
+      print('Repository: Got ${articles.length} breaking news articles');
       return articles;
     } catch (e) {
-      print('Repository Error in fetchEgyptBreakingNews: $e');
+      print('Repository Error in fetchBreakingNews: $e');
       return [];
     }
   }
 
   @override
-  Future<List<NewsArticle>> fetchEgyptPoliticsNews() async {
+  Future<List<NewsArticle>> fetchPoliticsNews() async {
     try {
       final articles = await _apiService.fetchEgyptPoliticsNews();
-      print('Repository: Got ${articles.length} Egypt politics news articles');
+      print('Repository: Got ${articles.length} politics news articles');
       return articles;
     } catch (e) {
-      print('Repository Error in fetchEgyptPoliticsNews: $e');
+      print('Repository Error in fetchPoliticsNews: $e');
       return [];
     }
   }

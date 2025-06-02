@@ -6,31 +6,86 @@ class NewsApiService {
   static const String _baseUrl = 'https://newsapi.org/v2';
   static const String _apiKey = '2d0fdd63b5a1443e82ad99921a11c720';
   
-  // Fetch top headlines from Egypt
+  // Fetch top headlines (general news)
   Future<List<NewsArticle>> fetchEgyptNews() async {
-    // Using 'everything' endpoint with Egypt query for better results
-    return _getNewsData('$_baseUrl/everything?q=Egypt&language=en&sortBy=publishedAt&pageSize=15&apiKey=$_apiKey');
+    // Using top-headlines endpoint without country restriction for general news
+    return _getNewsData('$_baseUrl/top-headlines?language=en&apiKey=$_apiKey');
   }
   
-  // Fetch breaking news about Egypt
+  // Fetch breaking news
   Future<List<NewsArticle>> fetchEgyptBreakingNews() async {
-    return _getNewsData('$_baseUrl/everything?q=Egypt+breaking&language=en&sortBy=publishedAt&pageSize=10&apiKey=$_apiKey');
+    // Get the very latest headlines from multiple sources
+    return _getNewsData('$_baseUrl/top-headlines?language=en&sortBy=publishedAt&apiKey=$_apiKey');
   }
   
-  // Fetch Egypt politics news
+  // Fetch politics news
   Future<List<NewsArticle>> fetchEgyptPoliticsNews() async {
-    return _getNewsData('$_baseUrl/everything?q=Egypt+politics&language=en&sortBy=publishedAt&pageSize=15&apiKey=$_apiKey');
+    // Politics is not a standard category, so search for politics in top headlines
+    return _getNewsData('$_baseUrl/everything?q=politics&language=en&sortBy=publishedAt&pageSize=15&apiKey=$_apiKey');
   }
   
-  // Fetch news by category in Egypt
+  // Fetch news by category
   Future<List<NewsArticle>> fetchNewsByCategory(String category) async {
-    // Combining category with Egypt for better results
-    return _getNewsData('$_baseUrl/everything?q=$category+Egypt&language=en&sortBy=publishedAt&pageSize=15&apiKey=$_apiKey');
+    // Map our UI categories to API supported categories
+    String apiCategory;
+    
+    switch(category.toLowerCase()) {
+      case 'sports':
+        apiCategory = 'sports';
+        break;
+      case 'business':
+        apiCategory = 'business';
+        break;
+      case 'technology':
+        apiCategory = 'technology';
+        break;
+      case 'culture':
+        apiCategory = 'entertainment';
+        break;
+      case 'health':
+        apiCategory = 'health';
+        break;
+      default:
+        apiCategory = 'general';
+        break;
+    }
+    
+    // First try top-headlines with category
+    final topHeadlinesUrl = '$_baseUrl/top-headlines?category=$apiCategory&language=en&apiKey=$_apiKey';
+    print('Fetching category news from: $topHeadlinesUrl');
+    
+    try {
+      final articles = await _getNewsData(topHeadlinesUrl);
+      if (articles.isNotEmpty) {
+        return articles;
+      }
+    } catch (e) {
+      print('Error with category top-headlines: $e');
+    }
+    
+    // If no results, try the everything endpoint with more specific search
+    final everythingUrl = '$_baseUrl/everything?q=$apiCategory&language=en&sortBy=relevancy&pageSize=20&apiKey=$_apiKey';
+    print('Trying everything endpoint: $everythingUrl');
+    
+    return _getNewsData(everythingUrl);
   }
   
-  // Search news with query and filter for Egypt
+  // Search news with query
   Future<List<NewsArticle>> searchNews(String query) async {
-    return _getNewsData('$_baseUrl/everything?q=$query+Egypt&language=en&sortBy=publishedAt&pageSize=15&apiKey=$_apiKey');
+    // First try top-headlines with query
+    final topHeadlinesUrl = '$_baseUrl/top-headlines?q=$query&language=en&apiKey=$_apiKey';
+    
+    try {
+      final articles = await _getNewsData(topHeadlinesUrl);
+      if (articles.isNotEmpty) {
+        return articles;
+      }
+    } catch (e) {
+      print('Error with top headlines search: $e');
+    }
+    
+    // Fall back to everything endpoint for broader search
+    return _getNewsData('$_baseUrl/everything?q=$query&language=en&sortBy=publishedAt&pageSize=20&apiKey=$_apiKey');
   }
   
   // Helper method to fetch and parse data
@@ -46,14 +101,40 @@ class NewsApiService {
           final List<dynamic> articles = data['articles'] ?? [];
           print('Received ${articles.length} articles'); // Debug log
           
-          // Filter out articles with null or empty fields
+          // Filter to ensure minimum quality standards while letting most articles through
           final filteredArticles = articles.where((article) {
             return article['title'] != null && 
-                  article['description'] != null &&
-                  article['urlToImage'] != null;
+                  article['title'].toString().trim().isNotEmpty;
           }).toList();
           
-          return filteredArticles.map((article) => NewsArticle.fromJson(article)).toList();
+          // Ensure each article has its source category properly tagged
+          return filteredArticles.map((article) {
+            // If the URL contains category info, enhance the article data
+            final url = article['url']?.toString().toLowerCase() ?? '';
+            
+            // Try to detect the article category from URL if possible
+            String detectedCategory = '';
+            if (url.contains('sport') || url.contains('athletic') || url.contains('football')) {
+              detectedCategory = 'sports';
+            } else if (url.contains('business') || url.contains('finance') || url.contains('economy')) {
+              detectedCategory = 'business';
+            } else if (url.contains('tech') || url.contains('gadget')) {
+              detectedCategory = 'technology';
+            } else if (url.contains('entertain') || url.contains('celebr') || url.contains('culture') || url.contains('art')) {
+              detectedCategory = 'entertainment';
+            } else if (url.contains('health') || url.contains('medical') || url.contains('doctor')) {
+              detectedCategory = 'health';
+            }
+            
+            // Only add category info if detected
+            if (detectedCategory.isNotEmpty) {
+              if (article['source'] != null && article['source'] is Map) {
+                (article['source'] as Map)['category'] = detectedCategory;
+              }
+            }
+            
+            return NewsArticle.fromJson(article);
+          }).toList();
         } else {
           print('API Error: ${data['message']}'); // Debug log
           throw Exception('API Error: ${data['message']}');
