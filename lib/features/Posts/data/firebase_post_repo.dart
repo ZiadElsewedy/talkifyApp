@@ -257,6 +257,22 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
         // Update the likes list
         if (hasLiked) {
           likes.remove(userId); // Unlike the post
+          
+          // Remove any existing like notifications when unliking
+          try {
+            final postOwnerId = data['UserId'] as String;
+            if (postOwnerId != userId) { // Don't need to remove notifications for your own posts
+              await _notificationService.removeLikeNotification(
+                likerId: userId,
+                postOwnerId: postOwnerId,
+                postId: postId
+              );
+              print('Removed like notification after unliking post: $postId');
+            }
+          } catch (e) {
+            print('Error removing like notification: $e');
+            // Continue with unlike operation even if notification removal fails
+          }
         } else {
           likes.add(userId); // Like the post
           

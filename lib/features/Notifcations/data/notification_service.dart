@@ -184,7 +184,24 @@ class NotificationService {
       // Don't create notification if user likes their own post
       if (postOwnerId == likerUserId) return;
       
-      print('Creating like notification: Post owner: $postOwnerId, Liker: $likerUserId');
+      print('Creating like notification: Post owner: $postOwnerId, Liker: $likerUserId, Post: $postId');
+      
+      // Use a longer time window to prevent notification spam when users toggle like status
+      final timeWindow = const Duration(days: 1); // Increase from 6 hours to 24 hours
+      
+      // First try to remove any existing notifications that might have been missed
+      // This is an extra safety measure to avoid duplicates
+      try {
+        await _notificationRepository.removeNotificationsByAction(
+          triggerUserId: likerUserId,
+          recipientId: postOwnerId,
+          targetId: postId,
+          type: NotificationType.like,
+        );
+        print('Removed any potential existing like notifications as a precaution');
+      } catch (e) {
+        print('Error clearing existing notifications (non-critical): $e');
+      }
       
       // Check if a similar notification already exists
       final exists = await _checkForExistingNotification(
@@ -192,11 +209,11 @@ class NotificationService {
         triggerUserId: likerUserId,
         targetId: postId,
         type: NotificationType.like,
-        timeWindow: const Duration(hours: 6), // Only consider notifications from last 6 hours
+        timeWindow: timeWindow,
       );
       
       if (exists) {
-        print('Similar like notification already exists, skipping');
+        print('Similar like notification already exists for post $postId from $likerUserId to $postOwnerId, skipping');
         return;
       }
       
@@ -235,7 +252,7 @@ class NotificationService {
       
       print('Creating notification with data: ${notification.toJson()}');
       await _notificationRepository.createNotification(notification);
-      print('Notification created successfully with image URL: ${notification.postImageUrl}');
+      print('Notification created successfully with ID: ${notification.id} and image URL: ${notification.postImageUrl}');
     } catch (e) {
       print('Error creating like notification: $e');
     }
