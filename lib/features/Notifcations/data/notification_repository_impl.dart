@@ -10,7 +10,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
     try {
       final notificationsSnapshot = await _firestore
           .collection('notifications')
-          .where('userId', isEqualTo: userId)
+          .where('recipientId', isEqualTo: userId)
           .orderBy('timestamp', descending: true)
           .get();
           
@@ -57,11 +57,43 @@ class NotificationRepositoryImpl implements NotificationRepository {
   }
 
   @override
+  Future<void> markAllNotificationsAsRead(String userId) async {
+    try {
+      // Get all unread notifications for this user
+      final querySnapshot = await _firestore
+          .collection('notifications')
+          .where('recipientId', isEqualTo: userId)
+          .where('isRead', isEqualTo: false)
+          .get();
+      
+      // If there are no unread notifications, return early
+      if (querySnapshot.docs.isEmpty) {
+        return;
+      }
+      
+      // Use batch write to update all notifications efficiently
+      final batch = _firestore.batch();
+      
+      for (var doc in querySnapshot.docs) {
+        batch.update(doc.reference, {'isRead': true});
+      }
+      
+      // Commit the batch
+      await batch.commit();
+      
+      print('Marked all ${querySnapshot.docs.length} notifications as read for user $userId');
+    } catch (e) {
+      print('Error marking all notifications as read: $e');
+      throw Exception('Failed to mark all notifications as read: $e');
+    }
+  }
+
+  @override
   Future<int> getUnreadNotificationCount(String userId) async {
     try {
       final querySnapshot = await _firestore
           .collection('notifications')
-          .where('userId', isEqualTo: userId)
+          .where('recipientId', isEqualTo: userId)
           .where('isRead', isEqualTo: false)
           .count()
           .get();
@@ -76,7 +108,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
   Stream<List<Notification>> getNotificationsStream(String userId) {
     return _firestore
         .collection('notifications')
-        .where('userId', isEqualTo: userId)
+        .where('recipientId', isEqualTo: userId)
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {

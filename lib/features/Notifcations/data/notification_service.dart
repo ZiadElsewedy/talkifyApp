@@ -60,29 +60,37 @@ class NotificationService {
     required String likerUserName,
     required String likerProfilePic,
   }) async {
-    // Don't create notification if user likes their own post
-    if (postOwnerId == likerUserId) return;
-    
-    // Always get the latest profile picture directly from users collection
-    final profilePic = await _getLatestUserProfilePic(likerUserId);
-    
-    // Get post image URL
-    final postImageUrl = await _getPostImageUrl(postId);
-    
-    final notification = Notification(
-      id: _uuid.v4(),
-      recipientId: postOwnerId, // Who receives the notification
-      triggerUserId: likerUserId, // Who triggered the notification
-      triggerUserName: likerUserName,
-      triggerUserProfilePic: profilePic,
-      targetId: postId,
-      type: NotificationType.like,
-      content: '$likerUserName liked your post',
-      timestamp: DateTime.now(),
-      postImageUrl: postImageUrl,
-    );
-    
-    await _notificationRepository.createNotification(notification);
+    try {
+      // Don't create notification if user likes their own post
+      if (postOwnerId == likerUserId) return;
+      
+      print('Creating like notification: Post owner: $postOwnerId, Liker: $likerUserId');
+      
+      // Always get the latest profile picture directly from users collection
+      final profilePic = await _getLatestUserProfilePic(likerUserId);
+      
+      // Get post image URL
+      final postImageUrl = await _getPostImageUrl(postId);
+      
+      final notification = Notification(
+        id: _uuid.v4(),
+        recipientId: postOwnerId, // Who receives the notification
+        triggerUserId: likerUserId, // Who triggered the notification
+        triggerUserName: likerUserName,
+        triggerUserProfilePic: profilePic,
+        targetId: postId,
+        type: NotificationType.like,
+        content: '$likerUserName liked your post',
+        timestamp: DateTime.now(),
+        postImageUrl: postImageUrl,
+      );
+      
+      print('Creating notification with data: ${notification.toJson()}');
+      await _notificationRepository.createNotification(notification);
+      print('Notification created successfully');
+    } catch (e) {
+      print('Error creating like notification: $e');
+    }
   }
   
   // Create a comment notification

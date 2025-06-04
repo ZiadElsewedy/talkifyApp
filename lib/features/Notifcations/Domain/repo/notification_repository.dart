@@ -13,6 +13,9 @@ abstract class NotificationRepository {
   /// Mark a notification as read
   Future<void> markNotificationAsRead(String notificationId);
   
+  /// Mark all notifications as read for a user
+  Future<void> markAllNotificationsAsRead(String userId);
+  
   /// Get the count of unread notifications for a user
   Future<int> getUnreadNotificationCount(String userId);
   

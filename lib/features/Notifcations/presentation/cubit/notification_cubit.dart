@@ -16,8 +16,16 @@ class NotificationCubit extends Cubit<NotificationState> {
     required this.notificationRepository,
   }) : super(NotificationState.initial());
   
+  // Initialize the notification cubit
+  void initialize(String userId) {
+    print('NotificationCubit: Initializing for user $userId');
+    loadNotifications(userId);
+    startNotificationStream(userId);
+  }
+  
   @override
   Future<void> close() async {
+    print('NotificationCubit: Closing');
     // Cancel all pending delete operations
     for (final timer in _pendingDeletes.values) {
       timer.cancel();
@@ -71,6 +79,34 @@ class NotificationCubit extends Cubit<NotificationState> {
       emit(state.copyWith(
         errorMessage: e.toString(),
       ));
+    }
+  }
+  
+  Future<void> markAllNotificationsAsRead(String userId) async {
+    try {
+      print('Marking all notifications as read for user $userId');
+      
+      // First update locally for responsive UI
+      final updatedNotifications = state.notifications.map((notification) {
+        return notification.copyWith(isRead: true);
+      }).toList();
+      
+      emit(state.copyWith(
+        notifications: updatedNotifications,
+        unreadCount: 0,
+      ));
+      
+      // Then update in the repository
+      await notificationRepository.markAllNotificationsAsRead(userId);
+      print('All notifications marked as read');
+    } catch (e) {
+      print('Error marking all notifications as read: $e');
+      emit(state.copyWith(
+        errorMessage: 'Failed to mark all notifications as read: ${e.toString()}',
+      ));
+      
+      // Reload notifications to ensure correct state
+      loadNotifications(userId);
     }
   }
   

@@ -69,8 +69,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     // Load notifications for current user
     if (currentUser != null) {
       final notificationCubit = context.read<NotificationCubit>();
-      notificationCubit.loadNotifications(currentUser!.id);
-      notificationCubit.startNotificationStream(currentUser!.id);
+      print('HomePage: Initializing notifications for user ${currentUser!.id}');
+      notificationCubit.initialize(currentUser!.id);
+    } else {
+      print('HomePage: Current user is null, skipping notification initialization');
     }
   }
 

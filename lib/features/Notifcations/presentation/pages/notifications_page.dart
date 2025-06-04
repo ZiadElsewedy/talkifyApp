@@ -49,6 +49,31 @@ class _NotificationsPageState extends State<NotificationsPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          BlocBuilder<NotificationCubit, NotificationState>(
+            builder: (context, state) {
+              // Only show the "Mark all as read" button if there are unread notifications
+              if (state.unreadCount > 0) {
+                return IconButton(
+                  icon: const Icon(Icons.done_all, color: Colors.black),
+                  onPressed: () {
+                    final notificationCubit = context.read<NotificationCubit>();
+                    notificationCubit.markAllNotificationsAsRead(_currentUserId);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('All notifications marked as read'),
+                        behavior: SnackBarBehavior.floating,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  tooltip: 'Mark all as read',
+                );
+              }
+              return const SizedBox.shrink(); // Empty widget if no unread notifications
+            },
+          ),
+        ],
       ),
       body: BlocBuilder<NotificationCubit, NotificationState>(
         builder: (context, state) {
