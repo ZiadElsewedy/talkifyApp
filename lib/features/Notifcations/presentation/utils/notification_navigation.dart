@@ -6,7 +6,7 @@ import 'package:talkifyapp/features/Posts/data/firebase_post_repo.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
-import 'package:talkifyapp/features/Posts/PostComponents/PostTile..dart';
+import 'package:talkifyapp/features/Posts/PostComponents/SinglePostView.dart';
 
 /// Utility class for navigating to the correct screen based on notification type
 class NotificationNavigation {
@@ -44,51 +44,15 @@ class NotificationNavigation {
   /// Navigate to a post's detail screen
   static Future<void> _navigateToPost(BuildContext context, String postId) async {
     try {
-      // Show loading indicator
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+      // Navigate directly to SinglePostView which handles loading and error states internally
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SinglePostView(postId: postId),
+        ),
       );
-      
-      // Fetch the post data
-      final Post? post = await _postRepo.getPostById(postId);
-      
-      // Close loading indicator
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-      
-      if (post != null) {
-        // Get current user
-        final currentUser = context.read<AuthCubit>().GetCurrentUser();
-        if (currentUser == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('You must be logged in to view this post')),
-          );
-          return;
-        }
-        
-        // Navigate to the post using PostTile which already exists and handles display
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PostTile(post: post),
-          ),
-        );
-      } else {
-        // Post not found
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Post not found or has been deleted')),
-        );
-      }
     } catch (e) {
-      // Close loading indicator if error occurs
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-      
-      // Show error message
+      // Show error message if navigation fails
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading post: ${e.toString()}')),
       );

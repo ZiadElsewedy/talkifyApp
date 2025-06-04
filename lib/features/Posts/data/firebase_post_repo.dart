@@ -253,14 +253,16 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
         
         // Check if user has already liked this post
         final hasLiked = likes.contains(userId);
+        final postOwnerId = data['UserId'] as String;
         
         // Update the likes list
         if (hasLiked) {
-          likes.remove(userId); // Unlike the post
+          // User is UNLIKING the post
+          likes.remove(userId);
           
-          // Remove any existing like notifications when unliking
+          // No need to send notifications for unliking
+          // Just remove any existing like notifications to keep the database clean
           try {
-            final postOwnerId = data['UserId'] as String;
             if (postOwnerId != userId) { // Don't need to remove notifications for your own posts
               await _notificationService.removeLikeNotification(
                 likerId: userId,
@@ -274,26 +276,34 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
             // Continue with unlike operation even if notification removal fails
           }
         } else {
-          likes.add(userId); // Like the post
+          // User is LIKING the post
+          likes.add(userId);
           
-          // Get user info for notification
-          final userDoc = await firestore.collection('users').doc(userId).get();
-          if (userDoc.exists) {
-            final userData = userDoc.data() as Map<String, dynamic>;
-            final userName = userData['name'] as String? ?? 'User';
-            final userProfilePic = userData['profilePicture'] as String? ?? '';
-            
-            // Create notification for the post owner if this is a new like
-            final postOwnerId = data['UserId'] as String;
-            
-            // Create like notification
-            await _notificationService.createLikePostNotification(
-              postOwnerId: postOwnerId,
-              postId: postId,
-              likerUserId: userId,
-              likerUserName: userName,
-              likerProfilePic: userProfilePic,
-            );
+          // Create notification only when LIKING (not when unliking)
+          try {
+            // Don't create notifications for liking your own post
+            if (postOwnerId != userId) {
+              // Get user info for notification
+              final userDoc = await firestore.collection('users').doc(userId).get();
+              if (userDoc.exists) {
+                final userData = userDoc.data() as Map<String, dynamic>;
+                final userName = userData['name'] as String? ?? 'User';
+                final userProfilePic = userData['profilePicture'] as String? ?? '';
+                
+                // Create like notification
+                await _notificationService.createLikePostNotification(
+                  postOwnerId: postOwnerId,
+                  postId: postId,
+                  likerUserId: userId,
+                  likerUserName: userName,
+                  likerProfilePic: userProfilePic,
+                );
+                print('Created like notification for post: $postId');
+              }
+            }
+          } catch (e) {
+            print('Error creating like notification: $e');
+            // Continue with like operation even if notification creation fails
           }
         }
         

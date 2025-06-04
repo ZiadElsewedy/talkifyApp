@@ -9,6 +9,7 @@ import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/utils/demo_notification.dart';
+import 'package:talkifyapp/features/Posts/PostComponents/SinglePostView.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({Key? key}) : super(key: key);
@@ -191,78 +192,97 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   void _handleNotificationTap(app_notification.Notification notification) {
-    // Mark as read if not already read
-    if (!notification.isRead) {
-      context.read<NotificationCubit>().markNotificationAsRead(notification.id);
-    }
-    
-    // Navigate to the appropriate screen based on notification type
-    switch (notification.type) {
-      case app_notification.NotificationType.like:
-      case app_notification.NotificationType.comment:
-      case app_notification.NotificationType.reply:
-        // Navigate to the post
-        _navigateToPostInProfile(notification.targetId);
-        break;
-      case app_notification.NotificationType.follow:
-        // Navigate to the user profile
-        _navigateToUserProfile(notification.triggerUserId);
-        break;
-      case app_notification.NotificationType.mention:
-        // Navigate to the post where the user was mentioned
-        _navigateToPostInProfile(notification.targetId);
-        break;
+    try {
+      // Mark as read if not already read
+      if (!notification.isRead) {
+        context.read<NotificationCubit>().markNotificationAsRead(notification.id);
+      }
+      
+      // Navigate to the appropriate screen based on notification type
+      switch (notification.type) {
+        case app_notification.NotificationType.like:
+        case app_notification.NotificationType.comment:
+        case app_notification.NotificationType.reply:
+          // Check if targetId exists before navigating
+          if (notification.targetId.isNotEmpty) {
+            _navigateToPostInProfile(notification.targetId);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Cannot view this post: missing reference'),
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+          break;
+        case app_notification.NotificationType.follow:
+          // Check if user ID exists before navigating
+          if (notification.triggerUserId.isNotEmpty) {
+            _navigateToUserProfile(notification.triggerUserId);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Cannot view this user: missing reference'),
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+          break;
+        case app_notification.NotificationType.mention:
+          // Check if targetId exists before navigating
+          if (notification.targetId.isNotEmpty) {
+            _navigateToPostInProfile(notification.targetId);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Cannot view this mention: missing reference'),
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+          break;
+      }
+    } catch (e) {
+      // Global error handler for any other exceptions
+      print('Error handling notification tap: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error processing notification: $e'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 3),
+        ),
+      );
     }
   }
   
   void _navigateToPostInProfile(String postId) {
-    // Get the post data first to determine the owner
-    final postCubit = context.read<PostCubit>();
+    // Check if postId is valid
+    if (postId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: Invalid post reference'),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
     
     // Clear any existing SnackBars to prevent conflicts
     ScaffoldMessenger.of(context).clearSnackBars();
     
-    postCubit.getPostById(postId).then((post) {
-      if (post != null && mounted) {  // Check if widget is still mounted
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProfilePage(
-              userId: post.UserId,
-            ),
-          ),
-        );
-        
-        // Show a snackbar to indicate which post was interacted with
-        if (mounted) {  // Double check before showing SnackBar
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Viewing post from ${post.UserName}'),
-              behavior: SnackBarBehavior.floating,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      } else if (mounted) {  // Check if widget is still mounted
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Post not found'),
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    }).catchError((error) {
-      if (mounted) {  // Check if widget is still mounted
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $error'),
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    });
+    // Navigate directly to the SinglePostView instead of ProfilePage
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SinglePostView(postId: postId),
+      ),
+    );
   }
   
   void _navigateToUserProfile(String userId) {
