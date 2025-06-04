@@ -8,6 +8,7 @@ import 'package:talkifyapp/features/Notifcations/presentation/components/notific
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
+import 'package:talkifyapp/features/Notifcations/presentation/utils/demo_notification.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({Key? key}) : super(key: key);
@@ -51,6 +52,19 @@ class _NotificationsPageState extends State<NotificationsPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
+          // Demo button
+          IconButton(
+            icon: const Icon(Icons.preview, color: Colors.blue),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationDemoScreen(),
+                ),
+              );
+            },
+            tooltip: 'Notification Demo',
+          ),
           BlocBuilder<NotificationCubit, NotificationState>(
             builder: (context, state) {
               // Only show the "Mark all as read" button if there are unread notifications

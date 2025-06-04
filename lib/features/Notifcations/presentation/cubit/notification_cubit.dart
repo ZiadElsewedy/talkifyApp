@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:talkifyapp/features/Notifcations/Domain/Entite/Notification.dart' as app_notification;
 import 'package:talkifyapp/features/Notifcations/Domain/repo/notification_repository.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_state.dart';
+import 'package:talkifyapp/features/Notifcations/presentation/utils/notification_dispatcher.dart';
 
 class NotificationCubit extends Cubit<NotificationState> {
   final NotificationRepository notificationRepository;
@@ -12,15 +14,27 @@ class NotificationCubit extends Cubit<NotificationState> {
   // Map to store pending delete operations with timeouts
   final Map<String, Timer> _pendingDeletes = {};
   
+  // Store the latest notification IDs to prevent duplicate in-app notifications
+  final Set<String> _processedNotificationIds = {};
+  
+  // Store BuildContext to show in-app notifications
+  BuildContext? _context;
+  
   NotificationCubit({
     required this.notificationRepository,
   }) : super(NotificationState.initial());
   
-  // Initialize the notification cubit
-  void initialize(String userId) {
+  // Initialize the notification cubit with context for in-app notifications
+  void initialize(String userId, {BuildContext? context}) {
     print('NotificationCubit: Initializing for user $userId');
+    _context = context;
     loadNotifications(userId);
     startNotificationStream(userId);
+  }
+  
+  // Set context for showing in-app notifications
+  void setContext(BuildContext context) {
+    _context = context;
   }
   
   @override
@@ -42,6 +56,11 @@ class NotificationCubit extends Cubit<NotificationState> {
       
       final notifications = await notificationRepository.getNotifications(userId);
       final unreadCount = notifications.where((n) => !n.isRead).length;
+      
+      // Store current notification IDs to avoid duplicate in-app notifications
+      for (final notification in notifications) {
+        _processedNotificationIds.add(notification.id);
+      }
       
       emit(state.copyWith(
         status: NotificationStatus.loaded,
@@ -228,6 +247,36 @@ class NotificationCubit extends Cubit<NotificationState> {
       // Start listening to notifications stream
       _notificationSubscription = notificationRepository.getNotificationsStream(userId).listen(
         (notifications) {
+          // Find new notifications by comparing with processed IDs
+          final newNotifications = notifications.where(
+            (notification) => !_processedNotificationIds.contains(notification.id)
+          ).toList();
+
+          // Show in-app notifications for new notifications
+          if (newNotifications.isNotEmpty && _context != null) {
+            // Get most recent notification to show
+            final latestNotification = newNotifications.first;
+            
+            // Only show notifications for supported types
+            if (_shouldShowInAppNotification(latestNotification)) {
+              // Add a small delay to ensure context is ready
+              Future.delayed(const Duration(milliseconds: 300), () {
+                if (_context != null) {
+                  NotificationDispatcher.showFromNotification(
+                    context: _context!,
+                    notification: latestNotification,
+                  );
+                }
+              });
+            }
+            
+            // Mark all new notification IDs as processed
+            for (final notification in newNotifications) {
+              _processedNotificationIds.add(notification.id);
+            }
+          }
+          
+          // Update unread count and notifications list
           final unreadCount = notifications.where((n) => !n.isRead).length;
           
           emit(state.copyWith(
@@ -249,5 +298,13 @@ class NotificationCubit extends Cubit<NotificationState> {
         errorMessage: e.toString(),
       ));
     }
+  }
+  
+  // Check if we should show an in-app notification for this notification
+  bool _shouldShowInAppNotification(app_notification.Notification notification) {
+    // We only support these notification types for in-app notifications
+    return notification.type == app_notification.NotificationType.like ||
+           notification.type == app_notification.NotificationType.comment ||
+           notification.type == app_notification.NotificationType.follow;
   }
 } 

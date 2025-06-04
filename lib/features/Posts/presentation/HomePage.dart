@@ -70,7 +70,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (currentUser != null) {
       final notificationCubit = context.read<NotificationCubit>();
       print('HomePage: Initializing notifications for user ${currentUser!.id}');
-      notificationCubit.initialize(currentUser!.id);
+      // Pass context for in-app notifications
+      notificationCubit.initialize(currentUser!.id, context: context);
     } else {
       print('HomePage: Current user is null, skipping notification initialization');
     }
@@ -201,6 +202,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    // Ensure notification cubit has the latest context
+    if (currentUser != null) {
+      final notificationCubit = context.read<NotificationCubit>();
+      notificationCubit.setContext(context);
+    }
+    
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
