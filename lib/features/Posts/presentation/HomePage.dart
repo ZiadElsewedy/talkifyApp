@@ -9,6 +9,11 @@ import 'package:talkifyapp/features/Search/Presentation/SearchPage.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/Mydrawer.dart';
+import 'package:talkifyapp/features/Notifcations/presentation/pages/notifications_page.dart';
+import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_cubit.dart';
+import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_state.dart';
+import 'package:talkifyapp/features/Notifcations/data/notification_repository_impl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HomePage extends StatefulWidget {
   final int initialTabIndex;
@@ -42,7 +47,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_handleTabChange);
     
-    // Get current user
+    // Get current user and load notifications
     _getCurrentUser();
     
     // Fetch posts for the initial tab
@@ -60,6 +65,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void _getCurrentUser() {
     final authCubit = context.read<AuthCubit>();
     currentUser = authCubit.GetCurrentUser();
+    
+    // Load notifications for current user
+    if (currentUser != null) {
+      final notificationCubit = context.read<NotificationCubit>();
+      notificationCubit.loadNotifications(currentUser!.id);
+      notificationCubit.startNotificationStream(currentUser!.id);
+    }
   }
 
   void _handleTabChange() {
@@ -210,6 +222,46 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             },
             icon: Icon(Icons.search, color: Colors.black54),
             tooltip: 'Search',
+          ),
+          BlocBuilder<NotificationCubit, NotificationState>(
+            builder: (context, state) {
+              return IconButton(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => NotificationsPage()));
+                },
+                icon: Stack(
+                  children: [
+                    Icon(Icons.notifications, color: Colors.black54),
+                    if (state.unreadCount > 0)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Container(
+                          padding: EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          constraints: BoxConstraints(
+                            minWidth: 12,
+                            minHeight: 12,
+                          ),
+                          child: Text(
+                            state.unreadCount > 9 ? '9+' : state.unreadCount.toString(),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                tooltip: 'Notifications',
+              );
+            },
           ),
         ],
         bottom: PreferredSize(
