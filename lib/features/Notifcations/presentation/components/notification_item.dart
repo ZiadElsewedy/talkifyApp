@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:talkifyapp/features/Notifcations/Domain/Entite/Notification.dart' as app_notification;
 import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_cubit.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
 
 class NotificationItem extends StatelessWidget {
   final app_notification.Notification notification;
@@ -110,16 +111,19 @@ class NotificationItem extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Profile picture
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.grey.shade200,
-                backgroundImage: notification.triggerUserProfilePic.isNotEmpty
-                    ? CachedNetworkImageProvider(notification.triggerUserProfilePic)
-                    : null,
-                child: notification.triggerUserProfilePic.isEmpty
-                    ? const Icon(Icons.person, size: 20, color: Colors.grey)
-                    : null,
+              // Profile picture (clickable to navigate to profile)
+              GestureDetector(
+                onTap: () => _navigateToUserProfile(context, notification.triggerUserId),
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.grey.shade200,
+                  backgroundImage: notification.triggerUserProfilePic.isNotEmpty
+                      ? CachedNetworkImageProvider(notification.triggerUserProfilePic)
+                      : null,
+                  child: notification.triggerUserProfilePic.isEmpty
+                      ? const Icon(Icons.person, size: 20, color: Colors.grey)
+                      : null,
+                ),
               ),
               const SizedBox(width: 12),
               
@@ -134,9 +138,18 @@ class NotificationItem extends StatelessWidget {
                       text: TextSpan(
                         style: TextStyle(fontSize: 14, color: Colors.black87),
                         children: [
-                          TextSpan(
-                            text: notification.triggerUserName,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          // Username (no longer directly in TextSpan)
+                          WidgetSpan(
+                            child: GestureDetector(
+                              onTap: () => _navigateToUserProfile(context, notification.triggerUserId),
+                              child: Text(
+                                notification.triggerUserName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
                           ),
                           TextSpan(
                             text: ' ${_getActionText(notification.type)}',
@@ -209,6 +222,16 @@ class NotificationItem extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+  
+  // Helper method to navigate to a user's profile
+  void _navigateToUserProfile(BuildContext context, String userId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfilePage(userId: userId),
       ),
     );
   }

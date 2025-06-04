@@ -17,6 +17,34 @@ class NotificationService {
     _notificationRepository = notificationRepository ?? NotificationRepositoryImpl(),
     _firestore = firestore ?? FirebaseFirestore.instance;
 
+  // Check if a similar notification already exists
+  Future<bool> _checkForExistingNotification({
+    required String recipientId,
+    required String triggerUserId, 
+    required String targetId,
+    required NotificationType type,
+    Duration timeWindow = const Duration(hours: 24), // Consider notifications within this window
+  }) async {
+    try {
+      final cutoffTime = DateTime.now().subtract(timeWindow);
+      final cutoffTimestamp = Timestamp.fromDate(cutoffTime);
+      
+      final querySnapshot = await _firestore
+          .collection('notifications')
+          .where('recipientId', isEqualTo: recipientId)
+          .where('triggerUserId', isEqualTo: triggerUserId)
+          .where('targetId', isEqualTo: targetId)
+          .where('type', isEqualTo: type.toString().split('.').last)
+          .where('timestamp', isGreaterThan: cutoffTimestamp)
+          .get();
+      
+      return querySnapshot.docs.isNotEmpty;
+    } catch (e) {
+      print('Error checking for existing notification: $e');
+      return false; // If there's an error, create the notification anyway
+    }
+  }
+
   // Fetch latest user profile picture directly from users collection
   Future<String> _getLatestUserProfilePic(String userId) async {
     const defaultProfilePic = 'https://ui-avatars.com/api/?name=User&background=cccccc&color=ffffff&size=128'; // You can change this to your own default image URL
@@ -44,7 +72,7 @@ class NotificationService {
       final postDoc = await _firestore.collection('posts').doc(postId).get();
       if (postDoc.exists) {
         final data = postDoc.data();
-        return data?['imageurl'] as String?;
+        return data?['imageUrl'] as String?;
       }
     } catch (e) {
       print('Error fetching post image: $e');
@@ -65,6 +93,20 @@ class NotificationService {
       if (postOwnerId == likerUserId) return;
       
       print('Creating like notification: Post owner: $postOwnerId, Liker: $likerUserId');
+      
+      // Check if a similar notification already exists
+      final exists = await _checkForExistingNotification(
+        recipientId: postOwnerId,
+        triggerUserId: likerUserId,
+        targetId: postId,
+        type: NotificationType.like,
+        timeWindow: const Duration(hours: 6), // Only consider notifications from last 6 hours
+      );
+      
+      if (exists) {
+        print('Similar like notification already exists, skipping');
+        return;
+      }
       
       // Always get the latest profile picture directly from users collection
       final profilePic = await _getLatestUserProfilePic(likerUserId);
@@ -102,29 +144,47 @@ class NotificationService {
     required String commenterProfilePic,
     required String commentContent,
   }) async {
-    // Don't create notification if user comments on their own post
-    if (postOwnerId == commenterUserId) return;
-    
-    // Always get the latest profile picture directly from users collection
-    final profilePic = await _getLatestUserProfilePic(commenterUserId);
-    
-    // Get post image URL
-    final postImageUrl = await _getPostImageUrl(postId);
-    
-    final notification = Notification(
-      id: _uuid.v4(),
-      recipientId: postOwnerId,
-      triggerUserId: commenterUserId,
-      triggerUserName: commenterUserName,
-      triggerUserProfilePic: profilePic,
-      targetId: postId,
-      type: NotificationType.comment,
-      content: '$commenterUserName commented on your post: "${_truncateContent(commentContent)}"',
-      timestamp: DateTime.now(),
-      postImageUrl: postImageUrl,
-    );
-    
-    await _notificationRepository.createNotification(notification);
+    try {
+      // Don't create notification if user comments on their own post
+      if (postOwnerId == commenterUserId) return;
+      
+      // Check if a similar notification already exists (for comments we use shorter time window)
+      final exists = await _checkForExistingNotification(
+        recipientId: postOwnerId,
+        triggerUserId: commenterUserId,
+        targetId: postId,
+        type: NotificationType.comment,
+        timeWindow: const Duration(minutes: 30), // Only consider notifications from last 30 minutes
+      );
+      
+      if (exists) {
+        print('Similar comment notification already exists, skipping');
+        return;
+      }
+      
+      // Always get the latest profile picture directly from users collection
+      final profilePic = await _getLatestUserProfilePic(commenterUserId);
+      
+      // Get post image URL
+      final postImageUrl = await _getPostImageUrl(postId);
+      
+      final notification = Notification(
+        id: _uuid.v4(),
+        recipientId: postOwnerId,
+        triggerUserId: commenterUserId,
+        triggerUserName: commenterUserName,
+        triggerUserProfilePic: profilePic,
+        targetId: postId,
+        type: NotificationType.comment,
+        content: '$commenterUserName commented on your post: "${_truncateContent(commentContent)}"',
+        timestamp: DateTime.now(),
+        postImageUrl: postImageUrl,
+      );
+      
+      await _notificationRepository.createNotification(notification);
+    } catch (e) {
+      print('Error creating comment notification: $e');
+    }
   }
   
   // Create a reply notification
@@ -137,29 +197,47 @@ class NotificationService {
     required String replierProfilePic,
     required String replyContent,
   }) async {
-    // Don't create notification if user replies to their own comment
-    if (commentOwnerId == replierUserId) return;
-    
-    // Always get the latest profile picture directly from users collection
-    final profilePic = await _getLatestUserProfilePic(replierUserId);
-    
-    // Get post image URL
-    final postImageUrl = await _getPostImageUrl(postId);
-    
-    final notification = Notification(
-      id: _uuid.v4(),
-      recipientId: commentOwnerId,
-      triggerUserId: replierUserId,
-      triggerUserName: replierUserName,
-      triggerUserProfilePic: profilePic,
-      targetId: postId, // We use postId as target to navigate to the post containing the comment
-      type: NotificationType.reply,
-      content: '$replierUserName replied to your comment: "${_truncateContent(replyContent)}"',
-      timestamp: DateTime.now(),
-      postImageUrl: postImageUrl,
-    );
-    
-    await _notificationRepository.createNotification(notification);
+    try {
+      // Don't create notification if user replies to their own comment
+      if (commentOwnerId == replierUserId) return;
+      
+      // Check if a similar notification already exists
+      final exists = await _checkForExistingNotification(
+        recipientId: commentOwnerId,
+        triggerUserId: replierUserId,
+        targetId: postId,
+        type: NotificationType.reply,
+        timeWindow: const Duration(minutes: 30), // Only consider notifications from last 30 minutes
+      );
+      
+      if (exists) {
+        print('Similar reply notification already exists, skipping');
+        return;
+      }
+      
+      // Always get the latest profile picture directly from users collection
+      final profilePic = await _getLatestUserProfilePic(replierUserId);
+      
+      // Get post image URL
+      final postImageUrl = await _getPostImageUrl(postId);
+      
+      final notification = Notification(
+        id: _uuid.v4(),
+        recipientId: commentOwnerId,
+        triggerUserId: replierUserId,
+        triggerUserName: replierUserName,
+        triggerUserProfilePic: profilePic,
+        targetId: postId, // We use postId as target to navigate to the post containing the comment
+        type: NotificationType.reply,
+        content: '$replierUserName replied to your comment: "${_truncateContent(replyContent)}"',
+        timestamp: DateTime.now(),
+        postImageUrl: postImageUrl,
+      );
+      
+      await _notificationRepository.createNotification(notification);
+    } catch (e) {
+      print('Error creating reply notification: $e');
+    }
   }
   
   // Create a like comment notification
@@ -171,29 +249,47 @@ class NotificationService {
     required String likerUserName,
     required String likerProfilePic,
   }) async {
-    // Don't create notification if user likes their own comment
-    if (commentOwnerId == likerUserId) return;
-    
-    // Always get the latest profile picture directly from users collection
-    final profilePic = await _getLatestUserProfilePic(likerUserId);
-    
-    // Get post image URL
-    final postImageUrl = await _getPostImageUrl(postId);
-    
-    final notification = Notification(
-      id: _uuid.v4(),
-      recipientId: commentOwnerId,
-      triggerUserId: likerUserId,
-      triggerUserName: likerUserName,
-      triggerUserProfilePic: profilePic,
-      targetId: postId, // We use postId as target to navigate to the post containing the comment
-      type: NotificationType.like,
-      content: '$likerUserName liked your comment',
-      timestamp: DateTime.now(),
-      postImageUrl: postImageUrl,
-    );
-    
-    await _notificationRepository.createNotification(notification);
+    try {
+      // Don't create notification if user likes their own comment
+      if (commentOwnerId == likerUserId) return;
+      
+      // Check if a similar notification already exists
+      final exists = await _checkForExistingNotification(
+        recipientId: commentOwnerId,
+        triggerUserId: likerUserId,
+        targetId: commentId,
+        type: NotificationType.like,
+        timeWindow: const Duration(hours: 6), // Only consider notifications from last 6 hours
+      );
+      
+      if (exists) {
+        print('Similar comment like notification already exists, skipping');
+        return;
+      }
+      
+      // Always get the latest profile picture directly from users collection
+      final profilePic = await _getLatestUserProfilePic(likerUserId);
+      
+      // Get post image URL
+      final postImageUrl = await _getPostImageUrl(postId);
+      
+      final notification = Notification(
+        id: _uuid.v4(),
+        recipientId: commentOwnerId,
+        triggerUserId: likerUserId,
+        triggerUserName: likerUserName,
+        triggerUserProfilePic: profilePic,
+        targetId: postId, // We use postId as target to navigate to the post containing the comment
+        type: NotificationType.like,
+        content: '$likerUserName liked your comment',
+        timestamp: DateTime.now(),
+        postImageUrl: postImageUrl,
+      );
+      
+      await _notificationRepository.createNotification(notification);
+    } catch (e) {
+      print('Error creating comment like notification: $e');
+    }
   }
   
   // Helper method to truncate long content for notification display
