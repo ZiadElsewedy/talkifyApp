@@ -10,7 +10,7 @@ enum NotificationType {
 
 class Notification {
   final String id;
-  final String userId; // User who will receive the notification
+  final String recipientId; // User who will receive the notification
   final String triggerUserId; // User who triggered the notification
   final String triggerUserName;
   final String triggerUserProfilePic;
@@ -23,7 +23,7 @@ class Notification {
   
   const Notification({
     required this.id,
-    required this.userId,
+    required this.recipientId,
     required this.triggerUserId,
     required this.triggerUserName,
     required this.triggerUserProfilePic,
@@ -42,7 +42,7 @@ class Notification {
   }) {
     return Notification(
       id: id,
-      userId: userId,
+      recipientId: recipientId,
       triggerUserId: triggerUserId,
       triggerUserName: triggerUserName,
       triggerUserProfilePic: triggerUserProfilePic ?? this.triggerUserProfilePic,
@@ -58,7 +58,7 @@ class Notification {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'userId': userId,
+      'recipientId': recipientId,
       'triggerUserId': triggerUserId,
       'triggerUserName': triggerUserName,
       'triggerUserProfilePic': triggerUserProfilePic,
@@ -74,7 +74,7 @@ class Notification {
   factory Notification.fromJson(Map<String, dynamic> json) {
     return Notification(
       id: json['id'] as String,
-      userId: json['userId'] as String,
+      recipientId: json['recipientId'] as String? ?? json['userId'] as String, // Support both field names
       triggerUserId: json['triggerUserId'] as String,
       triggerUserName: json['triggerUserName'] as String,
       triggerUserProfilePic: json['triggerUserProfilePic'] as String,

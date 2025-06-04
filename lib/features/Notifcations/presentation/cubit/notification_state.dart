@@ -15,6 +15,9 @@ class NotificationState {
     this.unreadCount = 0,
   });
   
+  // Factory constructor for initial state
+  factory NotificationState.initial() => const NotificationState();
+  
   NotificationState copyWith({
     List<app_notification.Notification>? notifications,
     NotificationStatus? status,

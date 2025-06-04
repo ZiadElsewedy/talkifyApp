@@ -71,7 +71,7 @@ class NotificationService {
     
     final notification = Notification(
       id: _uuid.v4(),
-      userId: postOwnerId, // Who receives the notification
+      recipientId: postOwnerId, // Who receives the notification
       triggerUserId: likerUserId, // Who triggered the notification
       triggerUserName: likerUserName,
       triggerUserProfilePic: profilePic,
@@ -105,7 +105,7 @@ class NotificationService {
     
     final notification = Notification(
       id: _uuid.v4(),
-      userId: postOwnerId,
+      recipientId: postOwnerId,
       triggerUserId: commenterUserId,
       triggerUserName: commenterUserName,
       triggerUserProfilePic: profilePic,
@@ -140,7 +140,7 @@ class NotificationService {
     
     final notification = Notification(
       id: _uuid.v4(),
-      userId: commentOwnerId,
+      recipientId: commentOwnerId,
       triggerUserId: replierUserId,
       triggerUserName: replierUserName,
       triggerUserProfilePic: profilePic,
@@ -174,7 +174,7 @@ class NotificationService {
     
     final notification = Notification(
       id: _uuid.v4(),
-      userId: commentOwnerId,
+      recipientId: commentOwnerId,
       triggerUserId: likerUserId,
       triggerUserName: likerUserName,
       triggerUserProfilePic: profilePic,
