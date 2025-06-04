@@ -292,6 +292,57 @@ class NotificationService {
     }
   }
   
+  // Create a follow notification
+  Future<void> createFollowNotification({
+    required String followedUserId,
+    required String followerUserId,
+    required String followerUserName,
+    required String followerProfilePic,
+  }) async {
+    try {
+      // Don't create notification if user follows themselves (shouldn't happen but just in case)
+      if (followedUserId == followerUserId) return;
+      
+      print('Creating follow notification: Followed user: $followedUserId, Follower: $followerUserId');
+      
+      // Check if a similar notification already exists
+      final exists = await _checkForExistingNotification(
+        recipientId: followedUserId,
+        triggerUserId: followerUserId,
+        targetId: followerUserId, // For follow notifications, targetId is the follower's ID
+        type: NotificationType.follow,
+        timeWindow: const Duration(days: 7), // Only consider follow notifications from last 7 days
+      );
+      
+      if (exists) {
+        print('Similar follow notification already exists, skipping');
+        return;
+      }
+      
+      // Always get the latest profile picture directly from users collection
+      final profilePic = await _getLatestUserProfilePic(followerUserId);
+      
+      final notification = Notification(
+        id: _uuid.v4(),
+        recipientId: followedUserId,
+        triggerUserId: followerUserId,
+        triggerUserName: followerUserName,
+        triggerUserProfilePic: profilePic,
+        targetId: followerUserId, // Target ID is the follower's ID to navigate to their profile
+        type: NotificationType.follow,
+        content: '$followerUserName started following you',
+        timestamp: DateTime.now(),
+        postImageUrl: null, // No post image for follow notifications
+      );
+      
+      print('Creating notification with data: ${notification.toJson()}');
+      await _notificationRepository.createNotification(notification);
+      print('Follow notification created successfully');
+    } catch (e) {
+      print('Error creating follow notification: $e');
+    }
+  }
+  
   // Helper method to truncate long content for notification display
   String _truncateContent(String content) {
     if (content.length <= 30) return content;

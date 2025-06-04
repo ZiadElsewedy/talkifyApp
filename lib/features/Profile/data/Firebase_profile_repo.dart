@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:talkifyapp/features/Profile/domain/Profile%20repo/ProfileRepo.dart';
 import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
+import 'package:talkifyapp/features/Notifcations/data/notification_service.dart';
 
 class FirebaseProfileRepo implements ProfileRepo {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final NotificationService _notificationService = NotificationService();
 
   @override
   Future<ProfileUser?> fetchUserProfile(String id) async {
@@ -73,6 +75,7 @@ class FirebaseProfileRepo implements ProfileRepo {
       }
 
       bool isFollowing = false;
+      bool didFollow = false; // Track if we're following or unfollowing
 
       // Use a transaction to ensure atomic updates
       await firestore.runTransaction((transaction) async {
@@ -99,10 +102,12 @@ class FirebaseProfileRepo implements ProfileRepo {
           // Unfollow: Remove from both lists
           currentUserFollowing.remove(otherUserId);
           otherUserFollowers.remove(currentUserId);
+          didFollow = false;
         } else {
           // Follow: Add to both lists
           currentUserFollowing.add(otherUserId);
           otherUserFollowers.add(currentUserId);
+          didFollow = true;
         }
 
         // Update both documents atomically
@@ -115,7 +120,26 @@ class FirebaseProfileRepo implements ProfileRepo {
         });
       });
 
-      return !isFollowing; // Return true if now following, false if now unfollowing
+      // If we just followed the user (not unfollowed), create a notification
+      if (didFollow) {
+        // Get the user's name and profile picture
+        final currentUserDoc = await firestore.collection('users').doc(currentUserId).get();
+        if (currentUserDoc.exists) {
+          final userData = currentUserDoc.data() as Map<String, dynamic>;
+          final userName = userData['name'] as String? ?? 'User';
+          final profilePicture = userData['profilePicture'] as String? ?? '';
+          
+          // Create follow notification
+          await _notificationService.createFollowNotification(
+            followedUserId: otherUserId,
+            followerUserId: currentUserId,
+            followerUserName: userName,
+            followerProfilePic: profilePicture,
+          );
+        }
+      }
+
+      return didFollow; // Return true if now following, false if now unfollowing
     } catch (e, stackTrace) {
       print('Error toggling follow relationship: $e');
       print('Stack trace: $stackTrace');

@@ -7,6 +7,7 @@ import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification
 import 'package:talkifyapp/features/Notifcations/presentation/components/notification_item.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
+import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({Key? key}) : super(key: key);
@@ -148,6 +149,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
               ),
             );
           }
+          
+          // Make sure we have the ProfileCubit available for the follow button in notifications
+          final profileCubit = context.read<ProfileCubit>();
           
           return RefreshIndicator(
             onRefresh: () => context.read<NotificationCubit>().loadNotifications(_currentUserId),
