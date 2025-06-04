@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path/path.dart' as path;
 
 class DocumentViewerPage extends StatefulWidget {
   final String documentUrl;
@@ -22,11 +24,13 @@ class DocumentViewerPage extends StatefulWidget {
 
 class _DocumentViewerPageState extends State<DocumentViewerPage> {
   bool _isLoading = true;
+  bool _isDownloading = false;
   String? _localFilePath;
   String? _errorMessage;
   int _totalPages = 0;
   int _currentPage = 0;
   bool _isPdf = false;
+  double _downloadProgress = 0.0;
   
   @override
   void initState() {
@@ -117,6 +121,125 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
       }
     }
   }
+  
+  Future<void> _downloadDocument() async {
+    if (_isDownloading) return;
+    
+    setState(() {
+      _isDownloading = true;
+      _downloadProgress = 0.0;
+    });
+    
+    try {
+      // Request storage permission
+      final status = await Permission.storage.request();
+      if (!status.isGranted) {
+        setState(() {
+          _isDownloading = false;
+          _errorMessage = 'Storage permission is required to download files';
+        });
+        return;
+      }
+      
+      // Create a safe filename by removing special characters
+      final safeFileName = widget.fileName.replaceAll(RegExp(r'[^\w\s\.\-]'), '_');
+      
+      // Get download directory
+      Directory? directory;
+      
+      try {
+        // Try to get the downloads directory first
+        directory = await getDownloadsDirectory();
+      } catch (e) {
+        print('Could not get downloads directory: $e');
+      }
+      
+      // If downloads directory is not available, try external storage
+      if (directory == null) {
+        try {
+          directory = await getExternalStorageDirectory();
+        } catch (e) {
+          print('Could not get external storage directory: $e');
+        }
+      }
+      
+      // If both failed, use app documents directory
+      if (directory == null) {
+        directory = await getApplicationDocumentsDirectory();
+      }
+      
+      if (directory == null) {
+        setState(() {
+          _isDownloading = false;
+          _errorMessage = 'Could not find a download directory';
+        });
+        return;
+      }
+      
+      final savePath = path.join(directory.path, safeFileName);
+      final file = File(savePath);
+      
+      // Download with progress tracking
+      final request = http.Request('GET', Uri.parse(widget.documentUrl));
+      final response = await http.Client().send(request);
+      
+      final contentLength = response.contentLength ?? 0;
+      int bytesReceived = 0;
+      
+      final sink = file.openWrite();
+      
+      await response.stream.listen((List<int> chunk) {
+        sink.add(chunk);
+        bytesReceived += chunk.length;
+        
+        if (contentLength > 0 && mounted) {
+          setState(() {
+            _downloadProgress = bytesReceived / contentLength;
+          });
+        }
+      }).asFuture();
+      
+      await sink.close();
+      
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+          _downloadProgress = 1.0;
+        });
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Document downloaded to:\n${directory.path}'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'OPEN',
+              textColor: Colors.white,
+              onPressed: () {
+                final uri = Uri.file(savePath);
+                launchUrl(uri, mode: LaunchMode.externalApplication);
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+          _errorMessage = 'Error downloading document: $e';
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Download failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -131,19 +254,25 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         foregroundColor: Colors.black,
         elevation: 1,
         actions: [
-          if (!_isLoading && _localFilePath != null && _isPdf)
+          if (!_isLoading && _localFilePath != null)
             IconButton(
-              icon: const Icon(Icons.share),
-              onPressed: () {
-                // Share functionality would go here
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Share feature coming soon')),
-                );
-              },
+              icon: _isDownloading 
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                    ),
+                  )
+                : const Icon(Icons.download),
+              onPressed: _isDownloading ? null : _downloadDocument,
+              tooltip: 'Download document',
             ),
           IconButton(
             icon: const Icon(Icons.open_in_new),
             onPressed: () => _openInExternalApp(widget.documentUrl),
+            tooltip: 'Open in external app',
           ),
         ],
       ),
@@ -161,6 +290,48 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
             PercentCircleIndicator(),
             SizedBox(height: 16),
             Text('Loading document...'),
+          ],
+        ),
+      );
+    }
+
+    if (_isDownloading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: CircularProgressIndicator(
+                    value: _downloadProgress,
+                    backgroundColor: Colors.grey[300],
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                    strokeWidth: 8,
+                  ),
+                ),
+                Text(
+                  '${(_downloadProgress * 100).toStringAsFixed(0)}%',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Downloading document...',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Please wait',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
           ],
         ),
       );
@@ -273,6 +444,15 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
               foregroundColor: Colors.white,
             ),
             child: const Text('Open in External App'),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _downloadDocument,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Download Document'),
           ),
         ],
       ),

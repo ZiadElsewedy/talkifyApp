@@ -718,15 +718,27 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    'Tap to open',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                      color: widget.isFromCurrentUser
-                          ? Colors.white.withOpacity(0.6)
-                          : Colors.grey[600],
-                    ),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.download,
+                        size: 12,
+                        color: widget.isFromCurrentUser
+                            ? Colors.white.withOpacity(0.6)
+                            : Colors.grey[600],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Tap to view or download',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                          color: widget.isFromCurrentUser
+                              ? Colors.white.withOpacity(0.6)
+                              : Colors.grey[600],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
