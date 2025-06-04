@@ -360,6 +360,10 @@ class _NotificationItemState extends State<NotificationItem> {
         iconData = Icons.alternate_email;
         iconColor = Colors.orange;
         break;
+      case app_notification.NotificationType.message:
+        iconData = Icons.message;
+        iconColor = Colors.blue;
+        break;
     }
     
     return Container(
@@ -380,6 +384,8 @@ class _NotificationItemState extends State<NotificationItem> {
         return 'started following you';
       case app_notification.NotificationType.mention:
         return 'mentioned you in a post';
+      case app_notification.NotificationType.message:
+        return 'sent you a message';
     }
   }
 } 

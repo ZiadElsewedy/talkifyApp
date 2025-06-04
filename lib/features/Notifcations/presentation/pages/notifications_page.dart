@@ -203,6 +203,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         case app_notification.NotificationType.like:
         case app_notification.NotificationType.comment:
         case app_notification.NotificationType.reply:
+        case app_notification.NotificationType.message:
           // Check if targetId exists before navigating
           if (notification.targetId.isNotEmpty) {
             _navigateToPostInProfile(notification.targetId);
