@@ -112,7 +112,7 @@ class _MyAppState extends State<MyApp> {
               } else if (state is EmailVerificationState) {
                 _showSnackBar(state.message, Colors.blue);
               } else if (state is Authanticated) {
-                _showSnackBar("Welcome back", Colors.green);
+                print("Welcome back , User is logged in");
               }
             },
             builder: (context, state) {
