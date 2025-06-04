@@ -21,24 +21,32 @@ class MyTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color textColor = isDarkMode ? Colors.white : Colors.black87;
+    final Color fillColor = isDarkMode ? Colors.grey[900]! : const Color(0xFFF7F7F7);
+    final Color hintColor = isDarkMode ? Colors.grey[500]! : Colors.grey.shade500;
+    final Color helperColor = isDarkMode ? Colors.grey[400]! : Colors.grey.shade600;
+    final Color borderColor = isDarkMode ? Colors.grey[700]! : Colors.grey.shade300;
+    final Color focusedBorderColor = isDarkMode ? Colors.grey[400]! : Colors.grey.shade600;
+
     return TextField(
       enabled: enabled,
       controller: controller,
       obscureText: obsecureText,
-      style: const TextStyle(
-        color: Colors.black87, // Text inside field
+      style: TextStyle(
+        color: textColor, // Text inside field
       ),
       decoration: InputDecoration(
         filled: true,
-        fillColor: Color(0xFFF7F7F7), // very light grey background
+        fillColor: fillColor, // background
         hintText: hintText,
         helperText: helperText,
         helperStyle: TextStyle(
-          color: Colors.grey.shade600,
+          color: helperColor,
           fontSize: 12,
         ),
         hintStyle: TextStyle(
-          color: Colors.grey.shade500, // light grey hint
+          color: hintColor, // hint
         ),
         suffixIcon: suffixIcon,
         contentPadding: const EdgeInsets.symmetric(
@@ -47,14 +55,14 @@ class MyTextField extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(
-            color: Colors.grey.shade300, // light grey border when not selected
+            color: borderColor, // border when not selected
             width: 1.5,
           ),
           borderRadius: BorderRadius.circular(12),
         ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(
-            color: Colors.grey.shade600, // darker grey when selected
+            color: focusedBorderColor, // border when selected
             width: 1.8,
           ),
           borderRadius: BorderRadius.circular(12),

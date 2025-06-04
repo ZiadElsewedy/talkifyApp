@@ -17,6 +17,7 @@ import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 import 'package:talkifyapp/features/Chat/Data/firebase_chat_repo.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
+import 'package:talkifyapp/theme/Cubits/theme_cubit.dart';
 // things need to do ! 
 // 1. add firebase options
 // bloc providers for state management
@@ -51,6 +52,9 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        BlocProvider<ThemeCubit>(
+          create: (context) => ThemeCubit(),
+        ),
         BlocProvider<AuthCubit>(
           create: (context) => AuthCubit(_firebaseAuthRepo)..checkAuth(),
         ),
@@ -85,54 +89,59 @@ class _MyAppState extends State<MyApp> {
         ),
       ],
     
-      child: WillPopScope(
-        // Dispose all audio players when app is about to exit
-        onWillPop: () async {
-          try {
-            _audioHandler.disposeAllPlayers();
-          } catch (e) {
-            print('Error disposing audio players: $e');
-          }
-          return true;
-        },
-        child: MaterialApp(
-          scaffoldMessengerKey: _scaffoldMessengerKey,
-          debugShowCheckedModeBanner: false,
-          title: 'Talkify',
-          home: BlocConsumer<AuthCubit, AuthStates>(
-            // Listen to the auth cubit state changes
-            listener: (context, state) {
-              // Hide any previous SnackBar to prevent multiple SnackBars error
-              _scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
-              
-              if (state is AuthErrorState) {
-                _showSnackBar(state.error, Colors.red);
-              } else if (state is UnverifiedState) {
-                _showSnackBar(state.message, Colors.orange);
-              } else if (state is EmailVerificationState) {
-                _showSnackBar(state.message, Colors.blue);
-              } else if (state is Authanticated) {
-                _showSnackBar("Welcome back", Colors.green);
+      child: BlocBuilder<ThemeCubit, ThemeState>(
+        builder: (context, themeState) {
+          return WillPopScope(
+            // Dispose all audio players when app is about to exit
+            onWillPop: () async {
+              try {
+                _audioHandler.disposeAllPlayers();
+              } catch (e) {
+                print('Error disposing audio players: $e');
               }
+              return true;
             },
-            builder: (context, state) {
-              if (state is Authanticated) {
-                return HomePage();
-              } else if (state is UnverifiedState || state is EmailVerificationState) {
-                return const VerificationEmail();
-              } else if (state is UnAuthanticated || state is AuthErrorState) {
-                return const AuthPage();
-              } else if (state is AuthLoadingState) {
-                return const Scaffold(
-                  body: Center(
-                    child: PercentCircleIndicator(),
-                  ),
-                );
-              }
-              return const AuthPage();
-            }
-          ),
-        ),
+            child: MaterialApp(
+              scaffoldMessengerKey: _scaffoldMessengerKey,
+              debugShowCheckedModeBanner: false,
+              title: 'Talkify',
+              theme: context.read<ThemeCubit>().themeData,
+              home: BlocConsumer<AuthCubit, AuthStates>(
+                // Listen to the auth cubit state changes
+                listener: (context, state) {
+                  // Hide any previous SnackBar to prevent multiple SnackBars error
+                  _scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+                  
+                  if (state is AuthErrorState) {
+                    _showSnackBar(state.error, Colors.red);
+                  } else if (state is UnverifiedState) {
+                    _showSnackBar(state.message, Colors.orange);
+                  } else if (state is EmailVerificationState) {
+                    _showSnackBar(state.message, Colors.blue);
+                  } else if (state is Authanticated) {
+                    _showSnackBar("Welcome back", Colors.green);
+                  }
+                },
+                builder: (context, state) {
+                  if (state is Authanticated) {
+                    return HomePage();
+                  } else if (state is UnverifiedState || state is EmailVerificationState) {
+                    return const VerificationEmail();
+                  } else if (state is UnAuthanticated || state is AuthErrorState) {
+                    return const AuthPage();
+                  } else if (state is AuthLoadingState) {
+                    return const Scaffold(
+                      body: Center(
+                        child: PercentCircleIndicator(),
+                      ),
+                    );
+                  }
+                  return const AuthPage();
+                }
+              ),
+            ),
+          );
+        }
       ),
     );
   }

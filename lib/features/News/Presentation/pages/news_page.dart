@@ -184,15 +184,39 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final scaffoldBg = isDarkMode ? Theme.of(context).scaffoldBackgroundColor : Colors.white;
+    final appBarBg = isDarkMode ? colorScheme.surface : Colors.white;
+    final appBarText = colorScheme.inversePrimary;
+    final tabSelectedBg = isDarkMode ? Colors.grey[800] : Colors.white;
+    final tabSelectedText = isDarkMode ? Colors.white : Colors.black;
+    final tabUnselectedText = isDarkMode ? Colors.grey[400] : Colors.grey[600];
+    final tabIndicator = isDarkMode ? Colors.white : Colors.black;
+    final searchBg = isDarkMode ? Colors.grey[900]! : Colors.grey[100]!;
+    final searchText = isDarkMode ? Colors.white : Colors.black;
+    final searchHint = isDarkMode ? Colors.grey[500]! : Colors.grey[500]!;
+    final searchIcon = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final borderColor = isDarkMode ? Colors.grey[700]! : Colors.grey[300]!;
+    final focusedBorderColor = isDarkMode ? Colors.grey[400]! : Colors.grey[700]!;
+    final breakingBg = isDarkMode ? Colors.blue[900]! : Colors.black;
+    final breakingText = Colors.white;
+    final breakingSubText = isDarkMode ? Colors.grey[300]! : Colors.grey[800]!;
+    final dividerColor = isDarkMode ? Colors.grey[800]! : Colors.grey[300]!;
+    final errorIconColor = isDarkMode ? Colors.red[400] : Colors.grey[400];
+    final errorTextColor = isDarkMode ? Colors.white : Colors.black;
+    final errorSubTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final loadingTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
         elevation: 0,
         title: Row(
           children: [
             Icon(
               Icons.newspaper,
-              color: Colors.black,
+              color: appBarText,
               size: 24,
             ),
             SizedBox(width: 10),
@@ -201,24 +225,24 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: Colors.black,
+                color: appBarText,
                 letterSpacing: 0.5,
               ),
             ),
           ],
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: appBarBg,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Container(
-            color: Colors.white,
+            color: appBarBg,
             child: TabBar(
               controller: _tabController,
               isScrollable: true,
               indicatorWeight: 3,
-              indicatorColor: Colors.black,
-              labelColor: Colors.black,
-              unselectedLabelColor: Colors.grey[600],
+              indicatorColor: tabIndicator,
+              labelColor: tabSelectedText,
+              unselectedLabelColor: tabUnselectedText,
               labelStyle: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
@@ -239,7 +263,7 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
         children: [
           // Search bar
           Container(
-            color: Colors.white,
+            color: appBarBg,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Column(
               children: [
@@ -247,10 +271,10 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Search news...',
-                    hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
-                    prefixIcon: Icon(Icons.search, color: Colors.grey[600], size: 20),
+                    hintStyle: TextStyle(color: searchHint, fontSize: 14),
+                    prefixIcon: Icon(Icons.search, color: searchIcon, size: 20),
                     suffixIcon: IconButton(
-                      icon: Icon(Icons.clear, color: Colors.grey[600], size: 20),
+                      icon: Icon(Icons.clear, color: searchIcon, size: 20),
                       onPressed: () {
                         _searchController.clear();
                         _loadInitialNews();
@@ -258,21 +282,21 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
+                      borderSide: BorderSide(color: borderColor),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
+                      borderSide: BorderSide(color: borderColor),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey[700]!),
+                      borderSide: BorderSide(color: focusedBorderColor),
                     ),
                     filled: true,
-                    fillColor: Colors.grey[100],
+                    fillColor: searchBg,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
-                  style: TextStyle(fontSize: 14, color: Colors.black),
+                  style: TextStyle(fontSize: 14, color: searchText),
                   onSubmitted: _handleSearch,
                 ),
                 
@@ -292,13 +316,13 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: Colors.black,
+                                    color: breakingBg,
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     'Breaking News',
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: breakingText,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
                                     ),
@@ -308,7 +332,7 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                                 Text(
                                   'Latest breaking updates',
                                   style: TextStyle(
-                                    color: Colors.grey[800],
+                                    color: breakingSubText,
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -320,12 +344,12 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                             SizedBox(
                               height: 140,
                               child: _isLoadingBreaking 
-                                ? Center(child: CircularProgressIndicator(color: Colors.grey[700]))
+                                ? Center(child: CircularProgressIndicator(color: focusedBorderColor))
                                 : _breakingNews.isEmpty 
                                     ? Center(
                                         child: Text(
                                           'No breaking news available',
-                                          style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                                          style: TextStyle(color: errorSubTextColor, fontSize: 14),
                                         ),
                                       )
                                     : ListView.builder(
@@ -340,7 +364,7 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                             ),
                             
                             // Divider
-                            Divider(color: Colors.grey[300], height: 1),
+                            Divider(color: dividerColor, height: 1),
                           ],
                         ),
                       ),
@@ -364,7 +388,7 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                         Text(
                           'Loading news...',
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: loadingTextColor,
                             fontSize: 14,
                           ),
                         ),
@@ -379,7 +403,7 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                         Icon(
                           Icons.error_outline,
                           size: 50,
-                          color: Colors.grey[400],
+                          color: errorIconColor,
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -387,7 +411,7 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
-                            color: Colors.black,
+                            color: errorTextColor,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -397,8 +421,7 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                             state.message,
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
+                              color: errorSubTextColor,
                             ),
                           ),
                         ),

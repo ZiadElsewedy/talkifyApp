@@ -187,5 +187,50 @@ class FirebaseAuthRepo implements AuthRepo {
       throw Exception('Failed to get current user: $e');
     }
   }
+
+  @override
+  Future<void> deleteAccount(String password) async {
+    try {
+      // Get the current user
+      final user = firebaseAuth.currentUser;
+      if (user == null) {
+        throw Exception('No user is currently signed in');
+      }
+
+      // Re-authenticate the user before deletion
+      final credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: password,
+      );
+      await user.reauthenticateWithCredential(credential);
+
+      // Delete user data from Firestore first
+      final batch = firestore.batch();
+      
+      // Delete user document
+      batch.delete(firestore.collection('users').doc(user.uid));
+      
+      // Flag the account as deleted in a separate collection for reference
+      // This helps prevent users from recreating accounts with the same email
+      batch.set(firestore.collection('deleted_users').doc(user.uid), {
+        'email': user.email,
+        'deletedAt': FieldValue.serverTimestamp(),
+      });
+      
+      // Execute batch operations
+      await batch.commit();
+
+      // Delete user account from Firebase Auth
+      await user.delete();
+    } catch (e) {
+      if (e.toString().contains('requires-recent-login')) {
+        throw Exception('Please log out and log back in before deleting your account');
+      } else if (e.toString().contains('wrong-password')) {
+        throw Exception('Incorrect password. Please try again');
+      } else {
+        throw Exception('Failed to delete account: $e');
+      }
+    }
+  }
 }
 // UnimplementedError() mean? It's a placeholder saying: "Hey, I will write the real code later!"

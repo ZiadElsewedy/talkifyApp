@@ -13,22 +13,31 @@ class MyDrawerTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.onTap,
-    this.iconColor = const Color.fromARGB(221, 88, 88, 88),
-    this.textColor = Colors.black87,
+    this.iconColor,
+    this.textColor,
     this.fontWeight = FontWeight.w500,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    // Use provided colors or default to theme-appropriate colors
+    final Color actualIconColor = iconColor ?? 
+        (isDarkMode ? Colors.grey[400]! : const Color.fromARGB(221, 88, 88, 88));
+    
+    final Color actualTextColor = textColor ?? 
+        (isDarkMode ? Colors.grey[300]! : Colors.black87);
+
     return ListTile(
       leading: Icon(
         icon,
-        color: iconColor,
+        color: actualIconColor,
       ),
       title: Text(
         title,
         style: TextStyle(
-          color: textColor,
+          color: actualTextColor,
           fontWeight: fontWeight,
         ),
       ),

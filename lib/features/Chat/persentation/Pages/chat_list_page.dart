@@ -94,12 +94,14 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
   }
 
   Widget _buildSearchBar() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       height: 60,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDarkMode ? Theme.of(context).colorScheme.surface : Colors.white,
         boxShadow: _isSearching ? [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -113,10 +115,11 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
         onChanged: _filterChatRooms,
         decoration: InputDecoration(
           hintText: 'Search chats...',
-          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+          hintStyle: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey),
+          prefixIcon: Icon(Icons.search, color: isDarkMode ? Colors.grey[400] : Colors.grey),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.close, color: Colors.grey),
+                  icon: Icon(Icons.close, color: isDarkMode ? Colors.grey[400] : Colors.grey),
                   onPressed: () {
                     setState(() {
                       _searchController.clear();
@@ -126,13 +129,14 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                 )
               : null,
           filled: true,
-          fillColor: Colors.grey[100],
+          fillColor: isDarkMode ? Colors.grey[800] : Colors.grey[100],
           contentPadding: const EdgeInsets.symmetric(vertical: 0),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30),
             borderSide: BorderSide.none,
           ),
         ),
+        style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
       ),
     );
   }
@@ -140,28 +144,33 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final currentUser = context.read<AuthCubit>().GetCurrentUser();
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDarkMode ? Theme.of(context).scaffoldBackgroundColor : Colors.white,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Chats',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: isDarkMode ? Colors.white : Colors.black,
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: isDarkMode ? Theme.of(context).colorScheme.surface : Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.arrow_back, size: 20, color: Colors.black),
+            child: Icon(
+              Icons.arrow_back, 
+              size: 20, 
+              color: isDarkMode ? Colors.white : Colors.black
+            ),
           ),
           onPressed: () {
             Navigator.pushReplacement(
@@ -177,13 +186,13 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 _isSearching ? Icons.close : Icons.search,
                 size: 20,
-                color: Colors.black
+                color: isDarkMode ? Colors.white : Colors.black
               ),
             ),
             onPressed: () {
@@ -200,7 +209,7 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.more_vert, size: 20, color: Colors.black),
@@ -396,7 +405,7 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
             ),
           );
         },
-        backgroundColor: Colors.black,
+        backgroundColor: isDarkMode ? Colors.blue.shade700 : Colors.black,
         foregroundColor: Colors.white,
         elevation: 2,
         shape: RoundedRectangleBorder(

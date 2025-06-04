@@ -12,7 +12,6 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_sharing_service.dart';
-//import 'package:talkifyapp/features/Posts/presentation/Pages/CommentsPage.dart';
 
 import '../../Profile/presentation/Cubits/ProfileCubit.dart';
 
@@ -223,21 +222,24 @@ void sharePost() {
 }
 
   void showDeleteConfirmation() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    
     showDialog(
       context: context,
-      barrierColor: Colors.black54,
+      barrierColor: isDarkMode ? Colors.black87 : Colors.black54,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: colorScheme.surface,
         title: Row(
           children: [
-            Icon(Icons.delete_outline, color: Colors.red.shade700, size: 24),
+            Icon(Icons.delete_outline, color: colorScheme.error, size: 24),
             SizedBox(width: 10),
             Text(
               'Delete Post',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
-                color: Colors.black87,
+                color: colorScheme.onSurface,
               ),
             ),
           ],
@@ -246,17 +248,17 @@ void sharePost() {
           'This action cannot be undone. Are you sure you want to delete this post?',
           style: TextStyle(
             fontSize: 15,
-            color: Colors.black87,
+            color: colorScheme.onSurfaceVariant,
             height: 1.4,
           ),
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        elevation: 8,
+        elevation: isDarkMode ? 4 : 8,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.black54,
+              foregroundColor: colorScheme.onSurfaceVariant,
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -271,8 +273,8 @@ void sharePost() {
               widget.onDelete?.call();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -472,16 +474,27 @@ void addComment() async {
   }
 
 
+  @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color cardColor = isDarkMode ? Colors.grey[900]! : Colors.white;
+    final Color textColor = isDarkMode ? Colors.grey[200]! : Colors.black87;
+    final Color subTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final Color iconColor = isDarkMode ? Colors.grey[400]! : Colors.black54;
+    final Color dividerColor = isDarkMode ? Colors.grey[800]! : Colors.grey[300]!;
+    final Color likeColor = isDarkMode ? Colors.red[300]! : Colors.red[700]!;
+    final Color commentBg = isDarkMode ? Colors.grey[800]! : Colors.grey[100]!;
+    final Color shadowColor = isDarkMode ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05);
+
     // check if the post is owned by the current user
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: shadowColor,
             blurRadius: 20,
             offset: const Offset(0, 4),
             spreadRadius: 0,
@@ -519,6 +532,10 @@ void addComment() async {
   }
 
   Widget _buildHeader() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color usernameColor = isDarkMode ? Colors.grey[200]! : Colors.black87;
+    final Color timestampColor = isDarkMode ? Colors.grey[500]! : Colors.grey[600]!;
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -574,10 +591,10 @@ void addComment() async {
               children: [
                 Text(
                   widget.post.UserName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    color: usernameColor,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -585,7 +602,7 @@ void addComment() async {
                   timeago.format(widget.post.timestamp),
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey.shade600,
+                    color: timestampColor,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
@@ -600,35 +617,35 @@ void addComment() async {
                 size: 22,
               ),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 6,
+              elevation: isDarkMode ? 4 : 6,
               position: PopupMenuPosition.under,
-              color: Colors.white,
+              color: isDarkMode ? Theme.of(context).colorScheme.surface : Colors.white,
               offset: Offset(0, 10),
               onSelected: (value) async {
                 if (value == 'edit') {
                   final newCaption = await showDialog<String>(
                     context: context,
-                    barrierColor: Colors.black54,
+                    barrierColor: isDarkMode ? Colors.black87 : Colors.black54,
                     builder: (context) {
                       final controller = TextEditingController(text: widget.post.Text);
                       return AlertDialog(
-                        backgroundColor: Colors.white,
+                        backgroundColor: Theme.of(context).colorScheme.surface,
                         title: Row(
                           children: [
-                            Icon(Icons.edit_note, color: Colors.blue.shade700, size: 24),
+                            Icon(Icons.edit_note, color: Theme.of(context).colorScheme.primary, size: 24),
                             SizedBox(width: 10),
                             Text(
                               'Edit Caption',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
-                                color: Colors.black87,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                           ],
                         ),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        elevation: 8,
+                        elevation: isDarkMode ? 4 : 8,
                         content: Container(
                           width: double.maxFinite,
                           child: Column(
@@ -639,15 +656,17 @@ void addComment() async {
                                 'Update your post caption',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey.shade600,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                               ),
                               SizedBox(height: 16),
                               Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.shade50,
+                                  color: isDarkMode ? Theme.of(context).colorScheme.surfaceVariant : Colors.grey.shade50,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.grey.shade200),
+                                  border: Border.all(
+                                    color: isDarkMode ? Theme.of(context).colorScheme.outline : Colors.grey.shade200,
+                                  ),
                                 ),
                                 child: TextField(
                                   controller: controller,
@@ -655,11 +674,13 @@ void addComment() async {
                                   minLines: 3,
                                   style: TextStyle(
                                     fontSize: 15,
-                                    color: Colors.black87,
+                                    color: Theme.of(context).colorScheme.onSurface,
                                   ),
                                   decoration: InputDecoration(
                                     hintText: 'What\'s on your mind?',
-                                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                                    hintStyle: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                                    ),
                                     contentPadding: const EdgeInsets.all(16),
                                     border: InputBorder.none,
                                   ),
@@ -673,7 +694,7 @@ void addComment() async {
                           TextButton(
                             onPressed: () => Navigator.pop(context),
                             style: TextButton.styleFrom(
-                              foregroundColor: Colors.black54,
+                              foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
@@ -685,8 +706,8 @@ void addComment() async {
                           ElevatedButton(
                             onPressed: () => Navigator.pop(context, controller.text.trim()),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue.shade700,
-                              foregroundColor: Colors.white,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
                               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               elevation: 0,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -721,7 +742,7 @@ void addComment() async {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                          color: isDarkMode ? Colors.grey[200] : Colors.black87,
                         ),
                       ),
                     ],
@@ -738,7 +759,7 @@ void addComment() async {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                          color: isDarkMode ? Colors.grey[200] : Colors.black87,
                         ),
                       ),
                     ],
@@ -752,14 +773,17 @@ void addComment() async {
   }
 
   Widget _buildTextContent() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color textColor = isDarkMode ? Colors.grey[200]! : Colors.black87;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Text(
         widget.post.Text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 15,
           height: 1.4,
-          color: Colors.black87,
+          color: textColor,
         ),
       ),
     );
@@ -806,7 +830,14 @@ void addComment() async {
   Widget _buildActionBar() {
     final isLiked = widget.post.likes.contains(currentUser?.id);
     final isSaved = widget.post.savedBy.contains(currentUser?.id);
-    
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color savedBg = isDarkMode ? Colors.blue[900]! : Colors.blue.shade50;
+    final Color savedBorder = isDarkMode ? Colors.blue[700]! : Colors.blue.shade300;
+    final Color savedText = isDarkMode ? Colors.blue[200]! : Colors.blue.shade700;
+    final Color unsavedBg = isDarkMode ? Colors.grey[800]! : Colors.grey[100]!;
+    final Color unsavedBorder = isDarkMode ? Colors.grey[700]! : Colors.grey[300]!;
+    final Color unsavedText = isDarkMode ? Colors.grey[300]! : Colors.black87;
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -850,10 +881,10 @@ void addComment() async {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: isSaved ? Colors.blue.shade50 : Colors.grey.shade100,
+                color: isSaved ? savedBg : unsavedBg,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isSaved ? Colors.blue.shade300 : Colors.grey.shade300, 
+                  color: isSaved ? savedBorder : unsavedBorder, 
                   width: 1
                 ),
               ),
@@ -862,7 +893,7 @@ void addComment() async {
                   Icon(
                     isSaved ? Icons.bookmark : Icons.bookmark_border,
                     size: 16,
-                    color: isSaved ? Colors.blue.shade700 : Colors.black87,
+                    color: isSaved ? savedText : unsavedText,
                   ),
                   const SizedBox(width: 4),
                   Text(
@@ -870,7 +901,7 @@ void addComment() async {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: isSaved ? Colors.blue.shade700 : Colors.black87,
+                      color: isSaved ? savedText : unsavedText,
                     ),
                   ),
                 ],

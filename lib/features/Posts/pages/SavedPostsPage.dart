@@ -25,28 +25,36 @@ class _SavedPostsPageState extends State<SavedPostsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color backgroundColor = isDarkMode ? Theme.of(context).scaffoldBackgroundColor : Colors.grey.shade50;
+    final Color appBarColor = isDarkMode ? Theme.of(context).colorScheme.surface : Colors.white;
+    final Color titleColor = isDarkMode ? Colors.white : Colors.black87;
+    final Color iconColor = isDarkMode ? Colors.grey[400]! : Colors.black87;
+    final Color emptyTextColor = isDarkMode ? Colors.grey[300]! : Colors.grey.shade800;
+    final Color emptySubTextColor = isDarkMode ? Colors.grey[500]! : Colors.grey.shade600;
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: appBarColor,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Saved Posts',
           style: TextStyle(
-            color: Colors.black87,
+            color: titleColor,
             fontWeight: FontWeight.w600,
             fontSize: 22,
           ),
         ),
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: IconThemeData(color: iconColor),
       ),
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: backgroundColor,
       body: BlocBuilder<PostCubit, PostState>(
         builder: (context, state) {
           if (state is PostsLoading) {
             return const Center(child: CircularProgressIndicator());
           }
           if (state is PostsError) {
-            return Center(child: Text('Error: ${state.message}'));
+            return Center(child: Text('Error: ${state.message}', style: TextStyle(color: titleColor)));
           }
           if (state is PostsLoaded) {
             if (state.posts.isEmpty) {
@@ -54,12 +62,12 @@ class _SavedPostsPageState extends State<SavedPostsPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.bookmark_border, size: 48, color: Colors.grey.shade400),
+                    Icon(Icons.bookmark_border, size: 48, color: isDarkMode ? Colors.grey[600] : Colors.grey.shade400),
                     const SizedBox(height: 16),
                     Text(
                       'No saved posts yet',
                       style: TextStyle(
-                        color: Colors.grey.shade800,
+                        color: emptyTextColor,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
@@ -68,7 +76,7 @@ class _SavedPostsPageState extends State<SavedPostsPage> {
                     Text(
                       'Save posts to see them here.',
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: emptySubTextColor,
                         fontSize: 14,
                       ),
                     ),
