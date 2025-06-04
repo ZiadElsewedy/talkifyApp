@@ -10,6 +10,20 @@ abstract class NotificationRepository {
   /// Delete a notification by ID
   Future<void> deleteNotification(String notificationId);
   
+  /// Remove notifications based on action parameters (when action is undone)
+  Future<void> removeNotificationsByAction({
+    required String triggerUserId,
+    required String recipientId,
+    required String targetId,
+    required NotificationType type,
+  });
+  
+  /// Remove a follow notification when a user unfollows another
+  Future<void> removeFollowNotification(String followerId, String followedId);
+  
+  /// Remove a like notification when a user unlikes a post
+  Future<void> removeLikeNotification(String likerId, String postOwnerId, String postId);
+  
   /// Mark a notification as read
   Future<void> markNotificationAsRead(String notificationId);
   

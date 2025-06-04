@@ -45,6 +45,67 @@ class NotificationRepositoryImpl implements NotificationRepository {
   }
 
   @override
+  Future<void> removeNotificationsByAction({
+    required String triggerUserId,
+    required String recipientId,
+    required String targetId,
+    required NotificationType type,
+  }) async {
+    try {
+      print('Removing notifications for action: user=$triggerUserId, recipient=$recipientId, target=$targetId, type=${type.toString()}');
+      
+      // Find notifications that match the criteria
+      final querySnapshot = await _firestore
+          .collection('notifications')
+          .where('recipientId', isEqualTo: recipientId)
+          .where('triggerUserId', isEqualTo: triggerUserId)
+          .where('targetId', isEqualTo: targetId)
+          .where('type', isEqualTo: type.toString().split('.').last)
+          .get();
+      
+      // If no matching notifications, return early
+      if (querySnapshot.docs.isEmpty) {
+        print('No matching notifications found');
+        return;
+      }
+      
+      print('Found ${querySnapshot.docs.length} notifications to remove');
+      
+      // Delete all matching notifications
+      final batch = _firestore.batch();
+      for (var doc in querySnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      
+      await batch.commit();
+      print('Successfully removed ${querySnapshot.docs.length} notifications');
+    } catch (e) {
+      print('Error removing notifications by action: $e');
+      throw Exception('Failed to remove notifications: $e');
+    }
+  }
+
+  @override
+  Future<void> removeFollowNotification(String followerId, String followedId) async {
+    await removeNotificationsByAction(
+      triggerUserId: followerId, 
+      recipientId: followedId, 
+      targetId: followerId,  // For follow notifications, targetId is the follower's ID
+      type: NotificationType.follow,
+    );
+  }
+
+  @override
+  Future<void> removeLikeNotification(String likerId, String postOwnerId, String postId) async {
+    await removeNotificationsByAction(
+      triggerUserId: likerId, 
+      recipientId: postOwnerId, 
+      targetId: postId,
+      type: NotificationType.like,
+    );
+  }
+
+  @override
   Future<void> markNotificationAsRead(String notificationId) async {
     try {
       await _firestore

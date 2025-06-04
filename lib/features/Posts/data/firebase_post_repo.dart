@@ -417,8 +417,22 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
       // Toggle the like
       bool isNewLike = false;
       if (updatedLikes.contains(userId)) {
+        // User is unliking the comment
         updatedLikes.remove(userId);
+        
+        // Try to remove the like notification
+        try {
+          await _notificationService.removeLikeCommentNotification(
+            likerId: userId,
+            commentOwnerId: comment.userId,
+            postId: postId
+          );
+        } catch (e) {
+          print('Error removing comment like notification: $e');
+          // Continue with unlike operation even if notification removal fails
+        }
       } else {
+        // User is liking the comment
         updatedLikes.add(userId);
         isNewLike = true;
       }

@@ -7,14 +7,12 @@ class NotificationState {
   final NotificationStatus status;
   final String errorMessage;
   final int unreadCount;
-  final app_notification.Notification? newNotification;
   
   const NotificationState({
     this.notifications = const [],
     this.status = NotificationStatus.initial,
     this.errorMessage = '',
     this.unreadCount = 0,
-    this.newNotification,
   });
   
   // Factory constructor for initial state
@@ -25,14 +23,12 @@ class NotificationState {
     NotificationStatus? status,
     String? errorMessage,
     int? unreadCount,
-    app_notification.Notification? newNotification,
   }) {
     return NotificationState(
       notifications: notifications ?? this.notifications,
       status: status ?? this.status,
       errorMessage: errorMessage ?? this.errorMessage,
       unreadCount: unreadCount ?? this.unreadCount,
-      newNotification: newNotification,
     );
   }
   

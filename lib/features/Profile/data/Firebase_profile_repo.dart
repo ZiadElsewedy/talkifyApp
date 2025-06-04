@@ -103,6 +103,17 @@ class FirebaseProfileRepo implements ProfileRepo {
           currentUserFollowing.remove(otherUserId);
           otherUserFollowers.remove(currentUserId);
           didFollow = false;
+          
+          // Remove the follow notification when unfollowing
+          try {
+            await _notificationService.removeFollowNotification(
+              followerId: currentUserId,
+              followedId: otherUserId
+            );
+          } catch (e) {
+            print('Error removing follow notification: $e');
+            // Continue with the unfollow operation even if notification removal fails
+          }
         } else {
           // Follow: Add to both lists
           currentUserFollowing.add(otherUserId);

@@ -18,7 +18,6 @@ import 'package:talkifyapp/features/Chat/Data/firebase_chat_repo.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
 import 'package:talkifyapp/features/Notifcations/data/notification_repository_impl.dart';
-import 'package:talkifyapp/features/Notifcations/data/notification_service.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_cubit.dart';
 // things need to do ! 
 // 1. add firebase options
@@ -47,7 +46,6 @@ class _MyAppState extends State<MyApp> {
   final _firebaseSearchRepo = FirebaseSearchRepo();
   final _firebaseChatRepo = FirebaseChatRepo();
   final _notificationRepositoryImpl = NotificationRepositoryImpl();
-  final _notificationService = NotificationService();
   final _audioHandler = AudioHandler();
   
   // Key for SnackBar management
@@ -92,7 +90,6 @@ class _MyAppState extends State<MyApp> {
         BlocProvider<NotificationCubit>(
           create: (context) => NotificationCubit(
             notificationRepository: _notificationRepositoryImpl,
-            notificationService: _notificationService,
           ),
         ),
       ],

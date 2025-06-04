@@ -13,18 +13,14 @@ import 'package:talkifyapp/features/Notifcations/presentation/pages/notification
 import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_cubit.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_state.dart';
 import 'package:talkifyapp/features/Notifcations/data/notification_repository_impl.dart';
-import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:async'; // Add for StreamSubscription
 
 class HomePage extends StatefulWidget {
   final int initialTabIndex;
-  final String? targetPostId; // Add parameter for direct navigation to a post
 
   const HomePage({
     super.key,
     this.initialTabIndex = 0, // Default to home tab (index 0)
-    this.targetPostId, // Optional post ID to navigate to
   });
 
   @override
@@ -41,8 +37,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   double _previousScrollPosition = 0.0;
   int _currentIndex = 0;
   AppUser? currentUser;
-  late NotificationCubit _notificationCubit;
-  StreamSubscription? _notificationListener;
 
   @override
   void initState() {
@@ -66,30 +60,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     
     _scrollController = ScrollController();
     _scrollController.addListener(_scrollListener);
-    
-    // Setup notification handling
-    _setupNotifications();
-    
-    // Handle navigation to specific post if targetPostId is provided
-    if (widget.targetPostId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _navigateToPost(widget.targetPostId!);
-      });
-    }
-  }
-  
-  void _setupNotifications() {
-    _notificationCubit = context.read<NotificationCubit>();
-    
-    // Listen for notification state changes
-    _notificationListener = _notificationCubit.stream.listen((state) {
-      if (state.newNotification != null && mounted) {
-        // When a new notification comes in, show an in-app toast
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _notificationCubit.showInAppNotification(state.newNotification!, context);
-        });
-      }
-    });
   }
 
   void _getCurrentUser() {
@@ -226,7 +196,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _backgroundController.dispose();
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
-    _notificationListener?.cancel();
     super.dispose();
   }
 
@@ -537,30 +506,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ),
       ),
     );
-  }
-
-  // Navigate to a specific post
-  void _navigateToPost(String postId) {
-    final postCubit = context.read<PostCubit>();
-    postCubit.getPostById(postId).then((post) {
-      if (post != null && mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProfilePage(
-              userId: post.UserId,
-            ),
-          ),
-        );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Post not found'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    });
   }
 }
 
