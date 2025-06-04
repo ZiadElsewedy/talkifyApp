@@ -125,18 +125,50 @@ class NotificationService {
       final postDoc = await _firestore.collection('posts').doc(postId).get();
       if (postDoc.exists) {
         final data = postDoc.data();
+        print('Post data for image retrieval: $data');
         
-        // Handle imageUrl as a List (which is how it's stored in posts)
-        if (data?.containsKey('imageUrl') == true) {
-          // Check if it's a list and has items
+        // Check for 'imageurl' field (used in Post.fromJson)
+        if (data?.containsKey('imageurl') == true) {
+          final imageUrl = data!['imageurl'] as String?;
+          print('Found imageurl field: $imageUrl');
+          
+          if (imageUrl != null && imageUrl.isNotEmpty) {
+            print('Retrieved image URL: $imageUrl');
+            return imageUrl;
+          } else {
+            print('imageurl exists but is empty');
+          }
+        } 
+        // Also check for 'imageUrl' field (used in some places)
+        else if (data?.containsKey('imageUrl') == true) {
+          print('Found imageUrl field: ${data?['imageUrl']}');
+          
+          // Check if it's a list and has items (some implementations store it as a list)
           if (data?['imageUrl'] is List && (data?['imageUrl'] as List).isNotEmpty) {
-            return (data?['imageUrl'] as List)[0]?.toString();
+            final imageUrl = (data?['imageUrl'] as List)[0]?.toString();
+            print('Retrieved image URL from list: $imageUrl');
+            return imageUrl;
+          } 
+          // Check if it's a string
+          else if (data?['imageUrl'] is String && (data?['imageUrl'] as String).isNotEmpty) {
+            final imageUrl = data?['imageUrl'] as String;
+            print('Retrieved image URL as string: $imageUrl');
+            return imageUrl;
+          }
+          else {
+            print('imageUrl exists but is in an unexpected format or empty: ${data?['imageUrl']}');
           }
         }
+        else {
+          print('Post does not contain imageurl or imageUrl field');
+        }
+      } else {
+        print('Post document does not exist: $postId');
       }
     } catch (e) {
       print('Error fetching post image: $e');
     }
+    print('Returning null for post image URL');
     return null;
   }
 
@@ -173,7 +205,21 @@ class NotificationService {
       
       // Get post image URL
       final postImageUrl = await _getPostImageUrl(postId);
+      print('Post image URL for notification: $postImageUrl');
       
+      // Verify the image URL works
+      if (postImageUrl != null && postImageUrl.isNotEmpty) {
+        try {
+          final uri = Uri.parse(postImageUrl);
+          if (!uri.hasScheme) {
+            print('Image URL does not have a proper scheme: $postImageUrl');
+          }
+        } catch (e) {
+          print('Error parsing image URL: $e');
+        }
+      }
+      
+      // Create the notification object
       final notification = Notification(
         id: _uuid.v4(),
         recipientId: postOwnerId, // Who receives the notification
@@ -189,7 +235,7 @@ class NotificationService {
       
       print('Creating notification with data: ${notification.toJson()}');
       await _notificationRepository.createNotification(notification);
-      print('Notification created successfully');
+      print('Notification created successfully with image URL: ${notification.postImageUrl}');
     } catch (e) {
       print('Error creating like notification: $e');
     }

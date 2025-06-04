@@ -253,40 +253,54 @@ class _NotificationItemState extends State<NotificationItem> {
                 ),
               
               // Post thumbnail (if available)
-              if (widget.notification.postImageUrl != null && widget.notification.postImageUrl!.isNotEmpty)
-                Container(
-                  width: 50,
-                  height: 50,
-                  margin: const EdgeInsets.only(left: 8),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: Colors.grey.shade300, width: 1),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: CachedNetworkImage(
-                      imageUrl: widget.notification.postImageUrl!,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: Colors.grey.shade200,
-                        child: const Center(
-                          child: SizedBox(
-                            width: 15,
-                            height: 15,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.grey,
+              Builder(builder: (context) {
+                // Add debug logging
+                if (widget.notification.postImageUrl != null && widget.notification.postImageUrl!.isNotEmpty) {
+                  print('Displaying post image in notification: ${widget.notification.postImageUrl}');
+                } else {
+                  print('No post image to display. postImageUrl is ${widget.notification.postImageUrl}');
+                }
+                
+                // Return the actual widget
+                return widget.notification.postImageUrl != null && widget.notification.postImageUrl!.isNotEmpty
+                    ? Container(
+                        width: 50,
+                        height: 50,
+                        margin: const EdgeInsets.only(left: 8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.grey.shade300, width: 1),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: CachedNetworkImage(
+                            imageUrl: widget.notification.postImageUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey.shade200,
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 15,
+                                  height: 15,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ),
                             ),
+                            errorWidget: (context, url, error) {
+                              print('Error loading notification image: $error, URL: $url');
+                              return Container(
+                                color: Colors.grey.shade200,
+                                child: const Icon(Icons.image_not_supported, size: 20, color: Colors.grey),
+                              );
+                            },
                           ),
                         ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: Colors.grey.shade200,
-                        child: const Icon(Icons.image_not_supported, size: 20, color: Colors.grey),
-                      ),
-                    ),
-                  ),
-                ),
+                      )
+                    : const SizedBox.shrink();
+              }),
               
               // Notification type icon
               if (widget.notification.type != app_notification.NotificationType.follow ||
