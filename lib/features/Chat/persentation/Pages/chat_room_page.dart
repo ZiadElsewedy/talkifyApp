@@ -201,6 +201,8 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
             messageType = MessageType.video;
           } else if (['mp3', 'wav', 'aac', 'm4a'].contains(extension)) {
             messageType = MessageType.audio;
+          } else if (['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt'].contains(extension)) {
+            messageType = MessageType.document;
           }
         }
 
@@ -222,6 +224,45 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to pick file: $e'), 
+          backgroundColor: Colors.black,
+        ),
+      );
+    }
+  }
+  
+  Future<void> _pickAndSendDocument() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'csv'],
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final file = result.files.single;
+        final currentUser = context.read<AuthCubit>().GetCurrentUser();
+        
+        if (currentUser == null) return;
+
+        // Always use document type for these file extensions
+        context.read<ChatCubit>().sendMediaMessage(
+          chatRoomId: widget.chatRoom.id,
+          senderId: currentUser.id,
+          senderName: currentUser.name,
+          senderAvatar: currentUser.profilePictureUrl,
+          filePath: file.path!,
+          fileName: file.name,
+          type: MessageType.document,
+          metadata: {
+            'fileSize': file.size,
+            'fileExtension': file.extension,
+          },
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to pick document: $e'), 
           backgroundColor: Colors.black,
         ),
       );
@@ -1049,7 +1090,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                   color: Colors.blue,
                   onTap: () {
                     Navigator.pop(context);
-                    _pickAndSendFile();
+                    _pickAndSendDocument();
                   },
                 ),
                 _buildAttachmentOption(

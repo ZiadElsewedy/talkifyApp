@@ -6,6 +6,7 @@ import 'package:talkifyapp/features/Chat/domain/entite/message.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_states.dart';
 import 'package:talkifyapp/features/Chat/Data/firebase_chat_repo.dart';
 import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
+import 'package:talkifyapp/features/Chat/Utils/message_type_helper.dart';
 
 class ChatCubit extends Cubit<ChatState> {
   final ChatRepo chatRepo;
@@ -178,6 +179,20 @@ class ChatCubit extends Cubit<ChatState> {
   }) async {
     emit(UploadingMedia());
     try {
+      // Check if we need to determine the file type based on extension
+      MessageType finalType = type;
+      if (type == MessageType.file && fileName.contains('.')) {
+        final extension = fileName.split('.').last;
+        finalType = MessageTypeHelper.getTypeFromFileExtension(extension);
+        
+        // Update metadata with file type info
+        metadata ??= {};
+        metadata['fileExtension'] = extension;
+        if (finalType == MessageType.document) {
+          metadata['documentType'] = MessageTypeHelper.getFileIconName(finalType, extension);
+        }
+      }
+
       // If the file path is already a URL (starting with http/https), don't upload again
       String fileUrl;
       if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
@@ -201,9 +216,10 @@ class ChatCubit extends Cubit<ChatState> {
         senderName: senderName,
         senderAvatar: senderAvatar,
         content: content ?? fileName,
-        type: type,
+        type: finalType,
         fileUrl: fileUrl,
         fileName: fileName,
+        fileSize: metadata?['fileSize'],
         replyToMessageId: replyToMessageId,
         metadata: metadata,
       );
