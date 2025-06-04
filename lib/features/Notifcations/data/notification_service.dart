@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
-import 'package:talkifyapp/features/Notifcations/Domain/Entite/Notification.dart';
+import 'package:talkifyapp/features/Notifcations/Domain/Entite/Notification.dart' as app_notification;
 import 'package:talkifyapp/features/Notifcations/data/notification_repository_impl.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
@@ -9,6 +10,13 @@ class NotificationService {
   final NotificationRepositoryImpl _notificationRepository;
   final FirebaseFirestore _firestore;
   final Uuid _uuid = const Uuid();
+  StreamSubscription<QuerySnapshot>? _notificationSubscription;
+  
+  // Last notification timestamp to prevent showing old notifications
+  DateTime _lastCheckTime = DateTime.now();
+  
+  // Callback when new notification arrives
+  Function(app_notification.Notification)? onNewNotification;
   
   NotificationService({
     NotificationRepositoryImpl? notificationRepository,
@@ -17,12 +25,73 @@ class NotificationService {
     _notificationRepository = notificationRepository ?? NotificationRepositoryImpl(),
     _firestore = firestore ?? FirebaseFirestore.instance;
 
+  // Initialize the service with a userId and callback
+  void initialize(String userId, {Function(app_notification.Notification)? onNewNotification}) {
+    this.onNewNotification = onNewNotification;
+    _lastCheckTime = DateTime.now();
+    _listenToNotifications(userId);
+  }
+  
+  // Start listening for new notifications
+  void _listenToNotifications(String userId) {
+    _notificationSubscription?.cancel();
+    
+    _notificationSubscription = _firestore
+        .collection('notifications')
+        .where('recipientId', isEqualTo: userId)
+        .orderBy('timestamp', descending: true)
+        .limit(10) // Limit to prevent overload
+        .snapshots()
+        .listen((snapshot) {
+          _processNotifications(snapshot);
+        });
+  }
+  
+  // Process incoming notifications
+  void _processNotifications(QuerySnapshot snapshot) {
+    // Only process notifications if we have a callback registered
+    if (onNewNotification == null) return;
+    
+    final changes = snapshot.docChanges;
+    
+    for (var change in changes) {
+      // We only care about newly added notifications
+      if (change.type == DocumentChangeType.added) {
+        final data = change.doc.data() as Map<String, dynamic>;
+        
+        // Convert server timestamp to DateTime
+        final timestamp = (data['timestamp'] as Timestamp).toDate();
+        
+        // Only notify for notifications that arrived after we started listening
+        // This prevents showing old notifications when the app first loads
+        if (timestamp.isAfter(_lastCheckTime)) {
+          try {
+            final notification = app_notification.Notification.fromJson({
+              ...data,
+              'id': change.doc.id,
+            });
+            onNewNotification!(notification);
+          } catch (e) {
+            print('Error processing notification: $e');
+          }
+        }
+      }
+    }
+  }
+  
+  // Clean up resources when no longer needed
+  void dispose() {
+    _notificationSubscription?.cancel();
+    _notificationSubscription = null;
+    onNewNotification = null;
+  }
+
   // Check if a similar notification already exists
   Future<bool> _checkForExistingNotification({
     required String recipientId,
     required String triggerUserId, 
     required String targetId,
-    required NotificationType type,
+    required app_notification.NotificationType type,
     Duration timeWindow = const Duration(hours: 24), // Consider notifications within this window
   }) async {
     try {
@@ -99,7 +168,7 @@ class NotificationService {
         recipientId: postOwnerId,
         triggerUserId: likerUserId,
         targetId: postId,
-        type: NotificationType.like,
+        type: app_notification.NotificationType.like,
         timeWindow: const Duration(hours: 6), // Only consider notifications from last 6 hours
       );
       
@@ -114,14 +183,14 @@ class NotificationService {
       // Get post image URL
       final postImageUrl = await _getPostImageUrl(postId);
       
-      final notification = Notification(
+      final notification = app_notification.Notification(
         id: _uuid.v4(),
         recipientId: postOwnerId, // Who receives the notification
         triggerUserId: likerUserId, // Who triggered the notification
         triggerUserName: likerUserName,
         triggerUserProfilePic: profilePic,
         targetId: postId,
-        type: NotificationType.like,
+        type: app_notification.NotificationType.like,
         content: '$likerUserName liked your post',
         timestamp: DateTime.now(),
         postImageUrl: postImageUrl,
@@ -153,7 +222,7 @@ class NotificationService {
         recipientId: postOwnerId,
         triggerUserId: commenterUserId,
         targetId: postId,
-        type: NotificationType.comment,
+        type: app_notification.NotificationType.comment,
         timeWindow: const Duration(minutes: 30), // Only consider notifications from last 30 minutes
       );
       
@@ -168,14 +237,14 @@ class NotificationService {
       // Get post image URL
       final postImageUrl = await _getPostImageUrl(postId);
       
-      final notification = Notification(
+      final notification = app_notification.Notification(
         id: _uuid.v4(),
         recipientId: postOwnerId,
         triggerUserId: commenterUserId,
         triggerUserName: commenterUserName,
         triggerUserProfilePic: profilePic,
         targetId: postId,
-        type: NotificationType.comment,
+        type: app_notification.NotificationType.comment,
         content: '$commenterUserName commented on your post: "${_truncateContent(commentContent)}"',
         timestamp: DateTime.now(),
         postImageUrl: postImageUrl,
@@ -206,7 +275,7 @@ class NotificationService {
         recipientId: commentOwnerId,
         triggerUserId: replierUserId,
         targetId: postId,
-        type: NotificationType.reply,
+        type: app_notification.NotificationType.reply,
         timeWindow: const Duration(minutes: 30), // Only consider notifications from last 30 minutes
       );
       
@@ -221,14 +290,14 @@ class NotificationService {
       // Get post image URL
       final postImageUrl = await _getPostImageUrl(postId);
       
-      final notification = Notification(
+      final notification = app_notification.Notification(
         id: _uuid.v4(),
         recipientId: commentOwnerId,
         triggerUserId: replierUserId,
         triggerUserName: replierUserName,
         triggerUserProfilePic: profilePic,
         targetId: postId, // We use postId as target to navigate to the post containing the comment
-        type: NotificationType.reply,
+        type: app_notification.NotificationType.reply,
         content: '$replierUserName replied to your comment: "${_truncateContent(replyContent)}"',
         timestamp: DateTime.now(),
         postImageUrl: postImageUrl,
@@ -258,7 +327,7 @@ class NotificationService {
         recipientId: commentOwnerId,
         triggerUserId: likerUserId,
         targetId: commentId,
-        type: NotificationType.like,
+        type: app_notification.NotificationType.like,
         timeWindow: const Duration(hours: 6), // Only consider notifications from last 6 hours
       );
       
@@ -273,14 +342,14 @@ class NotificationService {
       // Get post image URL
       final postImageUrl = await _getPostImageUrl(postId);
       
-      final notification = Notification(
+      final notification = app_notification.Notification(
         id: _uuid.v4(),
         recipientId: commentOwnerId,
         triggerUserId: likerUserId,
         triggerUserName: likerUserName,
         triggerUserProfilePic: profilePic,
         targetId: postId, // We use postId as target to navigate to the post containing the comment
-        type: NotificationType.like,
+        type: app_notification.NotificationType.like,
         content: '$likerUserName liked your comment',
         timestamp: DateTime.now(),
         postImageUrl: postImageUrl,
@@ -310,7 +379,7 @@ class NotificationService {
         recipientId: followedUserId,
         triggerUserId: followerUserId,
         targetId: followerUserId, // For follow notifications, targetId is the follower's ID
-        type: NotificationType.follow,
+        type: app_notification.NotificationType.follow,
         timeWindow: const Duration(days: 7), // Only consider follow notifications from last 7 days
       );
       
@@ -322,14 +391,14 @@ class NotificationService {
       // Always get the latest profile picture directly from users collection
       final profilePic = await _getLatestUserProfilePic(followerUserId);
       
-      final notification = Notification(
+      final notification = app_notification.Notification(
         id: _uuid.v4(),
         recipientId: followedUserId,
         triggerUserId: followerUserId,
         triggerUserName: followerUserName,
         triggerUserProfilePic: profilePic,
         targetId: followerUserId, // Target ID is the follower's ID to navigate to their profile
-        type: NotificationType.follow,
+        type: app_notification.NotificationType.follow,
         content: '$followerUserName started following you',
         timestamp: DateTime.now(),
         postImageUrl: null, // No post image for follow notifications

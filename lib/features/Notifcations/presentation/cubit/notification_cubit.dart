@@ -1,19 +1,27 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:talkifyapp/features/Notifcations/Domain/Entite/Notification.dart' as app_notification;
 import 'package:talkifyapp/features/Notifcations/Domain/repo/notification_repository.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_state.dart';
+import 'package:talkifyapp/features/Notifcations/data/notification_service.dart';
+import 'package:talkifyapp/features/Notifcations/presentation/components/toast_notification.dart';
 
 class NotificationCubit extends Cubit<NotificationState> {
   final NotificationRepository notificationRepository;
+  final NotificationService notificationService;
   StreamSubscription<List<app_notification.Notification>>? _notificationSubscription;
   
   // Map to store pending delete operations with timeouts
   final Map<String, Timer> _pendingDeletes = {};
   
+  // Overlay entry for toast notifications
+  OverlayEntry? _overlayEntry;
+  
   NotificationCubit({
     required this.notificationRepository,
+    required this.notificationService,
   }) : super(NotificationState.initial());
   
   // Initialize the notification cubit
@@ -21,6 +29,67 @@ class NotificationCubit extends Cubit<NotificationState> {
     print('NotificationCubit: Initializing for user $userId');
     loadNotifications(userId);
     startNotificationStream(userId);
+    
+    // Initialize the real-time notification service
+    notificationService.initialize(userId, onNewNotification: _handleNewNotification);
+  }
+  
+  // Handle new notification coming from the real-time service
+  void _handleNewNotification(app_notification.Notification notification) {
+    // First update our state with the new notification
+    final updatedNotifications = [notification, ...state.notifications];
+    final newUnreadCount = state.unreadCount + 1;
+    
+    emit(state.copyWith(
+      notifications: updatedNotifications,
+      unreadCount: newUnreadCount,
+      newNotification: notification,
+    ));
+    
+    // The toast notification will be shown by the UI when it receives the new state
+  }
+  
+  // Display a toast notification
+  void _showToastNotification(app_notification.Notification notification) {
+    // Get the overlay context - we'll need this to show an overlay
+    // This will be null if we don't have a BuildContext, so we handle this in the showInAppNotification method
+  }
+  
+  // Public method to show in-app notification - called from UI
+  void showInAppNotification(app_notification.Notification notification, BuildContext context) {
+    // Remove any existing overlay first
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    
+    // Create a new overlay entry with our toast notification
+    _overlayEntry = OverlayEntry(
+      builder: (overlayContext) {
+        return Positioned(
+          top: MediaQuery.of(context).padding.top + 10,
+          left: 0,
+          right: 0,
+          child: ToastNotification(
+            notification: notification,
+            onDismiss: () {
+              _overlayEntry?.remove();
+              _overlayEntry = null;
+              
+              // Mark as read when dismissed
+              markNotificationAsRead(notification.id);
+            },
+          ),
+        );
+      }
+    );
+    
+    // Insert the overlay entry into the overlay
+    Overlay.of(context).insert(_overlayEntry!);
+    
+    // Auto-dismiss after 5 seconds
+    Future.delayed(const Duration(seconds: 5), () {
+      _overlayEntry?.remove();
+      _overlayEntry = null;
+    });
   }
   
   @override
@@ -31,6 +100,13 @@ class NotificationCubit extends Cubit<NotificationState> {
       timer.cancel();
     }
     _pendingDeletes.clear();
+    
+    // Close the notification service
+    notificationService.dispose();
+    
+    // Cancel any overlay
+    _overlayEntry?.remove();
+    _overlayEntry = null;
     
     await _notificationSubscription?.cancel();
     return super.close();
