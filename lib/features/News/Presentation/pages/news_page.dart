@@ -63,8 +63,13 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
     );
     _animationController.value = 1.0; // Start visible
     
-    _newsCubit = context.read<NewsCubit>();
-    _loadInitialNews();
+    // Get the NewsCubit after the widget is mounted
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _newsCubit = context.read<NewsCubit>();
+        _loadInitialNews();
+      }
+    });
   }
   
   void _handleScroll() {
@@ -83,6 +88,7 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
   }
 
   void _loadInitialNews() {
+    if (!mounted) return;
     // Load top headlines (general category)
     _newsCubit.fetchTopHeadlines();
     
@@ -112,7 +118,12 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
   }
 
   void _handleTabChange() {
-    if (!_tabController.indexIsChanging) {
+    if (!_tabController.indexIsChanging || !mounted) return;
+
+    // Delay the action slightly to ensure we don't call emit after dispose
+    Future.microtask(() {
+      if (!mounted) return;
+      
       String category;
       
       // Map our custom categories to API categories
@@ -169,10 +180,12 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
       });
       _animationController.reverse();
       _newsCubit.fetchNewsByCategory(category);
-    }
+    });
   }
 
   void _handleSearch(String query) {
+    if (!mounted) return;
+    
     if (query.isNotEmpty) {
       _newsCubit.searchNews(query);
       setState(() {

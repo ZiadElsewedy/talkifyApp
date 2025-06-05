@@ -2,9 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/domain/repos/Post_repo.dart';
+import 'package:talkifyapp/features/Notifcations/data/notification_service.dart';
 
 class FirebasePostRepo implements PostRepo{
 final FirebaseFirestore firestore = FirebaseFirestore.instance;
+final NotificationService _notificationService = NotificationService();
 
 // store the posts in the firestore collection called 'posts'
 final CollectionReference postsCollection = FirebaseFirestore.instance.collection('posts');
@@ -251,12 +253,58 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
         
         // Check if user has already liked this post
         final hasLiked = likes.contains(userId);
+        final postOwnerId = data['UserId'] as String;
         
         // Update the likes list
         if (hasLiked) {
-          likes.remove(userId); // Unlike the post
+          // User is UNLIKING the post
+          likes.remove(userId);
+          
+          // No need to send notifications for unliking
+          // Just remove any existing like notifications to keep the database clean
+          try {
+            if (postOwnerId != userId) { // Don't need to remove notifications for your own posts
+              await _notificationService.removeLikeNotification(
+                likerId: userId,
+                postOwnerId: postOwnerId,
+                postId: postId
+              );
+              print('Removed like notification after unliking post: $postId');
+            }
+          } catch (e) {
+            print('Error removing like notification: $e');
+            // Continue with unlike operation even if notification removal fails
+          }
         } else {
-          likes.add(userId); // Like the post
+          // User is LIKING the post
+          likes.add(userId);
+          
+          // Create notification only when LIKING (not when unliking)
+          try {
+            // Don't create notifications for liking your own post
+            if (postOwnerId != userId) {
+              // Get user info for notification
+              final userDoc = await firestore.collection('users').doc(userId).get();
+              if (userDoc.exists) {
+                final userData = userDoc.data() as Map<String, dynamic>;
+                final userName = userData['name'] as String? ?? 'User';
+                final userProfilePic = userData['profilePicture'] as String? ?? '';
+                
+                // Create like notification
+                await _notificationService.createLikePostNotification(
+                  postOwnerId: postOwnerId,
+                  postId: postId,
+                  likerUserId: userId,
+                  likerUserName: userName,
+                  likerProfilePic: userProfilePic,
+                );
+                print('Created like notification for post: $postId');
+              }
+            }
+          } catch (e) {
+            print('Error creating like notification: $e');
+            // Continue with like operation even if notification creation fails
+          }
         }
         
         // Update the post document with the new likes list
@@ -305,9 +353,22 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
       await postsCollection.doc(postId).update({
         'comments': post.comments.map((comment) => comment.toJson()).toList(),
       });
+      
+      // Create notification for the post owner
+      final postOwnerId = post.UserId;
+      
+      // Create comment notification
+      await _notificationService.createCommentNotification(
+        postOwnerId: postOwnerId,
+        postId: postId,
+        commenterUserId: userId,
+        commenterUserName: userName,
+        commenterProfilePic: profilePicture,
+        commentContent: content,
+      );
     } catch (e) {
-      print('Error adding comment: $e'); // Add logging
-      throw Exception("Error adding comment: $e");
+      print('Error adding comment to post: $e');
+      throw Exception("Error adding comment to post: $e");
     }
   }
 
@@ -380,10 +441,26 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
       List<String> updatedLikes = List<String>.from(comment.likes);
       
       // Toggle the like
+      bool isNewLike = false;
       if (updatedLikes.contains(userId)) {
+        // User is unliking the comment
         updatedLikes.remove(userId);
+        
+        // Try to remove the like notification
+        try {
+          await _notificationService.removeLikeCommentNotification(
+            likerId: userId,
+            commentOwnerId: comment.userId,
+            postId: postId
+          );
+        } catch (e) {
+          print('Error removing comment like notification: $e');
+          // Continue with unlike operation even if notification removal fails
+        }
       } else {
+        // User is liking the comment
         updatedLikes.add(userId);
+        isNewLike = true;
       }
       
       // Create a new comment with updated likes
@@ -406,6 +483,27 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
       await postsCollection.doc(postId).update({
         'comments': post.comments.map((c) => c.toJson()).toList(),
       });
+      
+      // Create notification if this is a new like
+      if (isNewLike) {
+        // Get user info for notification
+        final userDoc = await firestore.collection('users').doc(userId).get();
+        if (userDoc.exists) {
+          final userData = userDoc.data() as Map<String, dynamic>;
+          final userName = userData['name'] as String? ?? 'User';
+          final userProfilePic = userData['profilePicture'] as String? ?? '';
+          
+          // Create like comment notification
+          await _notificationService.createLikeCommentNotification(
+            commentOwnerId: comment.userId,
+            commentId: commentId,
+            postId: postId,
+            likerUserId: userId,
+            likerUserName: userName,
+            likerProfilePic: userProfilePic,
+          );
+        }
+      }
     } catch (e) {
       print('Error toggling comment like: $e');
       throw Exception("Error toggling comment like: $e");
@@ -471,6 +569,17 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
       await postsCollection.doc(postId).update({
         'comments': post.comments.map((c) => c.toJson()).toList(),
       });
+      
+      // Create notification for the comment owner
+      await _notificationService.createReplyNotification(
+        commentOwnerId: comment.userId,
+        commentId: commentId,
+        postId: postId,
+        replierUserId: userId,
+        replierUserName: userName,
+        replierProfilePic: profilePicture,
+        replyContent: content,
+      );
     } catch (e) {
       print('Error adding reply to comment: $e');
       throw Exception("Error adding reply to comment: $e");

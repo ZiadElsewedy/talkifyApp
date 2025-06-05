@@ -16,6 +16,8 @@ import 'package:talkifyapp/features/Chat/Utils/chat_styles.dart';
 import 'package:talkifyapp/features/Chat/Utils/page_transitions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:talkifyapp/features/Chat/service/chat_message_listener.dart';
+import 'package:talkifyapp/features/Chat/service/chat_notification_service.dart';
 
 class ChatRoomPage extends StatefulWidget {
   final ChatRoom chatRoom;
@@ -48,6 +50,9 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
     );
     _fadeInController.forward();
     
+    // Set current chat room ID to prevent notifications for this chat
+    ChatMessageListener().setCurrentChatRoomId(widget.chatRoom.id);
+    
     _loadMessages();
     _markMessagesAsRead();
     _messageController.addListener(_onTyping);
@@ -56,6 +61,9 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
 
   @override
   void dispose() {
+    // Clear current chat room ID when leaving the chat
+    ChatMessageListener().setCurrentChatRoomId(null);
+    
     _messageController.dispose();
     _scrollController.dispose();
     _fadeInController.dispose();
@@ -515,16 +523,34 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
               ),
               PopupMenuItem(
                 value: 'mute',
+
                 child: Row(
                   children: [
                     Icon(Icons.notifications_off_outlined, color: popupMenuIconColor),
                     SizedBox(width: 12),
                     Text('Mute notifications', style: TextStyle(color: popupMenuItemTextColor)),
                   ],
+
+                child: FutureBuilder<bool>(
+                  future: ChatNotificationService.isChatMuted(widget.chatRoom.id),
+                  builder: (context, snapshot) {
+                    final isMuted = snapshot.data ?? false;
+                    return Row(
+                      children: [
+                        Icon(
+                          isMuted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined,
+                          color: Colors.black,
+                        ),
+                        SizedBox(width: 12),
+                        Text(isMuted ? 'Unmute notifications' : 'Mute notifications'),
+                      ],
+                    );
+                  },
+
                 ),
               ),
             ],
-            onSelected: (value) {
+            onSelected: (value) async {
               if (value == 'search') {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -569,6 +595,49 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                     backgroundColor: snackBarBackgroundColor,
                   ),
                 );
+                // Toggle mute status
+                final isMuted = await ChatNotificationService.isChatMuted(widget.chatRoom.id);
+                if (isMuted) {
+                  await ChatNotificationService.unmuteChat(widget.chatRoom.id);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Notifications unmuted'),
+                        backgroundColor: Colors.black,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                } else {
+                  await ChatNotificationService.muteChat(widget.chatRoom.id);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Notifications muted for this chat'),
+                        backgroundColor: Colors.black,
+                        duration: const Duration(seconds: 2),
+                        action: SnackBarAction(
+                          label: 'UNDO',
+                          onPressed: () async {
+                            await ChatNotificationService.unmuteChat(widget.chatRoom.id);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Notifications unmuted'),
+                                  backgroundColor: Colors.black,
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            }
+                          },
+                          textColor: Colors.white,
+                        ),
+                      ),
+                    );
+                  }
+                }
+                // Force refresh to update the menu item
+                setState(() {});
               }
             },
           ),

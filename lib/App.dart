@@ -18,13 +18,17 @@ import 'package:talkifyapp/features/Chat/Data/firebase_chat_repo.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
 import 'package:talkifyapp/theme/Cubits/theme_cubit.dart';
+import 'package:talkifyapp/features/Notifcations/data/notification_repository_impl.dart';
+import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_cubit.dart';
+
 // things need to do ! 
 // 1. add firebase options
 // bloc providers for state management
 // - auth 
 // - chat 
-// profile 
-// search 
+// - profile 
+// - search 
+// - notifications ✓
 // Theme
 
 /// Main application widget that sets up dependencies and app structure
@@ -43,6 +47,7 @@ class _MyAppState extends State<MyApp> {
   final _firebasePostRepo = FirebasePostRepo();
   final _firebaseSearchRepo = FirebaseSearchRepo();
   final _firebaseChatRepo = FirebaseChatRepo();
+  final _notificationRepositoryImpl = NotificationRepositoryImpl();
   final _audioHandler = AudioHandler();
   
   // Key for SnackBar management
@@ -87,8 +92,14 @@ class _MyAppState extends State<MyApp> {
             return cubit;
           },
         ),
+        BlocProvider<NotificationCubit>(
+          create: (context) => NotificationCubit(
+            notificationRepository: _notificationRepositoryImpl,
+          ),
+        ),
       ],
     
+
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
           return WillPopScope(
@@ -98,6 +109,36 @@ class _MyAppState extends State<MyApp> {
                 _audioHandler.disposeAllPlayers();
               } catch (e) {
                 print('Error disposing audio players: $e');
+=======
+      child: WillPopScope(
+        // Dispose all audio players when app is about to exit
+        onWillPop: () async {
+          try {
+            _audioHandler.disposeAllPlayers();
+          } catch (e) {
+            print('Error disposing audio players: $e');
+          }
+          return true;
+        },
+        child: MaterialApp(
+          scaffoldMessengerKey: _scaffoldMessengerKey,
+          debugShowCheckedModeBanner: false,
+          title: 'Talkify',
+          home: BlocConsumer<AuthCubit, AuthStates>(
+            // Listen to the auth cubit state changes
+            listener: (context, state) {
+              // Hide any previous SnackBar to prevent multiple SnackBars error
+              _scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+              
+              if (state is AuthErrorState) {
+                _showSnackBar(state.error, Colors.red);
+              } else if (state is UnverifiedState) {
+                _showSnackBar(state.message, Colors.orange);
+              } else if (state is EmailVerificationState) {
+                _showSnackBar(state.message, Colors.blue);
+              } else if (state is Authanticated) {
+                print("Welcome back , User is logged in");
+
               }
               return true;
             },
