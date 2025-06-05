@@ -76,7 +76,8 @@ class InAppNotificationService {
 enum NotificationType {
   like,
   comment,
-  follow
+  follow,
+  message
 }
 
 /// The actual notification widget that appears on screen
@@ -152,6 +153,8 @@ class _InAppNotificationState extends State<_InAppNotification> with SingleTicke
         return Colors.blue.shade400;
       case NotificationType.follow:
         return Colors.purple.shade400;
+      case NotificationType.message:
+        return Colors.green.shade400;
     }
   }
   
@@ -180,6 +183,8 @@ class _InAppNotificationState extends State<_InAppNotification> with SingleTicke
         return app_notification.NotificationType.comment;
       case NotificationType.follow:
         return app_notification.NotificationType.follow;
+      case NotificationType.message:
+        return app_notification.NotificationType.message;
     }
   }
 
@@ -234,7 +239,9 @@ class _InAppNotificationState extends State<_InAppNotification> with SingleTicke
                                   ? Icons.favorite
                                   : widget.type == NotificationType.comment
                                       ? Icons.comment
-                                      : Icons.person,
+                                      : widget.type == NotificationType.message
+                                          ? Icons.chat_bubble_outline
+                                          : Icons.person,
                               color: Colors.black87,  // Black color
                               size: 18,
                             ),

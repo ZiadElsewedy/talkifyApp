@@ -6,6 +6,8 @@ import 'package:talkifyapp/features/Notifcations/Domain/Entite/Notification.dart
 import 'package:talkifyapp/features/Notifcations/Domain/repo/notification_repository.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_state.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/utils/notification_dispatcher.dart';
+import 'package:talkifyapp/features/Notifcations/Domain/Entite/chat_notification.dart';
+import 'package:talkifyapp/features/Notifcations/presentation/services/in_app_notification_service.dart';
 
 class NotificationCubit extends Cubit<NotificationState> {
   final NotificationRepository notificationRepository;
@@ -19,6 +21,9 @@ class NotificationCubit extends Cubit<NotificationState> {
   
   // Store BuildContext to show in-app notifications
   BuildContext? _context;
+  
+  // Store chat notifications separately
+  final List<ChatNotification> _chatNotifications = [];
   
   NotificationCubit({
     required this.notificationRepository,
@@ -54,17 +59,31 @@ class NotificationCubit extends Cubit<NotificationState> {
     try {
       emit(state.copyWith(status: NotificationStatus.loading));
       
-      final notifications = await notificationRepository.getNotifications(userId);
-      final unreadCount = notifications.where((n) => !n.isRead).length;
+      final allNotifications = await notificationRepository.getNotifications(userId);
+      
+      // Filter out chat notifications from the main notifications list
+      final regularNotifications = allNotifications.where((n) => n is! ChatNotification).toList();
+      
+      // Extract chat notifications and store them separately
+      final chatNotifs = allNotifications
+          .where((n) => n is ChatNotification)
+          .map((n) => n as ChatNotification)
+          .toList();
+      
+      _chatNotifications.clear();
+      _chatNotifications.addAll(chatNotifs);
+      
+      // Calculate unread count for regular notifications only
+      final unreadCount = regularNotifications.where((n) => !n.isRead).length;
       
       // Store current notification IDs to avoid duplicate in-app notifications
-      for (final notification in notifications) {
+      for (final notification in allNotifications) {
         _processedNotificationIds.add(notification.id);
       }
       
       emit(state.copyWith(
         status: NotificationStatus.loaded,
-        notifications: notifications,
+        notifications: regularNotifications,
         unreadCount: unreadCount,
       ));
     } catch (e) {
@@ -252,19 +271,29 @@ class NotificationCubit extends Cubit<NotificationState> {
             (notification) => !_processedNotificationIds.contains(notification.id)
           ).toList();
 
+          // Separate standard and chat notifications
+          final newStandardNotifications = newNotifications
+              .where((n) => n is! ChatNotification)
+              .toList();
+              
+          final newChatNotifications = newNotifications
+              .where((n) => n is ChatNotification)
+              .map((n) => n as ChatNotification)
+              .toList();
+          
+          // Update chat notifications list
+          _chatNotifications.addAll(newChatNotifications);
+
           // Show in-app notifications for new notifications
           if (newNotifications.isNotEmpty && _context != null) {
-            // Get most recent notification to show
-            final latestNotification = newNotifications.first;
-            
-            // Only show notifications for supported types
-            if (_shouldShowInAppNotification(latestNotification)) {
-              // Add a small delay to ensure context is ready
-              Future.delayed(const Duration(milliseconds: 300), () {
+            // Show all new notifications as pop-ups
+            for (final notification in newNotifications) {
+              // Add a small delay to ensure context is ready and to space out multiple notifications
+              Future.delayed(Duration(milliseconds: 300 * newNotifications.indexOf(notification)), () {
                 if (_context != null) {
                   NotificationDispatcher.showFromNotification(
                     context: _context!,
-                    notification: latestNotification,
+                    notification: notification,
                   );
                 }
               });
@@ -276,12 +305,19 @@ class NotificationCubit extends Cubit<NotificationState> {
             }
           }
           
-          // Update unread count and notifications list
-          final unreadCount = notifications.where((n) => !n.isRead).length;
+          // Update state with only standard notifications
+          final currentNotifications = standardNotifications;
+          currentNotifications.addAll(newStandardNotifications);
+          
+          // Sort by timestamp (newest first)
+          currentNotifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          
+          // Update unread count for standard notifications only
+          final unreadCount = currentNotifications.where((n) => !n.isRead).length;
           
           emit(state.copyWith(
             status: NotificationStatus.loaded,
-            notifications: notifications,
+            notifications: currentNotifications,
             unreadCount: unreadCount,
           ));
         },
@@ -302,9 +338,84 @@ class NotificationCubit extends Cubit<NotificationState> {
   
   // Check if we should show an in-app notification for this notification
   bool _shouldShowInAppNotification(app_notification.Notification notification) {
+    // Always show chat notifications as popups
+    if (notification is ChatNotification) {
+      return true;
+    }
+    
     // We only support these notification types for in-app notifications
     return notification.type == app_notification.NotificationType.like ||
            notification.type == app_notification.NotificationType.comment ||
-           notification.type == app_notification.NotificationType.follow;
+           notification.type == app_notification.NotificationType.follow ||
+           notification.type == app_notification.NotificationType.message;
+  }
+  
+  // Separate chat notifications from regular notifications
+  List<app_notification.Notification> get standardNotifications {
+    return state.notifications.where((n) => n is! ChatNotification).toList();
+  }
+  
+  List<ChatNotification> get chatNotifications {
+    return _chatNotifications;
+  }
+  
+  // Mark a chat notification as read and remove all other notifications for the same chat
+  Future<void> markChatNotificationsAsReadForChatRoom(String chatRoomId) async {
+    try {
+      // Find all notifications for this chat room
+      final chatRoomNotifications = state.notifications
+          .where((n) => n is ChatNotification && (n as ChatNotification).chatRoomId == chatRoomId)
+          .map((n) => n.id)
+          .toList();
+      
+      // Mark each notification as read in the repository
+      for (final notificationId in chatRoomNotifications) {
+        await notificationRepository.markNotificationAsRead(notificationId);
+      }
+      
+      // Update local state
+      final updatedNotifications = state.notifications.map((notification) {
+        if (notification is ChatNotification && notification.chatRoomId == chatRoomId) {
+          return notification.copyWith(isRead: true);
+        }
+        return notification;
+      }).toList();
+      
+      // Update unread count
+      final unreadCount = updatedNotifications.where((n) => !n.isRead).length;
+      
+      emit(state.copyWith(
+        notifications: updatedNotifications,
+        unreadCount: unreadCount,
+      ));
+    } catch (e) {
+      print('Error marking chat notifications as read: $e');
+      emit(state.copyWith(
+        errorMessage: 'Failed to mark chat notifications as read: ${e.toString()}',
+      ));
+    }
+  }
+  
+  // Handle received chat notification - show popup but don't store in notifications list
+  void handleReceivedChatNotification(ChatNotification notification) {
+    // Check if the notification has already been processed
+    if (_processedNotificationIds.contains(notification.id)) {
+      return;
+    }
+    
+    // Add to processed IDs to prevent duplicates
+    _processedNotificationIds.add(notification.id);
+    
+    // Add to separate chat notifications list
+    _chatNotifications.add(notification);
+    
+    // Show in-app notification if context is available
+    if (_context != null) {
+      // Use the NotificationDispatcher with our custom notification
+      NotificationDispatcher.showFromNotification(
+        context: _context!,
+        notification: notification,
+      );
+    }
   }
 } 

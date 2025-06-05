@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:talkifyapp/features/Notifcations/Domain/Entite/Notification.dart' as app_notification;
+import 'package:talkifyapp/features/Notifcations/Domain/Entite/chat_notification.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_cubit.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_state.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/components/notification_item.dart';
@@ -10,6 +11,7 @@ import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart'
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/utils/demo_notification.dart';
 import 'package:talkifyapp/features/Posts/PostComponents/SinglePostView.dart';
+import 'package:talkifyapp/features/Notifcations/presentation/utils/notification_navigation.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({Key? key}) : super(key: key);
@@ -168,14 +170,18 @@ class _NotificationsPageState extends State<NotificationsPage> {
           // Make sure we have the ProfileCubit available for the follow button in notifications
           final profileCubit = context.read<ProfileCubit>();
           
+          // Get only standard notifications (not chat notifications)
+          final standardNotifications = context.read<NotificationCubit>().standardNotifications;
+          
           return RefreshIndicator(
             onRefresh: () => context.read<NotificationCubit>().loadNotifications(_currentUserId),
             child: ListView.builder(
-              itemCount: state.notifications.length,
+              itemCount: standardNotifications.length,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.only(bottom: 20),
               itemBuilder: (context, index) {
-                final notification = state.notifications[index];
+                final notification = standardNotifications[index];
+                
                 return NotificationItem(
                   notification: notification,
                   onTap: () => _handleNotificationTap(notification),
@@ -203,7 +209,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
         case app_notification.NotificationType.like:
         case app_notification.NotificationType.comment:
         case app_notification.NotificationType.reply:
-        case app_notification.NotificationType.message:
           // Check if targetId exists before navigating
           if (notification.targetId.isNotEmpty) {
             _navigateToPostInProfile(notification.targetId);
@@ -239,6 +244,25 @@ class _NotificationsPageState extends State<NotificationsPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Cannot view this mention: missing reference'),
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+          break;
+        case app_notification.NotificationType.message:
+          // Use notification navigation for message notifications
+          if (notification.targetId.isNotEmpty) {
+            NotificationNavigation.navigateToDestination(
+              context,
+              notification.type,
+              notification.targetId,
+              notification.triggerUserId
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Cannot open this chat: missing reference'),
                 behavior: SnackBarBehavior.floating,
                 duration: Duration(seconds: 2),
               ),

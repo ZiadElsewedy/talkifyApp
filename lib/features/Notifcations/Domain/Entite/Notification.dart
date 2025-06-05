@@ -5,7 +5,8 @@ enum NotificationType {
   comment,
   reply,
   follow,
-  mention
+  mention,
+  message   // Added for regular chat messages
 }
 
 class Notification {

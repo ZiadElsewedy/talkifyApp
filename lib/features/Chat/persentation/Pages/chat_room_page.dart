@@ -16,6 +16,7 @@ import 'package:talkifyapp/features/Chat/Utils/chat_styles.dart';
 import 'package:talkifyapp/features/Chat/Utils/page_transitions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:talkifyapp/features/Chat/service/chat_message_listener.dart';
 
 class ChatRoomPage extends StatefulWidget {
   final ChatRoom chatRoom;
@@ -48,6 +49,9 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
     );
     _fadeInController.forward();
     
+    // Set current chat room ID to prevent notifications for this chat
+    ChatMessageListener().setCurrentChatRoomId(widget.chatRoom.id);
+    
     _loadMessages();
     _markMessagesAsRead();
     _messageController.addListener(_onTyping);
@@ -56,6 +60,9 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
 
   @override
   void dispose() {
+    // Clear current chat room ID when leaving the chat
+    ChatMessageListener().setCurrentChatRoomId(null);
+    
     _messageController.dispose();
     _scrollController.dispose();
     _fadeInController.dispose();

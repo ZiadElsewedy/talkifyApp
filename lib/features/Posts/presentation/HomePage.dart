@@ -14,6 +14,7 @@ import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification
 import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_state.dart';
 import 'package:talkifyapp/features/Notifcations/data/notification_repository_impl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:talkifyapp/features/Chat/service/chat_message_listener.dart';
 
 class HomePage extends StatefulWidget {
   final int initialTabIndex;
@@ -72,6 +73,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       print('HomePage: Initializing notifications for user ${currentUser!.id}');
       // Pass context for in-app notifications
       notificationCubit.initialize(currentUser!.id, context: context);
+      
+      // Initialize chat message listener
+      print('HomePage: Initializing chat message listener');
+      ChatMessageListener().initialize(context);
     } else {
       print('HomePage: Current user is null, skipping notification initialization');
     }

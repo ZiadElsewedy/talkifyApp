@@ -17,10 +17,8 @@ import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 import 'package:talkifyapp/features/Chat/Data/firebase_chat_repo.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
-import 'package:talkifyapp/features/Chat/service/chat_notification_service.dart';
 import 'package:talkifyapp/features/Notifcations/data/notification_repository_impl.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_cubit.dart';
-import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 // things need to do ! 
 // 1. add firebase options
 // bloc providers for state management
@@ -50,40 +48,8 @@ class _MyAppState extends State<MyApp> {
   final _notificationRepositoryImpl = NotificationRepositoryImpl();
   final _audioHandler = AudioHandler();
   
-  // Chat notification service
-  ChatNotificationService? _chatNotificationService;
-  
   // Key for SnackBar management
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
-
-  @override
-  void dispose() {
-    _disposeNotificationService();
-    super.dispose();
-  }
-  
-  // Initialize the chat notification service
-  void _initializeNotificationService(BuildContext context, String userId) {
-    _disposeNotificationService(); // Clean up previous instance if any
-    
-    _chatNotificationService = ChatNotificationService(
-      context: context,
-      currentUserId: userId,
-      notificationRepo: _notificationRepositoryImpl,
-    );
-    
-    _chatNotificationService!.initialize();
-    print('Chat notification service initialized for user: $userId');
-  }
-  
-  // Dispose the chat notification service
-  void _disposeNotificationService() {
-    if (_chatNotificationService != null) {
-      _chatNotificationService!.dispose();
-      _chatNotificationService = null;
-      print('Chat notification service disposed');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -133,9 +99,8 @@ class _MyAppState extends State<MyApp> {
         onWillPop: () async {
           try {
             _audioHandler.disposeAllPlayers();
-            _disposeNotificationService();
           } catch (e) {
-            print('Error disposing resources: $e');
+            print('Error disposing audio players: $e');
           }
           return true;
         },
@@ -151,21 +116,12 @@ class _MyAppState extends State<MyApp> {
               
               if (state is AuthErrorState) {
                 _showSnackBar(state.error, Colors.red);
-                _disposeNotificationService();
               } else if (state is UnverifiedState) {
                 _showSnackBar(state.message, Colors.orange);
               } else if (state is EmailVerificationState) {
                 _showSnackBar(state.message, Colors.blue);
               } else if (state is Authanticated) {
-                print("Welcome back, User is logged in");
-                // Initialize notification service when user is authenticated
-                final currentUser = context.read<AuthCubit>().GetCurrentUser();
-                if (currentUser != null) {
-                  _initializeNotificationService(context, currentUser.id);
-                }
-              } else if (state is UnAuthanticated) {
-                // Dispose notification service on logout
-                _disposeNotificationService();
+                print("Welcome back , User is logged in");
               }
             },
             builder: (context, state) {
