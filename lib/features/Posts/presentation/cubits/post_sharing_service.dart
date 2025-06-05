@@ -351,19 +351,38 @@ class _EnhancedShareSheetState extends State<_EnhancedShareSheet> with SingleTic
                                         height: 160, // Increased height from 80 to 160
                                         width: double.infinity,
                                         color: Colors.grey.shade200,
-                                        child: CachedNetworkImage(
-                                          imageUrl: widget.post.imageUrl,
-                                          fit: BoxFit.cover,
-                                          placeholder: (context, url) => Center(
-                                            child: CircularProgressIndicator(
-                                              color: Colors.black,
-                                              strokeWidth: 2,
+                                        child: Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            CachedNetworkImage(
+                                              imageUrl: widget.post.imageUrl,
+                                              fit: BoxFit.cover,
+                                              placeholder: (context, url) => Center(
+                                                child: CircularProgressIndicator(
+                                                  color: Colors.black,
+                                                  strokeWidth: 2,
+                                                ),
+                                              ),
+                                              errorWidget: (context, url, error) => Icon(
+                                                Icons.error_outline,
+                                                color: Colors.grey.shade500,
+                                              ),
                                             ),
-                                          ),
-                                          errorWidget: (context, url, error) => Icon(
-                                            Icons.error_outline,
-                                            color: Colors.grey.shade500,
-                                          ),
+                                            if (widget.post.isVideo)
+                                              Container(
+                                                width: 50,
+                                                height: 50,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black.withOpacity(0.5),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  Icons.play_arrow,
+                                                  color: Colors.white,
+                                                  size: 30,
+                                                ),
+                                              ),
+                                          ],
                                         ),
                                       ),
                                     ),

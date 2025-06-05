@@ -244,32 +244,51 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
               Container(
                 height: 160,
                 width: double.infinity,
-                child: CachedNetworkImage(
-                  imageUrl: post!.imageUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: Colors.grey.shade200,
-                    child: Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.black45,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CachedNetworkImage(
+                      imageUrl: post!.imageUrl,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey.shade200,
+                        child: Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.black45,
+                            ),
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey.shade200,
+                        child: Center(
+                          child: Icon(
+                            Icons.error_outline,
+                            size: 24,
+                            color: Colors.grey.shade400,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    color: Colors.grey.shade200,
-                    child: Center(
-                      child: Icon(
-                        Icons.error_outline,
-                        size: 24,
-                        color: Colors.grey.shade400,
+                    if (post!.isVideo)
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.play_arrow,
+                          color: Colors.white,
+                          size: 30,
+                        ),
                       ),
-                    ),
-                  ),
+                  ],
                 ),
               ),
               

@@ -12,6 +12,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_sharing_service.dart';
+import 'package:video_player/video_player.dart';
 //import 'package:talkifyapp/features/Posts/presentation/Pages/CommentsPage.dart';
 
 import '../../Profile/presentation/Cubits/ProfileCubit.dart';
@@ -42,6 +43,10 @@ class _PostTileState extends State<PostTile> with TickerProviderStateMixin {
   late AnimationController _likeAnimationController;
   late AnimationController _scaleAnimationController;
   late Animation<double> _scaleAnimation;
+  
+  // Video player controller
+  VideoPlayerController? _videoController;
+  bool _isVideoInitialized = false;
 
   @override
   void initState() {
@@ -66,6 +71,25 @@ class _PostTileState extends State<PostTile> with TickerProviderStateMixin {
       parent: _scaleAnimationController,
       curve: Curves.easeInOut,
     ));
+    
+    // Initialize video controller if needed
+    if (widget.post.isVideo && widget.post.imageUrl.isNotEmpty) {
+      _initializeVideoController();
+    }
+  }
+
+  Future<void> _initializeVideoController() async {
+    _videoController = VideoPlayerController.network(widget.post.imageUrl);
+    try {
+      await _videoController!.initialize();
+      if (mounted) {
+        setState(() {
+          _isVideoInitialized = true;
+        });
+      }
+    } catch (e) {
+      print('Error initializing video: $e');
+    }
   }
 
   Future<void> initializeData() async {
@@ -447,6 +471,7 @@ void addComment() async {
     commentController.dispose();
     _likeAnimationController.dispose();
     _scaleAnimationController.dispose();
+    _videoController?.dispose();
     super.dispose();
   }
 
@@ -472,6 +497,7 @@ void addComment() async {
   }
 
 
+  @override
   Widget build(BuildContext context) {
     // check if the post is owned by the current user
     return Container(
@@ -505,7 +531,8 @@ void addComment() async {
                     children: [
                       _buildHeader(),
                       if (widget.post.Text.isNotEmpty) _buildTextContent(),
-                      if (widget.post.imageUrl.isNotEmpty) _buildImageContent(),
+                      if (widget.post.imageUrl.isNotEmpty) 
+                        widget.post.isVideo ? _buildVideoContent() : _buildImageContent(),
                     ],
                   ),
                 ),
@@ -765,6 +792,67 @@ void addComment() async {
     );
   }
 
+  Widget _buildVideoContent() {
+    return Container(
+      margin: EdgeInsets.only(
+        top: widget.post.Text.isNotEmpty ? 12 : 0,
+        left: 16,
+        right: 16,
+        bottom: 16,
+      ),
+      height: 350,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: _isVideoInitialized && _videoController != null
+          ? Stack(
+              alignment: Alignment.center,
+              children: [
+                AspectRatio(
+                  aspectRatio: _videoController!.value.aspectRatio,
+                  child: VideoPlayer(_videoController!),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (_videoController!.value.isPlaying) {
+                        _videoController!.pause();
+                      } else {
+                        _videoController!.play();
+                      }
+                    });
+                  },
+                  child: Container(
+                    color: Colors.transparent,
+                    child: Center(
+                      child: Icon(
+                        _videoController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                        color: Colors.white.withOpacity(0.7),
+                        size: 50,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : Container(
+              color: Colors.grey.shade200,
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+      ),
+    );
+  }
+
   Widget _buildImageContent() {
     return Container(
       margin: EdgeInsets.only(
@@ -920,3 +1008,4 @@ void addComment() async {
     );
   }
 }
+
