@@ -106,7 +106,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Future<void> fetchPosts() async {
-    await postCubit.fetechAllPosts();
+    await postCubit.fetchAllPosts();
   }
 
   Future<void> fetchFollowingPosts() async {

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Posts/PostComponents/CommentsPage.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
@@ -13,6 +14,7 @@ import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_sharing_service.dart';
 import 'package:video_player/video_player.dart';
+import 'dart:async';
 //import 'package:talkifyapp/features/Posts/presentation/Pages/CommentsPage.dart';
 
 import '../../Profile/presentation/Cubits/ProfileCubit.dart';
@@ -47,6 +49,15 @@ class _PostTileState extends State<PostTile> with TickerProviderStateMixin {
   // Video player controller
   VideoPlayerController? _videoController;
   bool _isVideoInitialized = false;
+  bool _showVideoControls = false;
+  bool _isFullScreen = false;
+  double _playbackSpeed = 1.0;
+  
+  // Available playback speeds
+  final List<double> _availableSpeeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+  
+  // Timer for hiding video controls
+  Timer? _hideControlsTimer;
 
   @override
   void initState() {
@@ -81,14 +92,22 @@ class _PostTileState extends State<PostTile> with TickerProviderStateMixin {
   Future<void> _initializeVideoController() async {
     _videoController = VideoPlayerController.network(widget.post.imageUrl);
     try {
+      print('Initializing video controller for URL: ${widget.post.imageUrl}');
       await _videoController!.initialize();
       if (mounted) {
         setState(() {
           _isVideoInitialized = true;
         });
+        print('Video controller initialized successfully');
       }
     } catch (e) {
       print('Error initializing video: $e');
+      // Show error state in UI
+      if (mounted) {
+        setState(() {
+          _isVideoInitialized = false;
+        });
+      }
     }
   }
 
@@ -472,6 +491,14 @@ void addComment() async {
     _likeAnimationController.dispose();
     _scaleAnimationController.dispose();
     _videoController?.dispose();
+    _hideControlsTimer?.cancel();
+    
+    // Reset orientation and UI mode when disposing
+    if (_isFullScreen) {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+    
     super.dispose();
   }
 
@@ -496,6 +523,122 @@ void addComment() async {
     return count.toString();
   }
 
+  // Format duration to mm:ss
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return "$minutes:$seconds";
+  }
+  
+  // Skip forward 5 seconds
+  void _skipForward() {
+    if (_videoController != null && _isVideoInitialized) {
+      final newPosition = _videoController!.value.position + const Duration(seconds: 5);
+      final duration = _videoController!.value.duration;
+      
+      if (newPosition < duration) {
+        _videoController!.seekTo(newPosition);
+      } else {
+        _videoController!.seekTo(duration);
+      }
+      
+      _resetHideControlsTimer();
+    }
+  }
+  
+  // Skip backward 5 seconds
+  void _skipBackward() {
+    if (_videoController != null && _isVideoInitialized) {
+      final newPosition = _videoController!.value.position - const Duration(seconds: 5);
+      
+      if (newPosition > Duration.zero) {
+        _videoController!.seekTo(newPosition);
+      } else {
+        _videoController!.seekTo(Duration.zero);
+      }
+      
+      _resetHideControlsTimer();
+    }
+  }
+  
+  // Toggle video controls visibility
+  void _toggleVideoControls() {
+    setState(() {
+      _showVideoControls = !_showVideoControls;
+    });
+    
+    _resetHideControlsTimer();
+  }
+  
+  // Reset the timer that hides controls
+  void _resetHideControlsTimer() {
+    _hideControlsTimer?.cancel();
+    if (_showVideoControls) {
+      _hideControlsTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted && _videoController != null && _videoController!.value.isPlaying) {
+          setState(() {
+            _showVideoControls = false;
+          });
+        }
+      });
+    }
+  }
+  
+  // Toggle fullscreen mode
+  void _toggleFullScreen() {
+    setState(() {
+      _isFullScreen = !_isFullScreen;
+      
+      // No longer changing device orientation
+      // Just updating the UI for fullscreen mode
+    });
+    
+    _resetHideControlsTimer();
+  }
+  
+  // Show speed selection dialog
+  void _showSpeedSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Playback Speed'),
+          content: SizedBox(
+            width: double.minPositive,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _availableSpeeds.length,
+              itemBuilder: (context, index) {
+                final speed = _availableSpeeds[index];
+                return ListTile(
+                  title: Text('${speed}x'),
+                  selected: speed == _playbackSpeed,
+                  onTap: () {
+                    setState(() {
+                      _playbackSpeed = speed;
+                      _videoController?.setPlaybackSpeed(_playbackSpeed);
+                    });
+                    Navigator.of(context).pop();
+                    _resetHideControlsTimer();
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+  
+  // Restart video from beginning
+  void _restartVideo() {
+    if (_videoController != null && _isVideoInitialized) {
+      _videoController!.seekTo(Duration.zero);
+      _videoController!.play();
+      _resetHideControlsTimer();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -793,7 +936,9 @@ void addComment() async {
   }
 
   Widget _buildVideoContent() {
-    return Container(
+    return _isFullScreen
+        ? _buildFullScreenVideo()
+        : Container(
       margin: EdgeInsets.only(
         top: widget.post.Text.isNotEmpty ? 12 : 0,
         left: 16,
@@ -814,41 +959,483 @@ void addComment() async {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: _isVideoInitialized && _videoController != null
+              child: _buildVideoPlayer(),
+            ),
+          );
+  }
+  
+  Widget _buildFullScreenVideo() {
+    return Container(
+      color: Colors.black,
+      width: MediaQuery.of(context).size.width,
+      height: MediaQuery.of(context).size.height,
+      child: _buildVideoPlayer(),
+    );
+  }
+  
+  Widget _buildVideoPlayer() {
+    return _isVideoInitialized && _videoController != null
           ? Stack(
               alignment: Alignment.center,
               children: [
+              // Video player
                 AspectRatio(
                   aspectRatio: _videoController!.value.aspectRatio,
                   child: VideoPlayer(_videoController!),
                 ),
+              
+              // Overlay for tap detection
                 GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (_videoController!.value.isPlaying) {
-                        _videoController!.pause();
-                      } else {
-                        _videoController!.play();
-                      }
-                    });
-                  },
+                onTap: _toggleVideoControls,
+                behavior: HitTestBehavior.translucent,
+                child: Container(
+                  color: Colors.transparent,
+                ),
+              ),
+              
+              // Video controls (only show when _showVideoControls is true)
+              if (_showVideoControls)
+                _isFullScreen 
+                  ? _buildFullScreenControls()
+                  : _buildNormalControls(),
+              
+              // Play button overlay (only when controls are not shown and video is paused)
+              if (!_showVideoControls && _videoController != null && !_videoController!.value.isPlaying)
+                GestureDetector(
+                  onTap: _toggleVideoControls,
                   child: Container(
                     color: Colors.transparent,
                     child: Center(
                       child: Icon(
-                        _videoController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                        Icons.play_arrow,
                         color: Colors.white.withOpacity(0.7),
                         size: 50,
                       ),
                     ),
                   ),
                 ),
+                
+              // Video completion overlay
+              ValueListenableBuilder(
+                valueListenable: _videoController!,
+                builder: (context, VideoPlayerValue value, child) {
+                  if (value.position >= value.duration && value.duration.inMilliseconds > 0) {
+                    return GestureDetector(
+                      onTap: _restartVideo,
+                      child: Container(
+                        color: Colors.black.withOpacity(0.5),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.replay,
+                                color: Colors.white,
+                                size: 50,
+                              ),
+                              const SizedBox(height: 10),
+                              const Text(
+                                'Replay',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ],
+          )
+        : Container(
+            color: Colors.grey.shade200,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 10),
+                if (!_isVideoInitialized && widget.post.imageUrl.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      "Unable to load video. Tap to retry.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey.shade700),
+                    ),
+                  ),
+                if (!_isVideoInitialized && widget.post.imageUrl.isNotEmpty)
+                  TextButton(
+                    onPressed: _initializeVideoController,
+                    child: const Text("Retry"),
+                  )
               ],
-            )
-          : Container(
-              color: Colors.grey.shade200,
-              child: const Center(child: CircularProgressIndicator()),
             ),
+          );
+  }
+
+  // New method for fullscreen controls
+  Widget _buildFullScreenControls() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Top bar with exit fullscreen button
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: Colors.black.withOpacity(0.5),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.fullscreen_exit,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  onPressed: _toggleFullScreen,
+                  tooltip: 'Exit Fullscreen',
+                ),
+              ],
+            ),
+          ),
+          
+          // Spacer to push controls to bottom
+          const Spacer(),
+          
+          // Bottom controls
+          Container(
+            padding: const EdgeInsets.only(bottom: 20, left: 16, right: 16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Colors.black.withOpacity(0.7),
+                  Colors.transparent,
+                ],
+                stops: const [0.0, 0.8],
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Video progress and duration
+                ValueListenableBuilder(
+                  valueListenable: _videoController!,
+                  builder: (context, VideoPlayerValue value, child) {
+                    return Column(
+                      children: [
+                        // Progress slider
+                        SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 4,
+                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
+                            activeTrackColor: Colors.white,
+                            inactiveTrackColor: Colors.white.withOpacity(0.3),
+                            thumbColor: Colors.white,
+                          ),
+                          child: Slider(
+                            value: value.position.inMilliseconds.toDouble(),
+                            min: 0,
+                            max: value.duration.inMilliseconds.toDouble(),
+                            onChanged: (newPosition) {
+                              _videoController!.seekTo(Duration(milliseconds: newPosition.toInt()));
+                              _resetHideControlsTimer();
+                            },
+                          ),
+                        ),
+                        
+                        // Time indicators
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Current position
+                              Text(
+                                _formatDuration(value.position),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              
+                              // Total duration
+                              Text(
+                                _formatDuration(value.duration),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Play/Pause and skip controls
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Restart video button
+                    IconButton(
+                      icon: const Icon(
+                        Icons.replay,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      onPressed: _restartVideo,
+                      tooltip: 'Restart',
+                    ),
+                    
+                    // Skip backward button
+                    IconButton(
+                      icon: const Icon(
+                        Icons.replay_5,
+                        color: Colors.white,
+                        size: 36,
+                      ),
+                      onPressed: _skipBackward,
+                    ),
+                    
+                    // Play/Pause button
+                    IconButton(
+                      icon: Icon(
+                        _videoController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                        color: Colors.white,
+                        size: 50,
+                      ),
+                      onPressed: () {
+                    setState(() {
+                      if (_videoController!.value.isPlaying) {
+                        _videoController!.pause();
+                      } else {
+                        _videoController!.play();
+                            // Auto-hide controls after video starts playing
+                            _resetHideControlsTimer();
+                      }
+                    });
+                  },
+                    ),
+                    
+                    // Skip forward button
+                    IconButton(
+                      icon: const Icon(
+                        Icons.forward_5,
+                        color: Colors.white,
+                        size: 36,
+                      ),
+                      onPressed: _skipForward,
+                    ),
+                    
+                    // Playback speed button
+                    TextButton(
+                      onPressed: _showSpeedSelectionDialog,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        backgroundColor: Colors.white.withOpacity(0.2),
+                      ),
+                      child: Text(
+                        '${_playbackSpeed}x',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  // New method for normal (non-fullscreen) controls
+  Widget _buildNormalControls() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.4),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Empty space at top
+          const Spacer(),
+          
+          // Bottom controls in a more compact layout
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Main controls row (backward, play/pause, forward)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Skip backward button
+                    IconButton(
+                      icon: const Icon(
+                        Icons.replay_5,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      onPressed: _skipBackward,
+                    ),
+                    const SizedBox(width: 24),
+                    
+                    // Play/Pause button
+                    IconButton(
+                      icon: Icon(
+                        _videoController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                        color: Colors.white,
+                        size: 40,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          if (_videoController!.value.isPlaying) {
+                            _videoController!.pause();
+                          } else {
+                            _videoController!.play();
+                            // Auto-hide controls after video starts playing
+                            _resetHideControlsTimer();
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 24),
+                    
+                    // Skip forward button
+                    IconButton(
+                      icon: const Icon(
+                        Icons.forward_5,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      onPressed: _skipForward,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                
+                // Video progress and duration
+                ValueListenableBuilder(
+                  valueListenable: _videoController!,
+                  builder: (context, VideoPlayerValue value, child) {
+                    return Column(
+                      children: [
+                        // Progress slider
+                        SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 3,
+                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
+                            activeTrackColor: Colors.white,
+                            inactiveTrackColor: Colors.white.withOpacity(0.3),
+                            thumbColor: Colors.white,
+                          ),
+                          child: Slider(
+                            value: value.position.inMilliseconds.toDouble(),
+                            min: 0,
+                            max: value.duration.inMilliseconds.toDouble(),
+                            onChanged: (newPosition) {
+                              _videoController!.seekTo(Duration(milliseconds: newPosition.toInt()));
+                              _resetHideControlsTimer();
+                            },
+                          ),
+                        ),
+                        
+                        // Time and additional controls row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Current position
+                            Text(
+                              _formatDuration(value.position),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                            
+                            // Restart button
+                            IconButton(
+                              icon: const Icon(
+                                Icons.replay,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: _restartVideo,
+                            ),
+                            
+                            // Playback speed button
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: InkWell(
+                                onTap: _showSpeedSelectionDialog,
+                                child: Text(
+                                  '${_playbackSpeed}x',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            
+                            // Fullscreen button
+                            IconButton(
+                              icon: const Icon(
+                                Icons.fullscreen,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: _toggleFullScreen,
+                            ),
+                            
+                            // Total duration
+                            Text(
+                              _formatDuration(value.duration),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
