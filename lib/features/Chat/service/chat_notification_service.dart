@@ -4,11 +4,13 @@ import 'package:talkifyapp/features/Chat/domain/entite/chat_room.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/chat_room_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:just_audio/just_audio.dart';
 
 /// A service to show in-app toast notifications for chat messages
 class ChatNotificationService {
   static OverlayEntry? _currentNotification;
   static bool _isVisible = false;
+  static AudioPlayer? _audioPlayer;
   
   // Key prefix for storing muted chat rooms in SharedPreferences
   static const String _mutedChatPrefix = 'muted_chat_';
@@ -24,6 +26,7 @@ class ChatNotificationService {
     String? chatRoomName,
     bool isGroupChat = false,
     ChatRoom? chatRoom,
+    bool playSound = true,
   }) async {
     // Check if this chat is muted
     final isMuted = await isChatMuted(chatRoomId);
@@ -36,6 +39,11 @@ class ChatNotificationService {
     if (_isVisible) {
       _currentNotification?.remove();
       _isVisible = false;
+    }
+    
+    // Play notification sound if enabled
+    if (playSound) {
+      _playNotificationSound();
     }
     
     // Create the overlay entry
@@ -87,6 +95,21 @@ class ChatNotificationService {
         _currentNotification = null;
       }
     });
+  }
+  
+  /// Play notification sound
+  static Future<void> _playNotificationSound() async {
+    try {
+      // Create a new player instance each time to avoid issues
+      _audioPlayer?.dispose();
+      _audioPlayer = AudioPlayer();
+      
+      // Using your existing notification sound file
+      await _audioPlayer?.setAsset('lib/assets/notification.wav');
+      await _audioPlayer?.play();
+    } catch (e) {
+      print('Error playing notification sound: $e');
+    }
   }
   
   /// Check if a chat room is muted

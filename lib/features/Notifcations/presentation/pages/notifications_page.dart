@@ -9,7 +9,6 @@ import 'package:talkifyapp/features/Notifcations/presentation/components/notific
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
-import 'package:talkifyapp/features/Notifcations/presentation/utils/demo_notification.dart';
 import 'package:talkifyapp/features/Posts/PostComponents/SinglePostView.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/utils/notification_navigation.dart';
 
@@ -55,19 +54,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
-          // Demo button
-          IconButton(
-            icon: const Icon(Icons.preview, color: Colors.blue),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationDemoScreen(),
-                ),
-              );
-            },
-            tooltip: 'Notification Demo',
-          ),
           BlocBuilder<NotificationCubit, NotificationState>(
             builder: (context, state) {
               // Only show the "Mark all as read" button if there are unread notifications
@@ -170,27 +156,53 @@ class _NotificationsPageState extends State<NotificationsPage> {
           // Make sure we have the ProfileCubit available for the follow button in notifications
           final profileCubit = context.read<ProfileCubit>();
           
-          // Get only standard notifications (not chat notifications)
-          final standardNotifications = context.read<NotificationCubit>().standardNotifications;
+          // Get only social notifications (likes, comments, follows) and filter out message notifications
+          final socialNotifications = state.notifications.where((notification) => 
+            notification.type == app_notification.NotificationType.like || 
+            notification.type == app_notification.NotificationType.comment || 
+            notification.type == app_notification.NotificationType.follow
+          ).toList();
           
           return RefreshIndicator(
             onRefresh: () => context.read<NotificationCubit>().loadNotifications(_currentUserId),
-            child: ListView.builder(
-              itemCount: standardNotifications.length,
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 20),
-              itemBuilder: (context, index) {
-                final notification = standardNotifications[index];
-                
-                return NotificationItem(
-                  notification: notification,
-                  onTap: () => _handleNotificationTap(notification),
-                  onDeleted: (_) {
-                    // No additional action needed as deletion is handled in the NotificationItem
+            child: socialNotifications.isEmpty 
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.notifications_off_outlined,
+                        size: 70,
+                        color: Colors.grey.shade400,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No activity notifications',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade800,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: socialNotifications.length,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 20),
+                  itemBuilder: (context, index) {
+                    final notification = socialNotifications[index];
+                    
+                    return NotificationItem(
+                      notification: notification,
+                      onTap: () => _handleNotificationTap(notification),
+                      onDeleted: (_) {
+                        // No additional action needed as deletion is handled in the NotificationItem
+                      },
+                    );
                   },
-                );
-              },
-            ),
+                ),
           );
         },
       ),

@@ -6,6 +6,7 @@ import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:talkifyapp/features/Chat/Utils/chat_styles.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:talkifyapp/features/Chat/service/chat_notification_service.dart';
 
 class ChatRoomTile extends StatefulWidget {
   final ChatRoom chatRoom;
@@ -586,18 +587,65 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
                   );
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.notifications_off_outlined),
-                title: const Text('Mute notifications'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Mute notifications feature coming soon!'),
-                      backgroundColor: Colors.black,
-                    ),
+              FutureBuilder<bool>(
+                future: ChatNotificationService.isChatMuted(widget.chatRoom.id),
+                builder: (context, snapshot) {
+                  final isMuted = snapshot.data ?? false;
+                  return ListTile(
+                    leading: Icon(isMuted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined),
+                    title: Text(isMuted ? 'Unmute notifications' : 'Mute notifications'),
+                    onTap: () async {
+                      Navigator.of(context).pop();
+                      
+                      if (isMuted) {
+                        // Unmute the chat
+                        await ChatNotificationService.unmuteChat(widget.chatRoom.id);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Notifications unmuted for this chat'),
+                              backgroundColor: Colors.black,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      } else {
+                        // Mute the chat
+                        await ChatNotificationService.muteChat(widget.chatRoom.id);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('Notifications muted for this chat'),
+                              backgroundColor: Colors.black,
+                              duration: const Duration(seconds: 2),
+                              action: SnackBarAction(
+                                label: 'UNDO',
+                                onPressed: () async {
+                                  await ChatNotificationService.unmuteChat(widget.chatRoom.id);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Notifications unmuted'),
+                                        backgroundColor: Colors.black,
+                                        duration: Duration(seconds: 1),
+                                      ),
+                                    );
+                                  }
+                                },
+                                textColor: Colors.white,
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                      
+                      // Force widget to rebuild to reflect the updated mute status
+                      if (mounted) {
+                        setState(() {});
+                      }
+                    },
                   );
-                },
+                }
               ),
               const Divider(),
               ListTile(

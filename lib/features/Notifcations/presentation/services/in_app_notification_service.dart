@@ -5,11 +5,13 @@ import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/utils/notification_navigation.dart';
 import 'package:talkifyapp/features/Notifcations/Domain/Entite/Notification.dart' as app_notification;
+import 'package:just_audio/just_audio.dart';
 
 /// Service to display in-app notifications that slide in from the top of the screen
 class InAppNotificationService {
   static OverlayEntry? _currentNotification;
   static bool _isVisible = false;
+  static AudioPlayer? _audioPlayer;
   
   /// Shows an in-app notification with animation
   static void show({
@@ -21,11 +23,17 @@ class InAppNotificationService {
     String? postId,
     String? userAvatar,
     Duration duration = const Duration(seconds: 3),
+    bool playSound = true,
   }) {
     // Don't show a new notification if one is already visible
     if (_isVisible) {
       _currentNotification?.remove();
       _isVisible = false;
+    }
+    
+    // Play notification sound if not disabled
+    if (playSound) {
+      _playNotificationSound();
     }
     
     // Create the overlay entry for the notification
@@ -60,6 +68,21 @@ class InAppNotificationService {
         _currentNotification = null;
       }
     });
+  }
+  
+  /// Play notification sound
+  static Future<void> _playNotificationSound() async {
+    try {
+      // Create a new player instance each time to avoid issues
+      _audioPlayer?.dispose();
+      _audioPlayer = AudioPlayer();
+      
+      // Using the existing notification sound file
+      await _audioPlayer?.setAsset('lib/assets/notification.wav');
+      await _audioPlayer?.play();
+    } catch (e) {
+      print('Error playing notification sound: $e');
+    }
   }
   
   /// Hide the current notification if visible
