@@ -506,7 +506,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                 child: Row(
                   children: [
                     Icon(Icons.search, color: popupMenuIconColor),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Text('Search in conversation', style: TextStyle(color: popupMenuItemTextColor)),
                   ],
                 ),
@@ -516,21 +516,13 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                 child: Row(
                   children: [
                     Icon(Icons.cleaning_services_outlined, color: popupMenuIconColor),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Text('Clear chat history', style: TextStyle(color: popupMenuItemTextColor)),
                   ],
                 ),
               ),
               PopupMenuItem(
                 value: 'mute',
-
-                child: Row(
-                  children: [
-                    Icon(Icons.notifications_off_outlined, color: popupMenuIconColor),
-                    SizedBox(width: 12),
-                    Text('Mute notifications', style: TextStyle(color: popupMenuItemTextColor)),
-                  ],
-
                 child: FutureBuilder<bool>(
                   future: ChatNotificationService.isChatMuted(widget.chatRoom.id),
                   builder: (context, snapshot) {
@@ -539,14 +531,16 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                       children: [
                         Icon(
                           isMuted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined,
-                          color: Colors.black,
+                          color: popupMenuIconColor,
                         ),
-                        SizedBox(width: 12),
-                        Text(isMuted ? 'Unmute notifications' : 'Mute notifications'),
+                        const SizedBox(width: 12),
+                        Text(
+                          isMuted ? 'Unmute notifications' : 'Mute notifications',
+                          style: TextStyle(color: popupMenuItemTextColor),
+                        ),
                       ],
                     );
                   },
-
                 ),
               ),
             ],
@@ -589,12 +583,6 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                   ),
                 );
               } else if (value == 'mute') {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Mute notifications feature coming soon!', style: TextStyle(color: snackBarTextColor)),
-                    backgroundColor: snackBarBackgroundColor,
-                  ),
-                );
                 // Toggle mute status
                 final isMuted = await ChatNotificationService.isChatMuted(widget.chatRoom.id);
                 if (isMuted) {

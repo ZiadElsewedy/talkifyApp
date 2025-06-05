@@ -109,40 +109,10 @@ class _MyAppState extends State<MyApp> {
                 _audioHandler.disposeAllPlayers();
               } catch (e) {
                 print('Error disposing audio players: $e');
-=======
-      child: WillPopScope(
-        // Dispose all audio players when app is about to exit
-        onWillPop: () async {
-          try {
-            _audioHandler.disposeAllPlayers();
-          } catch (e) {
-            print('Error disposing audio players: $e');
-          }
-          return true;
-        },
-        child: MaterialApp(
-          scaffoldMessengerKey: _scaffoldMessengerKey,
-          debugShowCheckedModeBanner: false,
-          title: 'Talkify',
-          home: BlocConsumer<AuthCubit, AuthStates>(
-            // Listen to the auth cubit state changes
-            listener: (context, state) {
-              // Hide any previous SnackBar to prevent multiple SnackBars error
-              _scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
-              
-              if (state is AuthErrorState) {
-                _showSnackBar(state.error, Colors.red);
-              } else if (state is UnverifiedState) {
-                _showSnackBar(state.message, Colors.orange);
-              } else if (state is EmailVerificationState) {
-                _showSnackBar(state.message, Colors.blue);
-              } else if (state is Authanticated) {
-                print("Welcome back , User is logged in");
-
               }
               return true;
             },
-            child: MaterialApp(
+              child: MaterialApp(
               scaffoldMessengerKey: _scaffoldMessengerKey,
               debugShowCheckedModeBanner: false,
               title: 'Talkify',
@@ -186,6 +156,7 @@ class _MyAppState extends State<MyApp> {
       ),
     );
   }
+
   
   /// Shows a SnackBar with the given message and color
   void _showSnackBar(String message, Color backgroundColor) {
