@@ -115,6 +115,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
     final otherParticipant = _getOtherParticipant();
     final unreadCount = widget.chatRoom.unreadCount[widget.currentUserId] ?? 0;
     final hasUnread = unreadCount > 0;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -123,14 +124,16 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           decoration: BoxDecoration(
-            color: hasUnread 
-                ? Colors.grey[50]
-                : Colors.white,
+            color: isDarkMode
+                ? (hasUnread ? Colors.grey[850] : Theme.of(context).colorScheme.surface)
+                : (hasUnread ? Colors.grey[50] : Colors.white),
             borderRadius: BorderRadius.circular(12),
             boxShadow: hasUnread 
                 ? [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: isDarkMode 
+                          ? Colors.black.withOpacity(0.2)
+                          : Colors.black.withOpacity(0.05),
                       offset: const Offset(0, 2),
                       blurRadius: 5,
                     ),
@@ -147,20 +150,20 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   children: [
-                    _buildAvatar(otherParticipant),
+                    _buildAvatar(otherParticipant, isDarkMode),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildTitle(context, otherParticipant, hasUnread),
+                          _buildTitle(context, otherParticipant, hasUnread, isDarkMode),
                           const SizedBox(height: 4),
-                          _buildSubtitle(context, hasUnread),
+                          _buildSubtitle(context, hasUnread, isDarkMode),
                         ],
                       ),
                     ),
                     const SizedBox(width: 8),
-                    _buildTrailing(context, hasUnread, unreadCount),
+                    _buildTrailing(context, hasUnread, unreadCount, isDarkMode),
                   ],
                 ),
               ),
@@ -171,7 +174,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildAvatar(String otherParticipantId) {
+  Widget _buildAvatar(String otherParticipantId, bool isDarkMode) {
     if (widget.chatRoom.participants.length == 2) {
       // 1-on-1 chat avatar with online status indicator
       final avatarUrl = widget.chatRoom.participantAvatars[otherParticipantId] ?? '';
@@ -194,33 +197,38 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
               ),
               child: CircleAvatar(
                 radius: 28,
-                backgroundColor: Colors.grey[200],
+                backgroundColor: isDarkMode ? Colors.grey[800] : Colors.grey[200],
                 backgroundImage: avatarUrl.isNotEmpty 
                     ? CachedNetworkImageProvider(avatarUrl)
                     : null,
                 child: avatarUrl.isEmpty 
                     ? Text(
                         name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                        style: const TextStyle(
+                        style: TextStyle(
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                          color: Colors.black,
+                          color: isDarkMode ? Colors.white : Colors.black87,
                         ),
                       )
                     : null,
               ),
             ),
+            
             // Online status indicator
+            if (_isOtherUserOnline)
             Positioned(
+                right: 0,
               bottom: 0,
-              right: 0,
               child: Container(
-                width: 14,
-                height: 14,
+                  width: 16,
+                  height: 16,
                 decoration: BoxDecoration(
-                  color: _isOtherUserOnline ? ChatStyles.onlineColor : ChatStyles.offlineColor,
-                  border: Border.all(color: Colors.white, width: 2),
-                  borderRadius: BorderRadius.circular(7),
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isDarkMode ? Colors.grey[850]! : Colors.white,
+                      width: 2,
+                    ),
                 ),
               ),
             ),
@@ -228,25 +236,8 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
         ),
       );
     } else {
-      // Group chat avatar - show the first 2-3 participants in a stacked avatar
-      return _buildGroupAvatar();
-    }
-  }
-
-  Widget _buildGroupAvatar() {
-    // Get participants excluding current user
-    final otherParticipants = widget.chatRoom.participants
-        .where((id) => id != widget.currentUserId)
-        .take(3)
-        .toList();
-    
-    // If we have a custom group name, show a single avatar with the group initial
-    if (widget.chatRoom.participantNames.containsKey('groupName') && 
-        widget.chatRoom.participantNames['groupName']!.isNotEmpty) {
-      final groupName = widget.chatRoom.participantNames['groupName']!;
-      return Hero(
-        tag: 'group_${widget.chatRoom.id}',
-        child: Container(
+      // Group chat avatar
+      return Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             boxShadow: [
@@ -259,260 +250,129 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
           ),
           child: CircleAvatar(
             radius: 28,
-            backgroundColor: Colors.grey[200],
-            child: Text(
-              groupName[0].toUpperCase(),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 22,
-                color: Colors.black,
-              ),
-            ),
+          backgroundColor: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+          child: Icon(
+            Icons.group,
+            size: 24,
+            color: isDarkMode ? Colors.white : Colors.black87,
           ),
         ),
       );
     }
-    
-    // Otherwise, show stacked avatars for the first few participants
-    if (otherParticipants.isEmpty) {
-      // Fallback if somehow there are no other participants
-      return CircleAvatar(
-        radius: 28,
-        backgroundColor: Colors.grey[200],
-        child: const Icon(
-          Icons.group,
-          color: Colors.black,
-          size: 30,
-        ),
-      );
-    }
-    
-    // Show stacked avatars
-    return Container(
-      width: 56,
-      height: 56,
-      child: Stack(
-        children: [
-          // Main avatar (largest)
-          Positioned(
-            top: 0,
-            left: 0,
-            child: _buildParticipantAvatar(
-              otherParticipants[0], 
-              22,
-            ),
-          ),
-          
-          // Second avatar (if available)
-          if (otherParticipants.length > 1)
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: _buildParticipantAvatar(
-                otherParticipants[1], 
-                18,
-              ),
-            ),
-            
-          // Count badge for additional participants (if more than 2)
-          if (widget.chatRoom.participants.length > 3)
-            Positioned(
-              bottom: 0,
-              left: 0,
-              child: Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white, width: 1.5),
-                ),
-                child: Center(
-                  child: Text(
-                    '+${widget.chatRoom.participants.length - 3}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildParticipantAvatar(String participantId, double radius) {
-    final avatarUrl = widget.chatRoom.participantAvatars[participantId] ?? '';
-    final name = widget.chatRoom.participantNames[participantId] ?? 'User';
-    
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 2,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: CircleAvatar(
-        radius: radius,
-        backgroundColor: Colors.grey[200],
-        backgroundImage: avatarUrl.isNotEmpty 
-            ? CachedNetworkImageProvider(avatarUrl)
-            : null,
-        child: avatarUrl.isEmpty 
-            ? Text(
-                name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: radius * 0.7,
-                  color: Colors.black,
-                ),
-              )
-            : null,
-      ),
-    );
   }
 
-  Widget _buildTitle(BuildContext context, String otherParticipantId, bool hasUnread) {
-    String title = _getChatTitle();
+  Widget _buildTitle(BuildContext context, String otherParticipantId, bool hasUnread, bool isDarkMode) {
+    String chatName = '';
     
-    if (widget.chatRoom.participants.length > 3 && !title.contains('+')) {
-      title += ' +${widget.chatRoom.participants.length - 3}';
+    if (widget.chatRoom.isGroupChat) {
+      // For group chats, use the concatenated names of participants
+      chatName = widget.chatRoom.participants.length > 2
+          ? "Group: ${widget.chatRoom.participantNames.values.join(", ")}"
+          : "";
+      
+      // Limit the length
+      if (chatName.length > 30) {
+        chatName = chatName.substring(0, 27) + "...";
+      }
+    } else {
+      // For 1-on-1 chats, show the other participant's name
+      chatName = widget.chatRoom.participantNames[otherParticipantId] ?? 'User';
     }
 
     return Row(
       children: [
         Expanded(
           child: Text(
-            title,
+            chatName,
             style: TextStyle(
-              fontWeight: hasUnread ? FontWeight.bold : FontWeight.w500,
               fontSize: 16,
-              color: hasUnread 
-                  ? Colors.black
-                  : Colors.black87,
+              fontWeight: hasUnread ? FontWeight.bold : FontWeight.w500,
+              color: isDarkMode 
+                  ? (hasUnread ? Colors.white : Colors.grey[300])
+                  : (hasUnread ? Colors.black87 : Colors.black54),
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-        ),
-        
-        // Online status text for 1-on-1 chats
-        if (widget.chatRoom.participants.length == 2 && _isOtherUserOnline)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: ChatStyles.onlineColor,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                'Online',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: ChatStyles.onlineColor,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
           ),
       ],
     );
   }
 
-  String _getChatTitle() {
-    if (widget.chatRoom.participantNames.containsKey('groupName') && 
-        widget.chatRoom.participantNames['groupName']!.isNotEmpty) {
-      return widget.chatRoom.participantNames['groupName']!;
-    }
+  Widget _buildSubtitle(BuildContext context, bool hasUnread, bool isDarkMode) {
+    final lastMessage = widget.chatRoom.lastMessage ?? '';
+    final lastMessageSenderId = widget.chatRoom.lastMessageSenderId ?? '';
     
-    if (widget.chatRoom.participants.length == 2) {
-      final otherParticipantId = _getOtherParticipant();
-      return widget.chatRoom.participantNames[otherParticipantId] ?? 'Unknown User';
+    // Handle special cases for the last message display
+    String displayText = '';
+    
+    if (lastMessage.isEmpty) {
+      displayText = 'Start chatting';
+    } else if (lastMessage.startsWith('📷')) {
+      displayText = '📷 Photo';
+    } else if (lastMessage.startsWith('🎵')) {
+      displayText = '🎵 Voice message';
+    } else if (lastMessage.startsWith('📄')) {
+      displayText = '📄 Shared a post';
     } else {
-      // Group chat title - combine participant names
-      final names = widget.chatRoom.participantNames.entries
-          .where((entry) => entry.key != 'groupName' && entry.key != widget.currentUserId && entry.value.isNotEmpty)
-          .map((entry) => entry.value)
-          .take(3)
-          .join(', ');
-      return names.isNotEmpty ? names : 'Group Chat';
-    }
-  }
-
-  Widget _buildSubtitle(BuildContext context, bool hasUnread) {
-    String subtitle = widget.chatRoom.lastMessage ?? 'No messages yet';
-    
-    // Add sender name for group chats
-    if (widget.chatRoom.participants.length > 2 && 
-        widget.chatRoom.lastMessageSenderId != null &&
-        widget.chatRoom.lastMessage != null) {
-      final senderName = widget.chatRoom.participantNames[widget.chatRoom.lastMessageSenderId];
-      if (senderName != null && senderName.isNotEmpty) {
-        subtitle = widget.chatRoom.lastMessageSenderId == widget.currentUserId 
-            ? 'You: ${widget.chatRoom.lastMessage}'
-            : '$senderName: ${widget.chatRoom.lastMessage}';
+      // Regular text message
+      if (lastMessageSenderId == widget.currentUserId) {
+        displayText = 'You: $lastMessage';
+      } else {
+        displayText = lastMessage;
       }
     }
-
-    return Text(
-      subtitle,
+    
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            displayText,
       style: TextStyle(
         fontSize: 14,
+              color: isDarkMode
+                  ? (hasUnread ? Colors.grey[300] : Colors.grey[500])
+                  : (hasUnread ? Colors.black54 : Colors.grey[600]),
         fontWeight: hasUnread ? FontWeight.w500 : FontWeight.normal,
-        color: hasUnread 
-            ? Colors.black87
-            : Colors.grey[600],
       ),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildTrailing(BuildContext context, bool hasUnread, int unreadCount) {
+  Widget _buildTrailing(BuildContext context, bool hasUnread, int unreadCount, bool isDarkMode) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        // Timestamp
-        if (widget.chatRoom.lastMessageTime != null)
           Text(
-            timeago.format(widget.chatRoom.lastMessageTime!),
+          widget.chatRoom.lastMessageTime != null 
+              ? timeago.format(widget.chatRoom.lastMessageTime!)
+              : '',
             style: TextStyle(
               fontSize: 12,
-              color: hasUnread 
-                  ? Colors.black
-                  : Colors.grey[500],
+            color: isDarkMode
+                ? (hasUnread ? Colors.grey[300] : Colors.grey[500])
+                : (hasUnread ? Colors.black54 : Colors.grey[500]),
+            fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
             ),
           ),
-        
         const SizedBox(height: 4),
-        
-        // Unread count badge
         if (hasUnread)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          Container(
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(10),
+              color: isDarkMode ? Colors.blue[700] : Colors.black,
+              shape: BoxShape.circle,
             ),
             child: Text(
-              unreadCount.toString(),
+              unreadCount > 99 ? '99+' : unreadCount.toString(),
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 12,
+                fontSize: 10,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -563,7 +423,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
                     const SizedBox(width: 16),
                     Expanded(
                       child: Text(
-                        _getChatTitle(),
+                        _getOtherParticipant(),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,

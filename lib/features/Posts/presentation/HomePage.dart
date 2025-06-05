@@ -207,34 +207,55 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final scaffoldBg = isDarkMode ? Theme.of(context).scaffoldBackgroundColor : Colors.grey[100];
+    final appBarBg = isDarkMode ? colorScheme.surface : Colors.white;
+    final appBarText = isDarkMode ? colorScheme.inversePrimary : Colors.black;
+    final tabSelectedBg = isDarkMode ? Colors.grey[800] : Colors.transparent;
+    final tabSelectedText = isDarkMode ? Colors.white : Colors.black;
+    final tabUnselectedText = isDarkMode ? Colors.grey[400] : Colors.grey[500];
+    final tabIndicator = isDarkMode ? Colors.white : Colors.black;
+    final iconColor = isDarkMode ? Colors.grey[300] : Colors.black87;
+    final searchIconColor = isDarkMode ? Colors.grey[400] : Colors.grey[700];
+    final errorIconColor = isDarkMode ? Colors.red[400] : Colors.red[300];
+    final errorTextColor = isDarkMode ? Colors.white : Colors.black87;
+    final errorSubTextColor = isDarkMode ? Colors.grey[400] : Colors.grey[600];
+    final emptyIconColor = isDarkMode ? Colors.grey[700] : Colors.grey[400];
+    final emptyTextColor = isDarkMode ? Colors.white : Colors.black87;
+    final emptySubTextColor = isDarkMode ? Colors.grey[500] : Colors.grey[600];
+    final fabBg = Colors.blue[700];
+    final fabFg = Colors.white;
+    final refreshIndicatorColor = isDarkMode ? Colors.white : Colors.blue[700];
+    final refreshIndicatorBg = isDarkMode ? Colors.grey[900] : Colors.white;
+
     // Ensure notification cubit has the latest context
     if (currentUser != null) {
       final notificationCubit = context.read<NotificationCubit>();
       notificationCubit.setContext(context);
     }
-    
+
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
         elevation: 0,
         title: Text(
           'T A L K I F Y',
           style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-            letterSpacing: 4,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: appBarText,
+            letterSpacing: 2,
           ),
         ),
-        backgroundColor: Colors.white,
-        iconTheme: IconThemeData(color: Colors.black87),
+        backgroundColor: appBarBg,
+        iconTheme: IconThemeData(color: appBarText),
         actions: [
           IconButton(
             onPressed: () {
-              // Search functionality placeholder
               Navigator.push(context, MaterialPageRoute(builder: (context) => SearchPage()));
             },
-            icon: Icon(Icons.search, color: Colors.black54),
+            icon: Icon(Icons.search, color: searchIconColor, size: 24),
             tooltip: 'Search',
           ),
           BlocBuilder<NotificationCubit, NotificationState>(
@@ -281,54 +302,30 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(48),
           child: Container(
-            color: Colors.white,
+            decoration: BoxDecoration(
+              color: appBarBg,
+              border: Border(
+                bottom: BorderSide(
+                  color: isDarkMode ? Colors.grey[800]! : Colors.grey[200]!,
+                  width: 1.0,
+                ),
+              ),
+            ),
             child: TabBar(
               controller: _tabController,
               indicatorWeight: 3,
-              indicatorColor: Colors.black,
-              labelColor: Colors.black,
-              unselectedLabelColor: Colors.grey,
+              indicatorColor: tabIndicator,
+              indicatorSize: TabBarIndicatorSize.label,
+              labelColor: tabSelectedText,
+              unselectedLabelColor: tabUnselectedText,
               labelStyle: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
               tabs: [
-                Tab(
-                  icon: _tabController.index == 0 
-                      ? Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text('For You', style: TextStyle(color: Colors.black)),
-                        )
-                      : Text('For You'),
-                ),
-                Tab(
-                  icon: _tabController.index == 1
-                      ? Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text('Following', style: TextStyle(color: Colors.black)),
-                        )
-                      : Text('Following'),
-                ),
-                Tab(
-                  icon: _tabController.index == 2
-                      ? Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text('Trending', style: TextStyle(color: Colors.black)),
-                        )
-                      : Text('Trending'),
-                ),
+                Tab(text: 'For You'),
+                Tab(text: 'Following'),
+                Tab(text: 'Trending'),
               ],
             ),
           ),
@@ -347,7 +344,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   Text(
                     'Loading posts...',
                     style: TextStyle(
-                      color: Colors.black54,
+                      color: tabUnselectedText,
                       fontSize: 16,
                     ),
                   ),
@@ -365,7 +362,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     Icon(
                       Icons.post_add,
                       size: 80,
-                      color: Colors.grey[400],
+                      color: emptyIconColor,
                     ),
                     SizedBox(height: 16),
                     Text(
@@ -377,7 +374,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w500,
-                        color: Colors.black87,
+                        color: emptyTextColor,
                       ),
                     ),
                     SizedBox(height: 8),
@@ -386,7 +383,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           ? 'Follow more people to see their posts'
                           : 'Be the first to share something!',
                       style: TextStyle(
-                        color: Colors.grey[600],
+                        color: emptySubTextColor,
                       ),
                     ),
                     SizedBox(height: 24),
@@ -400,8 +397,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       icon: Icon(Icons.add),
                       label: Text('Create Post'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue[700],
-                        foregroundColor: Colors.white,
+                        backgroundColor: fabBg,
+                        foregroundColor: fabFg,
                         padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       ),
@@ -412,8 +409,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             }
             
             return RefreshIndicator(
-              color: Colors.black,
-              backgroundColor: Colors.white,
+              color: refreshIndicatorColor,
+              backgroundColor: refreshIndicatorBg,
               onRefresh: refreshPosts,
               child: ListView.builder(
                 controller: _scrollController,
@@ -437,7 +434,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   Icon(
                     Icons.error_outline,
                     size: 80,
-                    color: Colors.red[300],
+                    color: errorIconColor,
                   ),
                   SizedBox(height: 16),
                   Text(
@@ -445,7 +442,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                      color: errorTextColor,
                     ),
                   ),
                   SizedBox(height: 8),
@@ -453,7 +450,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     state.message,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: errorSubTextColor,
                     ),
                   ),
                   SizedBox(height: 24),
@@ -462,8 +459,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     icon: Icon(Icons.refresh),
                     label: Text('Try Again'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[700],
-                      foregroundColor: Colors.white,
+                      backgroundColor: fabBg,
+                      foregroundColor: fabFg,
                       padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
@@ -480,7 +477,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 Icon(
                   Icons.feed,
                   size: 60,
-                  color: Colors.grey[400],
+                  color: emptyIconColor,
                 ),
                 SizedBox(height: 16),
                 Text(
@@ -488,7 +485,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
-                    color: Colors.black87,
+                    color: emptyTextColor,
                   ),
                 ),
               ],
@@ -511,8 +508,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
             icon: Icon(Icons.add_photo_alternate),
             label: Text('New Post'),
-            backgroundColor: Colors.blue[700],
-            foregroundColor: Colors.white,
+            backgroundColor: fabBg,
+            foregroundColor: fabFg,
             elevation: 4,
           ),
         ),

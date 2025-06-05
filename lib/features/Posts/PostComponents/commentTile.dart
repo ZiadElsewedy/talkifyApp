@@ -46,17 +46,30 @@ class _CommentTileState extends State<CommentTile> {
   }
 
   void _showDeleteConfirmation(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color cardColor = isDarkMode ? Colors.grey[900]! : Colors.white;
+    final Color textColor = isDarkMode ? Colors.grey[200]! : Colors.black87;
+    final Color subTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final Color iconColor = isDarkMode ? Colors.red[300]! : Colors.red[700]!;
+    final Color buttonColor = isDarkMode ? Colors.red[700]! : Colors.black;
+    final Color cancelColor = isDarkMode ? Colors.grey[400]! : Colors.black54;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Comment', style: TextStyle(color: Colors.black)),
-        content: const Text('Are you sure you want to delete this comment?', style: TextStyle(color: Colors.black87)),
-        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            Icon(Icons.delete_outline, color: iconColor),
+            const SizedBox(width: 8),
+            Text('Delete Comment', style: TextStyle(color: textColor)),
+          ],
+        ),
+        content: Text('Are you sure you want to delete this comment?', style: TextStyle(color: subTextColor)),
+        backgroundColor: cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(foregroundColor: Colors.black54),
+            style: TextButton.styleFrom(foregroundColor: cancelColor),
             child: const Text('Cancel'),
           ),
           TextButton(
@@ -67,8 +80,8 @@ class _CommentTileState extends State<CommentTile> {
                 widget.onDelete!();
               }
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.black),
-            child: const Text('Delete', style: TextStyle(color: Colors.black)),
+            style: TextButton.styleFrom(foregroundColor: iconColor),
+            child: Text('Delete', style: TextStyle(color: iconColor)),
           ),
         ],
       ),
@@ -76,17 +89,30 @@ class _CommentTileState extends State<CommentTile> {
   }
   
   void _showDeleteReplyConfirmation(BuildContext context, String replyId) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color cardColor = isDarkMode ? Colors.grey[900]! : Colors.white;
+    final Color textColor = isDarkMode ? Colors.grey[200]! : Colors.black87;
+    final Color subTextColor = isDarkMode ? Colors.grey[400]! : Colors.black87;
+    final Color iconColor = isDarkMode ? Colors.red[300]! : Colors.red[700]!;
+    final Color buttonColor = isDarkMode ? Colors.red[700]! : Colors.black;
+    final Color cancelColor = isDarkMode ? Colors.grey[400]! : Colors.black54;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Reply', style: TextStyle(color: Colors.black)),
-        content: const Text('Are you sure you want to delete this reply?', style: TextStyle(color: Colors.black87)),
-        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            Icon(Icons.delete_outline, color: iconColor),
+            const SizedBox(width: 8),
+            Text('Delete Reply', style: TextStyle(color: textColor)),
+          ],
+        ),
+        content: Text('Are you sure you want to delete this reply?', style: TextStyle(color: subTextColor)),
+        backgroundColor: cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(foregroundColor: Colors.black54),
+            style: TextButton.styleFrom(foregroundColor: cancelColor),
             child: const Text('Cancel'),
           ),
           TextButton(
@@ -94,8 +120,8 @@ class _CommentTileState extends State<CommentTile> {
               Navigator.pop(context);
               _deleteReply(replyId);
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.black),
-            child: const Text('Delete', style: TextStyle(color: Colors.black)),
+            style: TextButton.styleFrom(foregroundColor: iconColor),
+            child: Text('Delete', style: TextStyle(color: iconColor)),
           ),
         ],
       ),
@@ -271,11 +297,16 @@ class _CommentTileState extends State<CommentTile> {
 
   @override
   Widget build(BuildContext context) {
-    // Black and white colors
-    final Color blackColor = Colors.black;
-    final Color whiteColor = Colors.white;
-    final Color lightGrey = Colors.grey[200]!;
-    final Color mediumGrey = Colors.grey[400]!;
+    // Use theme-based colors
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color cardColor = isDarkMode ? Colors.grey[900]! : Colors.white;
+    final Color textColor = isDarkMode ? Colors.grey[200]! : Colors.black87;
+    final Color subTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final Color iconColor = isDarkMode ? Colors.grey[400]! : Colors.black54;
+    final Color dividerColor = isDarkMode ? Colors.grey[800]! : Colors.grey[300]!;
+    final Color likeColor = isDarkMode ? Colors.red[300]! : Colors.red[700]!;
+    final Color commentBg = isDarkMode ? Colors.grey[800]! : Colors.grey[100]!;
+    final Color shadowColor = isDarkMode ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05);
     
     final bool isCommentLiked = _currentUser != null && widget.comment.likes.contains(_currentUser!.id);
     final int likeCount = widget.comment.likes.length;
@@ -284,12 +315,12 @@ class _CommentTileState extends State<CommentTile> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       decoration: BoxDecoration(
-        color: whiteColor,
+        color: cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: lightGrey),
+        border: Border.all(color: dividerColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: shadowColor,
             blurRadius: 5,
             offset: const Offset(0, 2),
           ),
@@ -306,7 +337,7 @@ class _CommentTileState extends State<CommentTile> {
               children: [
                 CircleAvatar(
                   radius: 18,
-                  backgroundColor: lightGrey,
+                  backgroundColor: commentBg,
                   child: widget.comment.profilePicture.isNotEmpty
                       ? ClipOval(
                           child: CachedNetworkImage(
@@ -322,7 +353,7 @@ class _CommentTileState extends State<CommentTile> {
                                   ? widget.comment.userName[0].toUpperCase()
                                   : '?',
                               style: TextStyle(
-                                color: blackColor,
+                                color: textColor,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                               ),
@@ -334,7 +365,7 @@ class _CommentTileState extends State<CommentTile> {
                               ? widget.comment.userName[0].toUpperCase()
                               : '?',
                           style: TextStyle(
-                            color: blackColor,
+                            color: textColor,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
@@ -352,14 +383,14 @@ class _CommentTileState extends State<CommentTile> {
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
-                              color: blackColor,
+                              color: textColor,
                             ),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             timeago.format(widget.comment.createdAt),
                             style: TextStyle(
-                              color: mediumGrey,
+                              color: subTextColor,
                               fontSize: 12,
                             ),
                           ),
@@ -370,13 +401,13 @@ class _CommentTileState extends State<CommentTile> {
                               child: Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  color: lightGrey,
+                                  color: commentBg,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Icon(
                                   Icons.delete_outline,
                                   size: 16,
-                                  color: blackColor,
+                                  color: iconColor,
                                 ),
                               ),
                             ),
@@ -386,13 +417,13 @@ class _CommentTileState extends State<CommentTile> {
                       Container(
                         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                         decoration: BoxDecoration(
-                          color: lightGrey.withOpacity(0.5),
+                          color: commentBg.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           widget.comment.content,
                           style: TextStyle(
-                            color: blackColor,
+                            color: textColor,
                             fontSize: 14,
                           ),
                         ),
@@ -417,14 +448,14 @@ class _CommentTileState extends State<CommentTile> {
                       Icon(
                         isCommentLiked ? Icons.favorite : Icons.favorite_border,
                         size: 16,
-                        color: isCommentLiked ? blackColor : mediumGrey,
+                        color: isCommentLiked ? likeColor : iconColor,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         likeCount > 0 ? '$likeCount' : 'Like',
                         style: TextStyle(
                           fontSize: 12,
-                          color: isCommentLiked ? blackColor : mediumGrey,
+                          color: isCommentLiked ? likeColor : iconColor,
                           fontWeight: isCommentLiked ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
@@ -448,14 +479,14 @@ class _CommentTileState extends State<CommentTile> {
                       Icon(
                         Icons.reply,
                         size: 16,
-                        color: mediumGrey,
+                        color: iconColor,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         'Reply',
                         style: TextStyle(
                           fontSize: 12,
-                          color: mediumGrey,
+                          color: iconColor,
                         ),
                       ),
                     ],
@@ -476,14 +507,14 @@ class _CommentTileState extends State<CommentTile> {
                         Icon(
                           _showReplies ? Icons.expand_less : Icons.expand_more,
                           size: 16,
-                          color: mediumGrey,
+                          color: iconColor,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           _showReplies ? 'Hide replies' : 'Show $replyCount ${replyCount == 1 ? 'reply' : 'replies'}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: mediumGrey,
+                            color: iconColor,
                           ),
                         ),
                       ],
@@ -502,7 +533,7 @@ class _CommentTileState extends State<CommentTile> {
                 children: [
                   CircleAvatar(
                     radius: 14,
-                    backgroundColor: lightGrey,
+                    backgroundColor: commentBg,
                     child: _currentUser?.profilePictureUrl.isNotEmpty == true
                         ? ClipOval(
                             child: CachedNetworkImage(
@@ -518,7 +549,7 @@ class _CommentTileState extends State<CommentTile> {
                                     ? _currentUser!.name[0].toUpperCase()
                                     : '?',
                                 style: TextStyle(
-                                  color: blackColor,
+                                  color: textColor,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                 ),
@@ -530,7 +561,7 @@ class _CommentTileState extends State<CommentTile> {
                                 ? _currentUser!.name[0].toUpperCase()
                                 : '?',
                             style: TextStyle(
-                              color: blackColor,
+                              color: textColor,
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                             ),
@@ -544,26 +575,26 @@ class _CommentTileState extends State<CommentTile> {
                         hintText: 'Write a reply...',
                         hintStyle: TextStyle(
                           fontSize: 14,
-                          color: mediumGrey,
+                          color: subTextColor,
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide(color: lightGrey),
+                          borderSide: BorderSide(color: commentBg),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide(color: lightGrey),
+                          borderSide: BorderSide(color: commentBg),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide(color: blackColor),
+                          borderSide: BorderSide(color: textColor),
                         ),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         isDense: true,
                       ),
                       style: TextStyle(
                         fontSize: 14,
-                        color: blackColor,
+                        color: textColor,
                       ),
                       maxLines: 3,
                       minLines: 1,
@@ -576,13 +607,13 @@ class _CommentTileState extends State<CommentTile> {
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: blackColor,
+                        color: textColor,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.send,
                         size: 18,
-                        color: whiteColor,
+                        color: cardColor,
                       ),
                     ),
                   ),
@@ -609,7 +640,7 @@ class _CommentTileState extends State<CommentTile> {
                     children: [
                       CircleAvatar(
                         radius: 14,
-                        backgroundColor: lightGrey,
+                        backgroundColor: commentBg,
                         child: reply.profilePicture.isNotEmpty
                             ? ClipOval(
                                 child: CachedNetworkImage(
@@ -625,7 +656,7 @@ class _CommentTileState extends State<CommentTile> {
                                         ? reply.userName[0].toUpperCase()
                                         : '?',
                                     style: TextStyle(
-                                      color: blackColor,
+                                      color: textColor,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
                                     ),
@@ -637,7 +668,7 @@ class _CommentTileState extends State<CommentTile> {
                                     ? reply.userName[0].toUpperCase()
                                     : '?',
                                 style: TextStyle(
-                                  color: blackColor,
+                                  color: textColor,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                 ),
@@ -655,14 +686,14 @@ class _CommentTileState extends State<CommentTile> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13,
-                                    color: blackColor,
+                                    color: textColor,
                                   ),
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
                                   timeago.format(reply.createdAt),
                                   style: TextStyle(
-                                    color: mediumGrey,
+                                    color: subTextColor,
                                     fontSize: 11,
                                   ),
                                 ),
@@ -673,13 +704,13 @@ class _CommentTileState extends State<CommentTile> {
                                     child: Container(
                                       padding: const EdgeInsets.all(2),
                                       decoration: BoxDecoration(
-                                        color: lightGrey,
+                                        color: commentBg,
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Icon(
                                         Icons.delete_outline,
                                         size: 14,
-                                        color: blackColor,
+                                        color: iconColor,
                                       ),
                                     ),
                                   ),
@@ -689,13 +720,13 @@ class _CommentTileState extends State<CommentTile> {
                             Container(
                               padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
                               decoration: BoxDecoration(
-                                color: lightGrey.withOpacity(0.3),
+                                color: commentBg.withOpacity(0.3),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
                                 reply.content,
                                 style: TextStyle(
-                                  color: blackColor,
+                                  color: textColor,
                                   fontSize: 13,
                                 ),
                               ),
@@ -709,14 +740,14 @@ class _CommentTileState extends State<CommentTile> {
                                   Icon(
                                     isReplyLiked ? Icons.favorite : Icons.favorite_border,
                                     size: 14,
-                                    color: isReplyLiked ? blackColor : mediumGrey,
+                                    color: isReplyLiked ? likeColor : iconColor,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     reply.likes.length > 0 ? '${reply.likes.length}' : 'Like',
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: isReplyLiked ? blackColor : mediumGrey,
+                                      color: isReplyLiked ? likeColor : iconColor,
                                       fontWeight: isReplyLiked ? FontWeight.bold : FontWeight.normal,
                                     ),
                                   ),

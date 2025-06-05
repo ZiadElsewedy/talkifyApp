@@ -96,6 +96,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Widget buildEditPage() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final appBarBg = colorScheme.surface;
+    final appBarText = colorScheme.inversePrimary;
+    final cardBg = isDarkMode ? Colors.grey[900]! : Colors.white;
+    final cardText = isDarkMode ? Colors.grey[200]! : Colors.black87;
+    final cardSubText = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final dividerColor = isDarkMode ? Colors.grey[800]! : Colors.grey[300]!;
+    final iconColor = isDarkMode ? Colors.grey[400]! : Colors.black54;
     return Scaffold(
       appBar: AppBar(
         title: const Text("Edit Profile"),

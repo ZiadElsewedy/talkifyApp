@@ -46,22 +46,39 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final appBarBg = isDarkMode ? colorScheme.surface : Colors.white;
+    final appBarText = isDarkMode ? Colors.white : Colors.black;
+    final iconColor = isDarkMode ? Colors.white : Colors.black;
+    final detailTitle = isDarkMode ? Colors.white : Colors.black;
+    final detailSubText = isDarkMode ? Colors.grey[400]! : Colors.grey[800]!;
+    final detailDesc = isDarkMode ? Colors.grey[300]! : Colors.grey[800]!;
+    final detailContent = isDarkMode ? Colors.grey[200]! : Colors.grey[800]!;
+    final detailDivider = isDarkMode ? Colors.grey[800]! : Colors.grey[300]!;
+    final buttonBg = isDarkMode ? Colors.blue[900]! : Colors.black;
+    final buttonText = Colors.white;
+    final bottomBarBg = isDarkMode ? colorScheme.surface : Colors.white;
+    final bottomBarIcon = isDarkMode ? Colors.white : Colors.black;
+    final bottomBarShadow = isDarkMode ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.05);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: scaffoldBg,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         elevation: _showAppBarTitle ? 2 : 0,
-        backgroundColor: _showAppBarTitle ? Colors.white : Colors.transparent,
+        backgroundColor: _showAppBarTitle ? appBarBg : Colors.transparent,
         iconTheme: IconThemeData(
-          color: _showAppBarTitle ? Colors.black : Colors.white,
+          color: _showAppBarTitle ? appBarText : Colors.white,
         ),
         title: AnimatedOpacity(
           opacity: _showAppBarTitle ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 250),
           child: Text(
             widget.article.title,
-            style: const TextStyle(
-              color: Colors.black,
+            style: TextStyle(
+              color: appBarText,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -73,14 +90,14 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
           IconButton(
             icon: Icon(
               Icons.share,
-              color: _showAppBarTitle ? Colors.black : Colors.white,
+              color: _showAppBarTitle ? appBarText : Colors.white,
             ),
             onPressed: _shareArticle,
           ),
         ],
         systemOverlayStyle: _showAppBarTitle
-            ? SystemUiOverlayStyle.dark
-            : SystemUiOverlayStyle.light,
+            ? (isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+            : (isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.light),
       ),
       body: CustomScrollView(
         controller: _scrollController,
@@ -105,7 +122,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
                                 return Container(
-                                  color: Colors.grey[800],
+                                  color: isDarkMode ? Colors.grey[900] : Colors.grey[800],
                                   child: Center(
                                     child: Icon(
                                       Icons.image_not_supported_outlined,
@@ -118,7 +135,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                               loadingBuilder: (context, child, loadingProgress) {
                                 if (loadingProgress == null) return child;
                                 return Container(
-                                  color: Colors.grey[800],
+                                  color: isDarkMode ? Colors.grey[900] : Colors.grey[800],
                                   child: Center(
                                     child: CircularProgressIndicator(
                                       color: Colors.grey[400],
@@ -159,13 +176,13 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.black,
+                      color: buttonBg,
                       borderRadius: BorderRadius.circular(30),
                     ),
                     child: Text(
                       _getCategoryName(widget.article.category),
                       style: TextStyle(
-                        color: Colors.white,
+                        color: buttonText,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -183,15 +200,15 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                     children: [
                       Text(
                         widget.article.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: detailTitle,
                           shadows: [
                             Shadow(
                               offset: Offset(1, 1),
                               blurRadius: 3,
-                              color: Color.fromARGB(150, 0, 0, 0),
+                              color: Colors.black.withOpacity(0.5),
                             ),
                           ],
                         ),
@@ -202,7 +219,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           Text(
                             widget.article.sourceName,
                             style: TextStyle(
-                              color: Colors.white,
+                              color: buttonText,
                               fontWeight: FontWeight.w500,
                               fontSize: 14,
                             ),
@@ -212,7 +229,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                             width: 4,
                             height: 4,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: buttonText,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -220,7 +237,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           Text(
                             _formatDate(widget.article.publishedAt),
                             style: TextStyle(
-                              color: Colors.white,
+                              color: buttonText,
                               fontSize: 14,
                             ),
                           ),
@@ -248,11 +265,11 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                         children: [
                           CircleAvatar(
                             radius: 16,
-                            backgroundColor: Colors.grey[200],
+                            backgroundColor: isDarkMode ? Colors.grey[800] : Colors.grey[200],
                             child: Icon(
                               Icons.person,
                               size: 18,
-                              color: Colors.grey[600],
+                              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -263,7 +280,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                 'Written by',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey[600],
+                                  color: detailSubText,
                                 ),
                               ),
                               Text(
@@ -271,6 +288,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
+                                  color: detailTitle,
                                 ),
                               ),
                             ],
@@ -288,7 +306,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey[800],
+                          color: detailDesc,
                           height: 1.5,
                         ),
                       ),
@@ -300,7 +318,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                       _formatContent(widget.article.content),
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.grey[800],
+                        color: detailContent,
                         height: 1.6,
                       ),
                     ),
@@ -314,14 +332,14 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: Colors.black,
+                        color: buttonBg,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         'Read Full Article',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: buttonText,
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
                         ),
@@ -335,13 +353,13 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Divider(color: Colors.grey[300]),
+                        Divider(color: detailDivider),
                         SizedBox(height: 16),
                         Text(
                           'Source: ${widget.article.sourceName}',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color: detailSubText,
                           ),
                         ),
                         SizedBox(height: 8),
@@ -349,7 +367,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           'Published: ${DateFormat('MMMM d, yyyy').format(widget.article.publishedAt)}',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color: detailSubText,
                           ),
                         ),
                       ],
@@ -363,10 +381,10 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: bottomBarBg,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: bottomBarShadow,
               blurRadius: 10,
               offset: Offset(0, -2),
             ),
@@ -377,9 +395,9 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildBottomButton(Icons.bookmark_border, 'Save'),
-              _buildBottomButton(Icons.share, 'Share', onTap: _shareArticle),
-              _buildBottomButton(Icons.open_in_browser, 'Open', onTap: _openArticleUrl),
+              _buildBottomButton(Icons.bookmark_border, 'Save', iconColor: bottomBarIcon),
+              _buildBottomButton(Icons.share, 'Share', onTap: _shareArticle, iconColor: bottomBarIcon),
+              _buildBottomButton(Icons.open_in_browser, 'Open', onTap: _openArticleUrl, iconColor: bottomBarIcon),
             ],
           ),
         ),
@@ -387,7 +405,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     );
   }
 
-  Widget _buildBottomButton(IconData icon, String label, {VoidCallback? onTap}) {
+  Widget _buildBottomButton(IconData icon, String label, {VoidCallback? onTap, Color? iconColor}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
@@ -396,15 +414,9 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 22),
+            Icon(icon, size: 22, color: iconColor),
             SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            Text(label, style: TextStyle(fontSize: 12, color: iconColor)),
           ],
         ),
       ),

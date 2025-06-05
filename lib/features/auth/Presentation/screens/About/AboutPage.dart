@@ -51,8 +51,31 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final appBarBg = colorScheme.surface;
+    final appBarText = colorScheme.inversePrimary;
+    final sectionBg = isDarkMode ? Colors.grey[900]! : Colors.grey[50]!;
+    final cardBg = isDarkMode ? Colors.grey[900]! : Colors.white;
+    final cardBorder = isDarkMode ? Colors.grey[800]! : Colors.grey[200]!;
+    final cardText = isDarkMode ? Colors.grey[200]! : Colors.grey[800]!;
+    final cardSubText = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final sectionTitle = isDarkMode ? Colors.white : Colors.black;
+    final sectionBar = isDarkMode ? Colors.blue[700]! : Colors.black;
+    final iconColor = isDarkMode ? Colors.white : Colors.black;
+    final iconBg = isDarkMode ? Colors.blue[900]! : Colors.black.withOpacity(0.05);
+    final featureTitle = isDarkMode ? Colors.white : Colors.black;
+    final featureDesc = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final contactTitle = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final contactInfo = isDarkMode ? Colors.white : Colors.black;
+    final socialBg = isDarkMode ? Colors.blue[900]! : Colors.black;
+    final socialIcon = Colors.white;
+    final copyrightBg = sectionBg;
+    final copyrightText = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
         title: const Text(
           'About Talkify',
@@ -63,9 +86,10 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
         ),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.black),
+        backgroundColor: appBarBg,
+        foregroundColor: appBarText,
+        iconTheme: IconThemeData(color: appBarText),
+        titleTextStyle: TextStyle(color: appBarText, fontWeight: FontWeight.bold, fontSize: 20),
       ),
       body: SafeArea(
         child: AnimatedBuilder(
@@ -87,7 +111,7 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 40),
                         decoration: BoxDecoration(
-                          color: Colors.grey[50],
+                          color: sectionBg,
                           borderRadius: const BorderRadius.only(
                             bottomLeft: Radius.circular(40),
                             bottomRight: Radius.circular(40),
@@ -106,7 +130,7 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                             Container(
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: cardBg,
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
@@ -117,21 +141,21 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                                   ),
                                 ],
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.chat_bubble_outline,
                                 size: 70,
-                                color: Colors.black,
+                                color: iconColor,
                               ),
                             ),
                             const SizedBox(height: 24),
                             // App Name
-                            const Text(
+                            Text(
                               'TALKIFY',
                               style: TextStyle(
                                 fontSize: 36,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 2,
-                                color: Colors.black,
+                                color: sectionTitle,
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -139,14 +163,14 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.1),
+                                color: isDarkMode ? Colors.blue[900]!.withOpacity(0.2) : Colors.black.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Connect • Share • Engage',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: Colors.black,
+                                  color: sectionTitle,
                                   fontWeight: FontWeight.w500,
                                   letterSpacing: 1,
                                 ),
@@ -161,7 +185,7 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: Colors.grey[700],
+                                  color: cardText,
                                   height: 1.5,
                                 ),
                               ),
@@ -187,7 +211,7 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildSectionTitle('What is Talkify?'),
+                            _buildSectionTitle('What is Talkify?', sectionBar, sectionTitle),
                             const SizedBox(height: 16),
                             _buildInfoCard(
                               child: Column(
@@ -196,7 +220,7 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                                     'Talkify is a state-of-the-art messaging application that focuses on creating meaningful connections between people. Our platform provides a secure, intuitive, and feature-rich environment for personal and group conversations.',
                                     style: TextStyle(
                                       fontSize: 15,
-                                      color: Colors.grey[800],
+                                      color: cardText,
                                       height: 1.6,
                                     ),
                                   ),
@@ -205,12 +229,14 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                                     'Built with the latest technology, Talkify offers a seamless experience across devices while prioritizing your privacy and data security.',
                                     style: TextStyle(
                                       fontSize: 15,
-                                      color: Colors.grey[800],
+                                      color: cardText,
                                       height: 1.6,
                                     ),
                                   ),
                                 ],
                               ),
+                              cardBg: cardBg,
+                              cardBorder: cardBorder,
                             ),
                           ],
                         ),
@@ -233,7 +259,7 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                               begin: const Offset(0.2, 0),
                               end: Offset.zero,
                             ).animate(_fadeAnimations[2]),
-                            child: _buildSectionTitle('Key Features'),
+                            child: _buildSectionTitle('Key Features', sectionBar, sectionTitle),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -243,6 +269,11 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                             icon: Icons.message_rounded,
                             title: 'Real-time Messaging',
                             description: 'Send and receive messages instantly with typing indicators and read receipts.',
+                            cardBg: cardBg,
+                            iconBg: iconBg,
+                            iconColor: iconColor,
+                            titleColor: featureTitle,
+                            descColor: featureDesc,
                           ),
                         ),
                         FadeTransition(
@@ -251,6 +282,11 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                             icon: Icons.groups_rounded,
                             title: 'Group Conversations',
                             description: 'Create group chats with multiple participants for team collaboration or social planning.',
+                            cardBg: cardBg,
+                            iconBg: iconBg,
+                            iconColor: iconColor,
+                            titleColor: featureTitle,
+                            descColor: featureDesc,
                           ),
                         ),
                         FadeTransition(
@@ -259,6 +295,11 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                             icon: Icons.photo_library_rounded,
                             title: 'Rich Media Sharing',
                             description: 'Share photos, videos, documents, and voice messages seamlessly within your conversations.',
+                            cardBg: cardBg,
+                            iconBg: iconBg,
+                            iconColor: iconColor,
+                            titleColor: featureTitle,
+                            descColor: featureDesc,
                           ),
                         ),
                         FadeTransition(
@@ -267,6 +308,11 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                             icon: Icons.verified_user_rounded,
                             title: 'Privacy & Security',
                             description: 'Your conversations are protected with industry-standard security protocols.',
+                            cardBg: cardBg,
+                            iconBg: iconBg,
+                            iconColor: iconColor,
+                            titleColor: featureTitle,
+                            descColor: featureDesc,
                           ),
                         ),
                         FadeTransition(
@@ -275,6 +321,11 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                             icon: Icons.notifications_active_rounded,
                             title: 'Smart Notifications',
                             description: 'Stay updated with customizable notification settings for different conversations.',
+                            cardBg: cardBg,
+                            iconBg: iconBg,
+                            iconColor: iconColor,
+                            titleColor: featureTitle,
+                            descColor: featureDesc,
                           ),
                         ),
                       ],
@@ -296,17 +347,19 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildSectionTitle('Our Team'),
+                            _buildSectionTitle('Our Team', sectionBar, sectionTitle),
                             const SizedBox(height: 16),
                             _buildInfoCard(
                               child: Text(
                                 'Talkify is developed by a passionate team of designers, developers, and communication experts committed to creating the best messaging experience possible. We believe in the power of connection and strive to make communication more accessible, enjoyable, and meaningful.',
                                 style: TextStyle(
                                   fontSize: 15,
-                                  color: Colors.grey[800],
+                                  color: cardText,
                                   height: 1.6,
                                 ),
                               ),
+                              cardBg: cardBg,
+                              cardBorder: cardBorder,
                             ),
                           ],
                         ),
@@ -329,22 +382,37 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildSectionTitle('Contact Us'),
+                            _buildSectionTitle('Contact Us', sectionBar, sectionTitle),
                             const SizedBox(height: 16),
                             _buildContactInfo(
                               icon: Icons.email_outlined,
                               title: 'Email',
                               info: 'support@talkify.com',
+                              cardBg: cardBg,
+                              cardBorder: cardBorder,
+                              titleColor: contactTitle,
+                              infoColor: contactInfo,
+                              iconColor: iconColor,
                             ),
                             _buildContactInfo(
                               icon: Icons.public,
                               title: 'Website',
                               info: 'www.talkify.com',
+                              cardBg: cardBg,
+                              cardBorder: cardBorder,
+                              titleColor: contactTitle,
+                              infoColor: contactInfo,
+                              iconColor: iconColor,
                             ),
                             _buildContactInfo(
                               icon: Icons.location_on_outlined,
                               title: 'Address',
                               info: '6th of October City, Egypt , 10211',
+                              cardBg: cardBg,
+                              cardBorder: cardBorder,
+                              titleColor: contactTitle,
+                              infoColor: contactInfo,
+                              iconColor: iconColor,
                             ),
                           ],
                         ),
@@ -360,10 +428,10 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _buildSocialIcon(Icons.facebook),
-                        _buildSocialIcon(Icons.discord),
-                        _buildSocialIcon(Icons.camera_alt),
-                        _buildSocialIcon(Icons.flutter_dash),
+                        _buildSocialIcon(Icons.facebook, socialBg, socialIcon),
+                        _buildSocialIcon(Icons.discord, socialBg, socialIcon),
+                        _buildSocialIcon(Icons.camera_alt, socialBg, socialIcon),
+                        _buildSocialIcon(Icons.flutter_dash, socialBg, socialIcon),
                       ],
                     ),
                   ),
@@ -376,13 +444,13 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 24),
-                      color: Colors.grey[50],
+                      color: copyrightBg,
                       child: Column(
                         children: [
                           Text(
                             'Version 1.0.0',
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: copyrightText,
                               fontSize: 14,
                             ),
                           ),
@@ -390,7 +458,7 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                           Text(
                             '© 2024 Talkify. All rights reserved.',
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: copyrightText,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
@@ -408,39 +476,40 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, Color barColor, Color textColor) {
     return Row(
       children: [
         Container(
           width: 4,
           height: 24,
           decoration: BoxDecoration(
-            color: Colors.black,
+            color: barColor,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
         const SizedBox(width: 10),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.5,
-            color: Colors.black,
+            color: textColor,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildInfoCard({required Widget child}) {
+  Widget _buildInfoCard({required Widget child, Color? cardBg, Color? cardBorder}) {
     return Card(
       margin: EdgeInsets.zero,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey[200]!),
+        side: BorderSide(color: cardBorder ?? Colors.grey[200]!),
       ),
+      color: cardBg,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: child,
@@ -452,11 +521,16 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
     required IconData icon,
     required String title,
     required String description,
+    Color? cardBg,
+    Color? iconBg,
+    Color? iconColor,
+    Color? titleColor,
+    Color? descColor,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg ?? Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -475,10 +549,10 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.05),
+                color: iconBg ?? Colors.black.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, size: 24, color: Colors.black),
+              child: Icon(icon, size: 24, color: iconColor ?? Colors.black),
             ),
             const SizedBox(width: 16),
             // Feature Text
@@ -488,10 +562,10 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                      color: titleColor ?? Colors.black,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -499,7 +573,7 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                     description,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[600],
+                      color: descColor ?? Colors.grey[600],
                       height: 1.5,
                     ),
                   ),
@@ -516,18 +590,23 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
     required IconData icon,
     required String title,
     required String info,
+    Color? cardBg,
+    Color? cardBorder,
+    Color? titleColor,
+    Color? infoColor,
+    Color? iconColor,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg ?? Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: cardBorder ?? Colors.grey[200]!),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 24, color: Colors.black87),
+          Icon(icon, size: 24, color: iconColor ?? Colors.black87),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -536,16 +615,16 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
                 title,
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey[600],
+                  color: titleColor ?? Colors.grey[600],
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 info,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: Colors.black,
+                  color: infoColor ?? Colors.black,
                 ),
               ),
             ],
@@ -555,12 +634,12 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _buildSocialIcon(IconData icon) {
+  Widget _buildSocialIcon(IconData icon, Color bg, Color iconColor) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: bg,
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
@@ -573,7 +652,7 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
       child: Icon(
         icon,
         size: 24,
-        color: Colors.white,
+        color: iconColor,
       ),
     );
   }

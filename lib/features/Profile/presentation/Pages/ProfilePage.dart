@@ -38,6 +38,7 @@ class ProfilePageState extends State<ProfilePage> {
   List<Post> userPosts = [];
   final ScrollController _scrollController = ScrollController();
   bool _showNameInHeader = false;
+  bool _isScrolled = false;
 
   @override
   void initState() {
@@ -55,10 +56,20 @@ class ProfilePageState extends State<ProfilePage> {
     if (_scrollController.offset > 200 && !_showNameInHeader) {
       setState(() {
         _showNameInHeader = true;
+        _isScrolled = true;
       });
     } else if (_scrollController.offset <= 200 && _showNameInHeader) {
       setState(() {
         _showNameInHeader = false;
+        _isScrolled = false;
+      });
+    } else if (_scrollController.offset > 50 && !_isScrolled) {
+      setState(() {
+        _isScrolled = true;
+      });
+    } else if (_scrollController.offset <= 50 && _isScrolled) {
+      setState(() {
+        _isScrolled = false;
       });
     }
   }
@@ -241,13 +252,28 @@ class ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final appBarBg = colorScheme.surface;
+    final appBarText = colorScheme.inversePrimary;
+    final cardBg = isDarkMode ? Colors.grey[900]! : Colors.white;
+    final cardText = isDarkMode ? Colors.grey[200]! : Colors.black87;
+    final cardSubText = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final dividerColor = isDarkMode ? Colors.grey[800]! : Colors.grey[300]!;
+    final iconColor = isDarkMode ? Colors.grey[400]! : Colors.black54;
+    final buttonBg = isDarkMode ? Colors.blue[900]! : Colors.black;
+    final buttonFg = Colors.white;
+    final followBg = isDarkMode ? Colors.white : Colors.black;
+    final followFg = isDarkMode ? Colors.black : Colors.white;
+    final followBorder = isDarkMode ? Colors.grey[700]! : Colors.grey.shade300;
     bool isOwner = currentUser != null && widget.userId != null && currentUser!.id == widget.userId;
     return BlocBuilder<ProfileCubit, ProfileStates>(
       builder: (context, state) {
         if (state is ProfileLoadedState) {
           final user = state.profileuser;
           return Scaffold(
-            backgroundColor: const Color(0xFFF9F9F9),
+            backgroundColor: scaffoldBg,
             body: RefreshIndicator(
               color: Colors.black,
               onRefresh: refreshProfile,
@@ -259,8 +285,8 @@ class ProfilePageState extends State<ProfilePage> {
                   SliverAppBar(
                     expandedHeight: 270,
                     pinned: true,
-                    backgroundColor: Colors.black,
-                    elevation: 0,
+                    backgroundColor: _isScrolled ? Colors.black : appBarBg,
+                    elevation: _isScrolled ? 4 : 0,
                     title: AnimatedOpacity(
                       opacity: _showNameInHeader ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 300),
@@ -269,7 +295,7 @@ class ProfilePageState extends State<ProfilePage> {
                         children: [
                           Text(
                             user.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -365,7 +391,7 @@ class ProfilePageState extends State<ProfilePage> {
                                         children: [
                                           Text(
                                             user.name,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 24,
                                               fontWeight: FontWeight.bold,
@@ -382,7 +408,7 @@ class ProfilePageState extends State<ProfilePage> {
                                           Text(
                                             user.HintDescription,
                                             style: TextStyle(
-                                              color: Colors.white.withOpacity(0.9),
+                                              color: cardSubText,
                                               fontSize: 16,
                                               shadows: const [
                                                 Shadow(
@@ -463,7 +489,7 @@ class ProfilePageState extends State<ProfilePage> {
                   // Profile Content
                   SliverToBoxAdapter(
                     child: Container(
-                      color: const Color(0xFFF9F9F9),
+                      color: cardBg,
                       child: Column(
                         children: [
                           const SizedBox(height: 20), 
@@ -566,7 +592,7 @@ class ProfilePageState extends State<ProfilePage> {
                                 const SizedBox(height: 15),
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: cardBg,
                                     borderRadius: BorderRadius.circular(16),
                                     boxShadow: [
                                       BoxShadow(
@@ -577,7 +603,7 @@ class ProfilePageState extends State<ProfilePage> {
                                       ),
                                     ],
                                     border: Border.all(
-                                      color: Colors.grey.withOpacity(0.1),
+                                      color: dividerColor,
                                       width: 1,
                                     ),
                                   ),
@@ -592,13 +618,13 @@ class ProfilePageState extends State<ProfilePage> {
                                                 Icon(
                                                   Icons.post_add_outlined,
                                                   size: 50,
-                                                  color: Colors.black.withOpacity(0.3),
+                                                  color: iconColor,
                                                 ),
                                                 const SizedBox(height: 10),
                                                 Text(
                                                   'No posts yet',
                                                   style: TextStyle(
-                                                    color: Colors.black54,
+                                                    color: cardSubText,
                                                     fontSize: 16,
                                                     fontWeight: FontWeight.w500,
                                                     letterSpacing: 0.5,
@@ -608,7 +634,7 @@ class ProfilePageState extends State<ProfilePage> {
                                                 Text(
                                                   'Posts will appear here',
                                                   style: TextStyle(
-                                                    color: Colors.black38,
+                                                    color: cardSubText,
                                                     fontSize: 14,
                                                   ),
                                                 ),

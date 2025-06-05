@@ -50,6 +50,14 @@ class _MybioState extends State<Mybio> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDarkMode ? Colors.grey[900]! : Colors.white;
+    final borderColor = isDarkMode ? Colors.grey[800]! : Colors.grey.withOpacity(0.1);
+    final shadowColor = isDarkMode ? Colors.black.withOpacity(0.15) : Colors.black.withOpacity(0.08);
+    final barColor = isDarkMode ? Colors.blue[700]! : Colors.black;
+    final aboutText = isDarkMode ? Colors.grey[200]! : Colors.black54;
+    final bioText = isDarkMode ? Colors.grey[200]! : Colors.black87;
+    final emptyBioText = isDarkMode ? Colors.grey[500]! : Colors.black38;
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
@@ -60,18 +68,18 @@ class _MybioState extends State<Mybio> with SingleTickerProviderStateMixin {
             child: Container(
               padding: const EdgeInsets.all(20.0),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: cardBg,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: shadowColor,
                     spreadRadius: 1,
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
                 border: Border.all(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: borderColor,
                   width: 1,
                 ),
               ),
@@ -88,18 +96,18 @@ class _MybioState extends State<Mybio> with SingleTickerProviderStateMixin {
                         height: 18,
                         width: 3,
                         decoration: BoxDecoration(
-                          color: Colors.black,
+                          color: barColor,
                           borderRadius: BorderRadius.circular(3),
                         ),
                       ),
                       const SizedBox(width: 10),
-                      const Text(
+                      Text(
                         "About",
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.5,
-                          color: Colors.black54,
+                          color: aboutText,
                         ),
                       ),
                     ],
@@ -112,8 +120,8 @@ class _MybioState extends State<Mybio> with SingleTickerProviderStateMixin {
                       height: 1.5,
                       letterSpacing: 0.2,
                       color: widget.bioText.isEmpty 
-                          ? Colors.black38 
-                          : Colors.black87,
+                          ? emptyBioText 
+                          : bioText,
                       fontWeight: widget.bioText.isEmpty 
                           ? FontWeight.normal 
                           : FontWeight.w500,

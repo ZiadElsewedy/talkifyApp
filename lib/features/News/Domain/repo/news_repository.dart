@@ -15,4 +15,7 @@ abstract class NewsRepository {
   
   // Search news with a specific query
   Future<List<NewsArticle>> searchNews(String query);
+  
+  // Get Egyptian news sources
+  Future<List<Map<String, dynamic>>> getEgyptianNewsSources();
 } 

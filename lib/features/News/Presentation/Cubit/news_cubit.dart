@@ -9,6 +9,9 @@ class NewsCubit extends Cubit<NewsState> {
   // Cache for articles by category
   final Map<String, List<NewsArticle>> _articlesByCategory = {};
   
+  // Cache for Egyptian news sources
+  List<Map<String, dynamic>>? _egyptianSources;
+  
   NewsCubit({required this.newsRepository}) : super(NewsInitial());
   
   // Safe emit method to prevent "emit after close" errors
@@ -85,6 +88,35 @@ class NewsCubit extends Cubit<NewsState> {
     }
   }
   
+  // Get Egyptian news sources
+  Future<List<Map<String, dynamic>>> getEgyptianNewsSources() async {
+    if (_egyptianSources != null && _egyptianSources!.isNotEmpty) {
+      return _egyptianSources!;
+    }
+    
+    try {
+      _egyptianSources = await newsRepository.getEgyptianNewsSources();
+      return _egyptianSources!;
+    } catch (e) {
+      print('Error fetching Egyptian news sources: $e');
+      return [];
+    }
+  }
+  
+  // Fetch news from a specific Egyptian source
+  Future<void> fetchNewsFromEgyptianSource(String sourceId) async {
+    try {
+      emit(NewsLoading());
+      
+      // Use search with the source ID to filter by that source
+      final articles = await newsRepository.searchNews('source:$sourceId');
+      
+      emit(NewsLoaded(articles, category: 'egyptian_source:$sourceId'));
+    } catch (e) {
+      emit(NewsError('Failed to fetch news from Egyptian source $sourceId: $e'));
+    }
+  }
+  
   // Load multiple categories at once
   Future<void> loadAllCategories() async {
     try {
@@ -129,19 +161,25 @@ class NewsCubit extends Cubit<NewsState> {
     final currentState = state;
     
     if (currentState is NewsLoaded) {
-      switch (currentState.category) {
-        case 'general':
-          await fetchTopHeadlines();
-          break;
-        case 'breaking':
-          await fetchBreakingNews();
-          break;
-        case 'politics':
-          await fetchPoliticsNews();
-          break;
-        default:
-          await fetchNewsByCategory(currentState.category);
-          break;
+      if (currentState.category.startsWith('egyptian_source:')) {
+        // Extract the source ID from the category
+        final sourceId = currentState.category.split(':')[1];
+        await fetchNewsFromEgyptianSource(sourceId);
+      } else {
+        switch (currentState.category) {
+          case 'general':
+            await fetchTopHeadlines();
+            break;
+          case 'breaking':
+            await fetchBreakingNews();
+            break;
+          case 'politics':
+            await fetchPoliticsNews();
+            break;
+          default:
+            await fetchNewsByCategory(currentState.category);
+            break;
+        }
       }
     } else if (currentState is NewsCategoriesLoaded) {
       await loadAllCategories();

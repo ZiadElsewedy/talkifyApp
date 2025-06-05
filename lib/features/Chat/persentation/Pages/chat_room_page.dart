@@ -319,17 +319,52 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
+    final Color scaffoldBackgroundColor = colorScheme.background;
+    final Color appBarBackgroundColor = colorScheme.surface;
+    final Color appBarForegroundColor = colorScheme.onSurface;
+    final Color appBarIconBackgroundColor = isDarkMode ? colorScheme.surfaceVariant : Colors.grey[100]!;
+    final Color appBarIconColor = colorScheme.onSurfaceVariant;
+    final Color titleContainerColor = isDarkMode ? colorScheme.surface.withOpacity(0.5) : Colors.grey.withOpacity(0.05);
+    final Color titleTextColor = colorScheme.onSurface;
+    final Color subtitleTextColor = colorScheme.onSurfaceVariant;
+    final Color onlineStatusColor = Colors.green; // Or your specific online color
+    final Color offlineStatusColor = Colors.grey; // Or your specific offline color
+    final Color snackBarBackgroundColor = colorScheme.inverseSurface;
+    final Color snackBarTextColor = colorScheme.onInverseSurface;
+    final Color errorColor = colorScheme.error;
+    final Color popupMenuButtonBackgroundColor = colorScheme.surface;
+    final Color popupMenuIconColor = colorScheme.onSurface;
+    final Color popupMenuItemTextColor = colorScheme.onSurface;
+    final Color dialogBackgroundColor = colorScheme.surface;
+    final Color dialogTitleColor = colorScheme.onSurface;
+    final Color dialogContentColor = colorScheme.onSurfaceVariant;
+    final Color dialogButtonTextColor = colorScheme.primary;
+    final Color dialogDestructiveButtonTextColor = colorScheme.error;
+    final Color lastSeenIndicatorBackgroundColor = isDarkMode ? colorScheme.surfaceVariant.withOpacity(0.5) : Colors.grey[50]!;
+    final Color lastSeenIndicatorIconColor = colorScheme.primary;
+    final Color lastSeenIndicatorTextColor = colorScheme.onSurfaceVariant;
+    final Color inputContainerBackgroundColor = colorScheme.surface;
+    final Color inputContainerShadowColor = colorScheme.shadow.withOpacity(0.05);
+    final Color inputFieldBackgroundColor = isDarkMode ? colorScheme.surfaceVariant : Colors.grey.shade200;
+    final Color inputFieldHintTextColor = colorScheme.onSurfaceVariant.withOpacity(0.6);
+    final Color inputIconColor = colorScheme.onSurfaceVariant;
+    final Color sendButtonIconColor = colorScheme.primary;
+    final Color micButtonIconColor = colorScheme.primary;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: scaffoldBackgroundColor,
       appBar: AppBar(
         leading: IconButton(
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: appBarIconBackgroundColor,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.arrow_back, size: 20, color: Colors.black),
+            child: Icon(Icons.arrow_back, size: 20, color: appBarIconColor),
           ),
           onPressed: () {
             Navigator.pop(context);
@@ -344,7 +379,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                color: Colors.grey.withOpacity(0.05),
+                color: titleContainerColor,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -365,19 +400,19 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                             Flexible(
                               child: Text(
                                 _getChatTitle(),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black,
+                                  color: titleTextColor,
                                   fontSize: 16,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(
+                            Icon(
                               Icons.keyboard_arrow_right,
                               size: 16,
-                              color: Colors.black45,
+                              color: subtitleTextColor,
                             ),
                           ],
                         ),
@@ -389,7 +424,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                                 width: 8,
                                 height: 8,
                                 decoration: BoxDecoration(
-                                  color: _otherUserIsOnline ? ChatStyles.onlineColor : ChatStyles.offlineColor,
+                                  color: _otherUserIsOnline ? onlineStatusColor : offlineStatusColor,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                               ),
@@ -398,7 +433,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                                 _otherUserIsOnline ? 'Online' : 'Offline',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: _otherUserIsOnline ? ChatStyles.onlineColor : ChatStyles.offlineColor,
+                                  color: _otherUserIsOnline ? onlineStatusColor : offlineStatusColor,
                                 ),
                               ),
                             ],
@@ -411,25 +446,25 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
             ),
           ),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: appBarBackgroundColor,
+        foregroundColor: appBarForegroundColor,
         elevation: 1,
-        shadowColor: Colors.black12,
+        shadowColor: Colors.black12, // Consider colorScheme.shadow
         actions: [
           IconButton(
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: appBarIconBackgroundColor,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.videocam, size: 20, color: Colors.black),
+              child: Icon(Icons.videocam, size: 20, color: appBarIconColor),
             ),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Video call feature coming soon!'),
-                  backgroundColor: Colors.black,
+                SnackBar(
+                  content: Text('Video call feature coming soon!', style: TextStyle(color: snackBarTextColor)),
+                  backgroundColor: snackBarBackgroundColor,
                 ),
               );
             },
@@ -438,16 +473,16 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: appBarIconBackgroundColor,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.call, size: 20, color: Colors.black),
+              child: Icon(Icons.call, size: 20, color: appBarIconColor),
             ),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Voice call feature coming soon!'),
-                  backgroundColor: Colors.black,
+                SnackBar(
+                  content: Text('Voice call feature coming soon!', style: TextStyle(color: snackBarTextColor)),
+                  backgroundColor: snackBarBackgroundColor,
                 ),
               );
             },
@@ -456,37 +491,46 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: appBarIconBackgroundColor,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.more_vert, size: 20, color: Colors.black),
+              child: Icon(Icons.more_vert, size: 20, color: appBarIconColor),
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
+            color: popupMenuButtonBackgroundColor,
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'search',
                 child: Row(
                   children: [
-                    Icon(Icons.search, color: Colors.black),
+                    Icon(Icons.search, color: popupMenuIconColor),
                     SizedBox(width: 12),
-                    Text('Search in conversation'),
+                    Text('Search in conversation', style: TextStyle(color: popupMenuItemTextColor)),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'clear',
                 child: Row(
                   children: [
-                    Icon(Icons.cleaning_services_outlined, color: Colors.black),
+                    Icon(Icons.cleaning_services_outlined, color: popupMenuIconColor),
                     SizedBox(width: 12),
-                    Text('Clear chat history'),
+                    Text('Clear chat history', style: TextStyle(color: popupMenuItemTextColor)),
                   ],
                 ),
               ),
               PopupMenuItem(
                 value: 'mute',
+
+                child: Row(
+                  children: [
+                    Icon(Icons.notifications_off_outlined, color: popupMenuIconColor),
+                    SizedBox(width: 12),
+                    Text('Mute notifications', style: TextStyle(color: popupMenuItemTextColor)),
+                  ],
+
                 child: FutureBuilder<bool>(
                   future: ChatNotificationService.isChatMuted(widget.chatRoom.id),
                   builder: (context, snapshot) {
@@ -502,15 +546,16 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                       ],
                     );
                   },
+
                 ),
               ),
             ],
             onSelected: (value) async {
               if (value == 'search') {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Search feature coming soon!'),
-                    backgroundColor: Colors.black,
+                  SnackBar(
+                    content: Text('Search feature coming soon!', style: TextStyle(color: snackBarTextColor)),
+                    backgroundColor: snackBarBackgroundColor,
                   ),
                 );
               } else if (value == 'clear') {
@@ -518,31 +563,38 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('Clear Chat History'),
-                    content: const Text('Are you sure you want to clear all messages? This action cannot be undone.'),
+                    backgroundColor: dialogBackgroundColor,
+                    title: Text('Clear Chat History', style: TextStyle(color: dialogTitleColor)),
+                    content: Text('Are you sure you want to clear all messages? This action cannot be undone.', style: TextStyle(color: dialogContentColor)),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
+                        child: Text('Cancel', style: TextStyle(color: dialogButtonTextColor)),
                       ),
                       TextButton(
                         onPressed: () {
                           Navigator.pop(context);
                           // Implement clear chat functionality
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Clear chat feature coming soon!'),
-                              backgroundColor: Colors.black,
+                            SnackBar(
+                              content: Text('Clear chat feature coming soon!', style: TextStyle(color: snackBarTextColor)),
+                              backgroundColor: snackBarBackgroundColor,
                             ),
                           );
                         },
-                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                        style: TextButton.styleFrom(foregroundColor: dialogDestructiveButtonTextColor),
                         child: const Text('Clear'),
                       ),
                     ],
                   ),
                 );
               } else if (value == 'mute') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Mute notifications feature coming soon!', style: TextStyle(color: snackBarTextColor)),
+                    backgroundColor: snackBarBackgroundColor,
+                  ),
+                );
                 // Toggle mute status
                 final isMuted = await ChatNotificationService.isChatMuted(widget.chatRoom.id);
                 if (isMuted) {
@@ -614,24 +666,24 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                       _messages.removeWhere((message) => message.id == state.messageId);
                     });
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Message deleted permanently'),
-                        backgroundColor: Colors.black,
+                      SnackBar(
+                        content: Text('Message deleted permanently', style: TextStyle(color: snackBarTextColor)),
+                        backgroundColor: snackBarBackgroundColor,
                         duration: Duration(seconds: 2),
                       ),
                     );
                   } else if (state is SendMessageError) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(state.message),
-                        backgroundColor: ChatStyles.errorColor,
+                        content: Text(state.message, style: TextStyle(color: snackBarTextColor)),
+                        backgroundColor: errorColor,
                       ),
                     );
                   } else if (state is MediaUploadError) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(state.message),
-                        backgroundColor: ChatStyles.errorColor,
+                        content: Text(state.message, style: TextStyle(color: snackBarTextColor)),
+                        backgroundColor: errorColor,
                       ),
                     );
                   }
@@ -725,10 +777,10 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                   
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    color: Colors.grey[50],
+                    color: lastSeenIndicatorBackgroundColor,
                     child: Row(
                       children: [
-                        const Icon(Icons.done_all, size: 16, color: Colors.blue),
+                        Icon(Icons.done_all, size: 16, color: lastSeenIndicatorIconColor),
                         const SizedBox(width: 8),
                         if (otherParticipantAvatar.isNotEmpty)
                           Padding(
@@ -745,7 +797,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                                 : 'Seen in group',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: lastSeenIndicatorTextColor,
                               fontStyle: FontStyle.italic,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -766,10 +818,10 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                 vertical: 8.0,
               ),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: inputContainerBackgroundColor,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: inputContainerShadowColor,
                     offset: const Offset(0, -1),
                     blurRadius: 5,
                   ),
@@ -787,14 +839,14 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                 : Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.add, color: Colors.grey),
+                        icon: Icon(Icons.add, color: inputIconColor),
                         onPressed: _showAttachmentOptions,
                       ),
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
+                            color: inputFieldBackgroundColor,
                             borderRadius: BorderRadius.circular(30),
                           ),
                           child: TextField(
@@ -802,9 +854,10 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                             maxLines: null,
                             keyboardType: TextInputType.multiline,
                             textCapitalization: TextCapitalization.sentences,
+                            style: TextStyle(color: colorScheme.onSurface),
                             decoration: InputDecoration(
                               hintText: 'Type a message...',
-                              hintStyle: TextStyle(color: Colors.grey.shade600),
+                              hintStyle: TextStyle(color: inputFieldHintTextColor),
                               border: InputBorder.none,
                             ),
                           ),
@@ -813,7 +866,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                       const SizedBox(width: 8),
                       _messageController.text.trim().isEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.mic, color: Colors.black),
+                              icon: Icon(Icons.mic, color: micButtonIconColor),
                               onPressed: () {
                                 setState(() {
                                   _isRecordingVoice = true;
@@ -821,7 +874,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                               },
                             )
                           : IconButton(
-                              icon: const Icon(Icons.send, color: Colors.black),
+                              icon: Icon(Icons.send, color: sendButtonIconColor),
                               onPressed: _sendMessage,
                             ),
                     ],
@@ -834,6 +887,15 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
   }
 
   Widget _buildEmptyMessagesState() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color iconContainerColor = isDarkMode ? colorScheme.surfaceVariant : Colors.grey[100]!;
+    final Color iconColor = isDarkMode ? colorScheme.onSurfaceVariant : Colors.grey[400]!;
+    final Color titleColor = isDarkMode ? colorScheme.onSurface : Colors.grey[700]!;
+    final Color subtitleColor = isDarkMode ? colorScheme.onSurfaceVariant : Colors.grey[500]!;
+    final Color buttonBackgroundColor = colorScheme.primary;
+    final Color buttonForegroundColor = colorScheme.onPrimary;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -841,13 +903,13 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: iconContainerColor,
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.chat_bubble_outline,
               size: 60,
-              color: Colors.grey[400],
+              color: iconColor,
             ),
           ),
           const SizedBox(height: 24),
@@ -856,7 +918,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[700],
+              color: titleColor,
             ),
           ),
           const SizedBox(height: 12),
@@ -864,7 +926,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
             'Be the first to say hello!',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey[500],
+              color: subtitleColor,
             ),
           ),
           const SizedBox(height: 30),
@@ -873,11 +935,10 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
               _messageController.text = 'Hello! 👋';
               FocusScope.of(context).requestFocus(FocusNode());
             },
-            icon: const Icon(Icons.waving_hand),
-            label: const Text('Say Hello'),
+            icon: Icon(Icons.waving_hand, color: buttonForegroundColor),
+            label: Text('Say Hello', style: TextStyle(color: buttonForegroundColor)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
+              backgroundColor: buttonBackgroundColor,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
@@ -890,6 +951,14 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
   }
 
   Widget _buildErrorState(String message) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color iconColor = colorScheme.error;
+    final Color titleColor = isDarkMode ? colorScheme.onSurface : Colors.grey[700]!;
+    final Color messageColor = isDarkMode ? colorScheme.onSurfaceVariant : Colors.grey[600]!;
+    final Color buttonBackgroundColor = colorScheme.primary;
+    final Color buttonForegroundColor = colorScheme.onPrimary;
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -897,7 +966,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
           Icon(
             Icons.error_outline,
             size: 80,
-            color: ChatStyles.errorColor,
+            color: iconColor,
           ),
           const SizedBox(height: 16),
           Text(
@@ -905,7 +974,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[700],
+              color: titleColor,
             ),
           ),
           const SizedBox(height: 8),
@@ -915,7 +984,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
               message,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[600],
+                color: messageColor,
               ),
               textAlign: TextAlign.center,
             ),
@@ -923,11 +992,10 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
           const SizedBox(height: 30),
           ElevatedButton.icon(
             onPressed: _loadMessages,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Try Again'),
+            icon: Icon(Icons.refresh, color: buttonForegroundColor),
+            label: Text('Try Again', style: TextStyle(color: buttonForegroundColor)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
+              backgroundColor: buttonBackgroundColor,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(
@@ -941,6 +1009,12 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
   }
 
   Widget _buildUserAvatar() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color avatarBackgroundColor = isDarkMode ? colorScheme.surfaceVariant : Colors.grey[200]!;
+    final Color avatarTextColor = isDarkMode ? colorScheme.onSurfaceVariant : Colors.black87;
+    final Color avatarShadowColor = colorScheme.shadow.withOpacity(0.1);
+
     final currentUser = context.read<AuthCubit>().GetCurrentUser();
     if (currentUser == null || widget.chatRoom.participants.length != 2) {
       return const SizedBox.shrink();
@@ -969,7 +1043,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: avatarShadowColor,
                 blurRadius: 2,
                 offset: const Offset(0, 1),
               ),
@@ -977,17 +1051,17 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
           ),
           child: CircleAvatar(
             radius: 18,
-            backgroundColor: Colors.grey[200],
+            backgroundColor: avatarBackgroundColor,
             backgroundImage: avatarUrl.isNotEmpty 
                 ? CachedNetworkImageProvider(avatarUrl)
                 : null,
             child: avatarUrl.isEmpty
                 ? Text(
                     userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
-                      color: Colors.black87,
+                      color: avatarTextColor,
                     ),
                   )
                 : null,
@@ -998,6 +1072,12 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
   }
 
   Widget _buildGroupAvatar() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color avatarBackgroundColor = isDarkMode ? colorScheme.surfaceVariant : Colors.grey[200]!;
+    final Color avatarTextColor = isDarkMode ? colorScheme.onSurfaceVariant : Colors.black87;
+    final Color avatarShadowColor = colorScheme.shadow.withOpacity(0.1);
+
     return Hero(
       tag: 'group_${widget.chatRoom.id}',
       child: Container(
@@ -1005,7 +1085,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: avatarShadowColor,
               blurRadius: 2,
               offset: const Offset(0, 1),
             ),
@@ -1013,13 +1093,13 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
         ),
         child: CircleAvatar(
           radius: 18,
-          backgroundColor: Colors.grey[200],
+          backgroundColor: avatarBackgroundColor,
           child: Text(
             _getGroupNameAbbreviation(),
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 12,
-              color: Colors.black87,
+              color: avatarTextColor,
             ),
           ),
         ),
@@ -1045,9 +1125,13 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
   }
 
   void _showAttachmentOptions() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color bottomSheetBackgroundColor = colorScheme.surface;
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: bottomSheetBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1144,6 +1228,10 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
     required Color color,
     required VoidCallback onTap,
   }) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color labelColor = isDarkMode ? colorScheme.onSurfaceVariant : Colors.grey[800]!;
+
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -1162,7 +1250,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[800],
+              color: labelColor,
             ),
           ),
         ],

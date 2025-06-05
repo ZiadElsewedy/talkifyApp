@@ -240,12 +240,16 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color backgroundColor = isDarkMode ? Theme.of(context).scaffoldBackgroundColor : Colors.white;
     return Scaffold(
-      backgroundColor: _whiteColor,
-      appBar: _buildAppBar(),
+      backgroundColor: backgroundColor,
+      appBar: _buildAppBar(context),
       body: BlocConsumer<PostCubit, PostState>(
         listener: _postStateListener,
         builder: (context, state) {
+          final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+          final Color backgroundColor = isDarkMode ? Theme.of(context).scaffoldBackgroundColor : Colors.white;
           return Column(
             children: [
               Expanded(
@@ -259,56 +263,48 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
     );
   }
 
-  /// Builds the app bar with title and actions
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color appBarColor = isDarkMode ? Theme.of(context).colorScheme.surface : Colors.white;
+    final Color titleColor = isDarkMode ? Colors.white : Colors.black87;
+    final Color iconColor = isDarkMode ? Colors.grey[400]! : Colors.black87;
     return AppBar(
-      title: const Text(
+      title: Text(
         'Comments',
         style: TextStyle(
           fontWeight: FontWeight.bold,
           fontSize: 20,
           letterSpacing: 0.5,
-          color: Colors.black,
+          color: titleColor,
         ),
       ),
       centerTitle: true,
       elevation: 0,
-      backgroundColor: _whiteColor,
-      iconTheme: IconThemeData(color: _blackColor),
+      backgroundColor: appBarColor,
+      iconTheme: IconThemeData(color: iconColor),
       leading: IconButton(
         icon: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: _lightGrey,
+            color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
             shape: BoxShape.circle,
           ),
           child: Icon(
             Icons.arrow_back_ios_new_rounded, 
             size: 18,
-            color: _blackColor,
+            color: iconColor,
           ),
         ),
-        onPressed: () => Navigator.pop(context),
+        onPressed: () => Navigator.of(context).pop(),
       ),
       actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 8.0),
-          child: IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: _lightGrey,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.refresh_rounded,
-                size: 20,
-                color: _blackColor,
-              ),
-            ),
-            onPressed: _isLoading ? null : _refreshComments,
-            tooltip: 'Refresh comments',
+        IconButton(
+          icon: Icon(
+            Icons.refresh_rounded,
+            size: 20,
+            color: iconColor,
           ),
+          onPressed: _refreshComments,
         ),
       ],
     );
@@ -354,7 +350,7 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
         ),
         if (_isLoading || state is PostsLoading)
           Container(
-            color: _whiteColor.withOpacity(0.7),
+            color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.7),
             child: Center(
               child: CircularProgressIndicator(
                 color: _blackColor,
@@ -368,6 +364,15 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
 
   /// Builds the empty state view when there are no comments
   Widget _buildEmptyCommentsView() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color cardColor = isDarkMode ? Colors.grey[900]! : Colors.white;
+    final Color textColor = isDarkMode ? Colors.grey[200]! : Colors.black87;
+    final Color subTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final Color iconColor = isDarkMode ? Colors.grey[400]! : Colors.black87;
+    final Color circleBg = isDarkMode ? Colors.grey[800]! : Colors.grey[200]!;
+    final Color buttonBg = isDarkMode ? Colors.blue[700]! : Colors.black;
+    final Color buttonText = Colors.white;
+
     return Center(
       child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -377,13 +382,13 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
             Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                color: _lightGrey,
+                color: circleBg,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.chat_bubble_outline_rounded,
                 size: 64,
-                color: _blackColor.withOpacity(0.7),
+                color: iconColor.withOpacity(0.7),
               ),
             ),
             const SizedBox(height: 24),
@@ -392,7 +397,7 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: _blackColor,
+                color: textColor,
               ),
             ),
             const SizedBox(height: 12),
@@ -403,21 +408,21 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
-                  color: _darkGrey,
+                  color: subTextColor,
                 ),
               ),
             ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () => FocusScope.of(context).requestFocus(FocusNode()),
-              icon: Icon(Icons.add_comment_rounded, color: _whiteColor),
+              icon: Icon(Icons.add_comment_rounded, color: buttonText),
               label: Text(
                 'Add Comment',
-                style: TextStyle(color: _whiteColor),
+                style: TextStyle(color: buttonText),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _blackColor,
-                foregroundColor: _whiteColor,
+                backgroundColor: buttonBg,
+                foregroundColor: buttonText,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
@@ -433,21 +438,30 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
 
   /// Builds the comment input field at the bottom
   Widget _buildCommentInput(PostState state) {
-    final isSubmitEnabled = !_isSubmitting && !(state is PostsLoading);
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color cardColor = isDarkMode ? Colors.grey[900]! : Colors.white;
+    final Color textColor = isDarkMode ? Colors.grey[200]! : Colors.black87;
+    final Color subTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final Color iconColor = isDarkMode ? Colors.grey[400]! : Colors.black54;
+    final Color inputBg = isDarkMode ? Colors.grey[800]! : Colors.white;
+    final Color borderColor = isDarkMode ? Colors.grey[700]! : Colors.grey[200]!;
+    final Color sendButtonBg = isDarkMode ? Colors.blue[700]! : Colors.black;
+    final Color sendButtonFg = Colors.white;
+    final bool isSubmitEnabled = !_isSubmitting && !(state is PostsLoading);
     
     return Container(
       decoration: BoxDecoration(
-        color: _whiteColor,
+        color: cardColor,
         boxShadow: [
           BoxShadow(
-            color: _blackColor.withOpacity(0.05),
+            color: isDarkMode ? Colors.black.withOpacity(0.1) : Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, -3),
           ),
         ],
         border: Border(
           top: BorderSide(
-            color: _lightGrey,
+            color: borderColor,
             width: 1.0,
           ),
         ),
@@ -460,9 +474,9 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: _lightGrey,
+                  color: inputBg,
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: _lightGrey),
+                  border: Border.all(color: borderColor),
                 ),
                 child: TextField(
                   controller: _commentController,
@@ -472,7 +486,7 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
                   decoration: InputDecoration(
                     hintText: 'Share your thoughts...',
                     hintStyle: TextStyle(
-                      color: _mediumGrey,
+                      color: subTextColor,
                       fontSize: 16,
                     ),
                     border: InputBorder.none,
@@ -481,21 +495,21 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
                       padding: const EdgeInsets.only(left: 12.0, right: 8.0),
                       child: Icon(
                         Icons.chat_bubble_outline_rounded,
-                        color: _blackColor.withOpacity(0.6),
+                        color: iconColor,
                         size: 20,
                       ),
                     ),
                   ),
                   style: TextStyle(
                     fontSize: 16,
-                    color: _blackColor,
+                    color: textColor,
                   ),
-                  cursorColor: _blackColor,
+                  cursorColor: sendButtonBg,
                 ),
               ),
             ),
             const SizedBox(width: 12),
-            _buildSendButton(isSubmitEnabled),
+            _buildSendButton(isSubmitEnabled, sendButtonBg, sendButtonFg),
           ],
         ),
       ),
@@ -503,21 +517,21 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
   }
 
   /// Builds the send button with loading indicator
-  Widget _buildSendButton(bool isEnabled) {
-    final buttonColor = isEnabled ? _blackColor : _mediumGrey;
-            
+  Widget _buildSendButton(bool isEnabled, Color buttonColor, Color fgColor) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
         color: buttonColor,
         shape: BoxShape.circle,
-        boxShadow: isEnabled ? [
-          BoxShadow(
-            color: _blackColor.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ] : null,
+        boxShadow: isEnabled
+            ? [
+                BoxShadow(
+                  color: buttonColor.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
       ),
       child: Material(
         color: Colors.transparent,
@@ -532,12 +546,12 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
                     height: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(_whiteColor),
+                      valueColor: AlwaysStoppedAnimation<Color>(fgColor),
                     ),
                   )
                 : Icon(
                     Icons.send_rounded,
-                    color: _whiteColor,
+                    color: fgColor,
                     size: 22,
                   ),
           ),
