@@ -9,4 +9,10 @@ abstract class StorageRepo {
   // Generic upload methods for any file type
   Future<String?> uploadFile(String filePath, String storagePath);
   Future<String?> uploadBytes(Uint8List bytes, String storagePath);
+  
+  // Stream for upload progress (0.0 to 1.0)
+  Stream<double> get uploadProgressStream;
+  
+  // Method to clean up resources
+  void dispose();
 }

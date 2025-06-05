@@ -142,8 +142,13 @@ class _MyAppState extends State<MyApp> {
   void _showSnackBar(String message, Color backgroundColor) {
     _scaffoldMessengerKey.currentState?.showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: backgroundColor,
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: backgroundColor == Colors.orange || backgroundColor == Colors.red 
+            ? backgroundColor 
+            : Colors.black,
         duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
         

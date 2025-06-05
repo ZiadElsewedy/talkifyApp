@@ -1,3 +1,4 @@
+import 'dart:async'; // Add this for StreamSubscription
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Storage/Domain/Storage_repo.dart';
@@ -9,16 +10,30 @@ import 'package:talkifyapp/features/Posts/presentation/cubits/post_states.dart';
 class PostCubit extends Cubit<PostState> {
   final PostRepo _postRepo;
   final StorageRepo _storageRepo;
+  StreamSubscription? _uploadProgressSubscription;
   
   PostCubit({
     required PostRepo postRepo,
     required StorageRepo storageRepo,
   }) : _postRepo = postRepo, _storageRepo = storageRepo, super(PostsInitial());
 
+  @override
+  Future<void> close() {
+    _uploadProgressSubscription?.cancel();
+    _storageRepo.dispose();
+    return super.close();
+  }
+
   // create a new post 
   Future<void> createPost(Post post, {String? imagePath, Uint8List? imageBytes}) async {
     try {
+      // Initially emit uploading state
       emit(PostsUploading());
+      
+      // Create a local post that will be updated during upload
+      final localPost = post.copyWith(
+        localFilePath: imagePath // Add the local file path to the post
+      );
       
       print('Creating post: isVideo=${post.isVideo}, imageUrl=${post.imageUrl}');
       
@@ -35,6 +50,13 @@ class PostCubit extends Cubit<PostState> {
         
         print('Media type: isVideo=$isVideo');
         
+        // Subscribe to upload progress
+        _uploadProgressSubscription?.cancel();
+        _uploadProgressSubscription = _storageRepo.uploadProgressStream.listen((progress) {
+          print('Upload progress: ${(progress * 100).toStringAsFixed(1)}%');
+          emit(PostsUploadingProgress(progress, localPost));
+        });
+        
         // Upload to appropriate storage location
         final String storagePath = isVideo ? 'PostVideos/${post.id}' : 'PostImages/${post.id}';
         print('Storage path: $storagePath');
@@ -44,6 +66,10 @@ class PostCubit extends Cubit<PostState> {
         } else if (imageBytes != null) {
           mediaUrl = await _storageRepo.uploadPostImageWeb(imageBytes, post.id);
         }
+        
+        // Cancel the subscription after upload completes
+        _uploadProgressSubscription?.cancel();
+        _uploadProgressSubscription = null;
         
         print('Media uploaded successfully, URL: $mediaUrl');
       }

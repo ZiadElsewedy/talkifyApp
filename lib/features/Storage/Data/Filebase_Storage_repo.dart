@@ -1,4 +1,5 @@
 import 'dart:io'; // Needed for File operations on mobile
+import 'dart:async'; // Added for StreamController
 
 import 'package:firebase_storage/firebase_storage.dart'; // Firebase Storage SDK
 import 'package:flutter/services.dart'; // For Uint8List (used in web image upload)
@@ -8,6 +9,13 @@ import 'package:talkifyapp/features/Storage/Domain/Storage_repo.dart'; // Your i
 class FirebaseStorageRepo implements StorageRepo {
   // Create a singleton instance of FirebaseStorage
   final FirebaseStorage storage = FirebaseStorage.instance;
+  
+  // Stream controller for upload progress
+  final StreamController<double> _uploadProgressController = StreamController<double>.broadcast();
+  
+  // Getter for the upload progress stream
+  @override
+  Stream<double> get uploadProgressStream => _uploadProgressController.stream;
 
   // Upload profile image from mobile device using file path
   @override
@@ -56,9 +64,16 @@ class FirebaseStorageRepo implements StorageRepo {
       final storageRef = storage.ref().child(storagePath);
       
       print('Starting upload to Firebase Storage: $storagePath');
-      final uploadTask = await storageRef.putFile(file);
+      final uploadTask = storageRef.putFile(file);
       
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      // Add progress listener
+      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+        double progress = snapshot.bytesTransferred / snapshot.totalBytes;
+        _uploadProgressController.add(progress);
+      });
+      
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
       print('Upload successful. Download URL: $downloadUrl');
       
       return downloadUrl;
@@ -76,9 +91,16 @@ class FirebaseStorageRepo implements StorageRepo {
       final storageRef = storage.ref().child(storagePath);
       
       print('Starting upload to Firebase Storage: $storagePath');
-      final uploadTask = await storageRef.putData(bytes);
+      final uploadTask = storageRef.putData(bytes);
       
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      // Add progress listener
+      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+        double progress = snapshot.bytesTransferred / snapshot.totalBytes;
+        _uploadProgressController.add(progress);
+      });
+      
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
       print('Upload successful. Download URL: $downloadUrl');
       
       return downloadUrl;
@@ -100,10 +122,17 @@ class FirebaseStorageRepo implements StorageRepo {
 
       // Upload the file
       print('Starting upload to Firebase Storage');
-      final uploadTask = await storageRef.putFile(file);
+      final uploadTask = storageRef.putFile(file);
+      
+      // Add progress listener
+      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+        double progress = snapshot.bytesTransferred / snapshot.totalBytes;
+        _uploadProgressController.add(progress);
+      });
 
       // Get the download URL of the uploaded file
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
       print('Upload successful. Download URL: $downloadUrl');
 
       // Return the download URL
@@ -124,10 +153,17 @@ class FirebaseStorageRepo implements StorageRepo {
 
       // Upload the data as bytes
       print('Starting upload to Firebase Storage');
-      final uploadTask = await storageRef.putData(fileBytes);
+      final uploadTask = storageRef.putData(fileBytes);
+      
+      // Add progress listener
+      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+        double progress = snapshot.bytesTransferred / snapshot.totalBytes;
+        _uploadProgressController.add(progress);
+      });
 
       // Get the download URL of the uploaded file
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
       print('Upload successful. Download URL: $downloadUrl');
 
       // Return the download URL
@@ -137,5 +173,11 @@ class FirebaseStorageRepo implements StorageRepo {
       print('Error uploading file from web: $e');
       return null;
     }
+  }
+  
+  // Close the stream controller
+  @override
+  void dispose() {
+    _uploadProgressController.close();
   }
 }

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:talkifyapp/features/Posts/PostComponents/VideoUploadIndicator.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
@@ -168,6 +169,9 @@ class _UploadPostPageState extends State<UploadPostPage> {
       return;
     }
 
+    // Get the local file path for images or videos
+    final String? localFilePath = isVideo || !kIsWeb ? pickedFile?.path : null;
+
     // create a new post
     final newPost = Post(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -181,6 +185,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
         comments: [],
         savedBy: [],
         isVideo: isVideo,
+        localFilePath: localFilePath,
     );
 
 
@@ -205,8 +210,125 @@ class _UploadPostPageState extends State<UploadPostPage> {
     // Block consumer -> builder + listener
     return BlocConsumer<PostCubit, PostState>(
       builder: (context, state) {
-        // Loading or uploading 
-        if (state is PostsLoading || state is PostsUploading) {
+        // Handle loading state
+        if (state is PostsLoading) {
+          return const Scaffold(
+            body: Center(
+              child: PercentCircleIndicator(),
+            ),
+          );
+        }
+        
+        // Handle uploading with progress state
+        if (state is PostsUploadingProgress) {
+          // For video uploads, show preview with progress indicator
+          if (state.post.isVideo && _videoController != null && _videoController!.value.isInitialized) {
+            return Scaffold(
+              appBar: AppBar(
+                title: const Text('Uploading Video...'),
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+              ),
+              body: Container(
+                color: Colors.black,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        child: AspectRatio(
+                          aspectRatio: _videoController!.value.aspectRatio,
+                          child: VideoUploadPreview(
+                            progress: state.progress,
+                            child: VideoPlayer(_videoController!),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Your video is uploading... ${(state.progress * 100).toInt()}%',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Please wait until upload completes',
+                        style: TextStyle(
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: 200,
+                        child: LinearProgressIndicator(
+                          value: state.progress,
+                          backgroundColor: Colors.grey[800],
+                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                          minHeight: 8,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+          
+          // For image uploads or web
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Uploading Media...'),
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+            ),
+            body: Container(
+              color: Colors.black,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    VideoUploadIndicator(progress: state.progress),
+                    const SizedBox(height: 32),
+                    Text(
+                      'Uploading: ${(state.progress * 100).toInt()}%',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Your post is being uploaded',
+                      style: TextStyle(
+                        color: Colors.white70,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: 200,
+                      child: LinearProgressIndicator(
+                        value: state.progress,
+                        backgroundColor: Colors.grey[800],
+                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                        minHeight: 8,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+        
+        // Handle generic uploading state
+        if (state is PostsUploading) {
           return const Scaffold(
             body: Center(
               child: PercentCircleIndicator(),
@@ -362,13 +484,15 @@ class _UploadPostPageState extends State<UploadPostPage> {
                 child: ElevatedButton.icon(
                   onPressed: uploadPost,
                   icon: const Icon(Icons.upload_file, color: Colors.white),
-                  label: const Text('Share Post', style: TextStyle(color: Colors.white)),
+                  label: const Text('Share Post', style: TextStyle(color: Colors.white, fontSize: 16)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 14,
                     ),
+                    elevation: 2,
+                    shadowColor: Colors.black.withOpacity(0.3),
                   ),
                 ),
               ),
@@ -389,11 +513,16 @@ class _UploadPostPageState extends State<UploadPostPage> {
             aspectRatio: _videoController!.value.aspectRatio,
             child: VideoPlayer(_videoController!),
           ),
-          IconButton(
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.black.withOpacity(0.5),
+            ),
+            child: IconButton(
             icon: Icon(
               _videoController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
               color: Colors.white,
-              size: 50,
+                size: 40,
             ),
             onPressed: () {
               setState(() {
@@ -402,6 +531,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
                     : _videoController!.play();
               });
             },
+            ),
           ),
         ],
       );
@@ -420,7 +550,11 @@ class _UploadPostPageState extends State<UploadPostPage> {
         ),
       );
     } else {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: PercentCircleIndicator(
+          color: Colors.black,
+        ),
+      );
     }
   }
 }

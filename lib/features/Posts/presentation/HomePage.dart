@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Posts/PostComponents/UploadingPostTile.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Posts/PostComponents/PostTile..dart';
 import 'package:talkifyapp/features/Posts/pages/upload_post_page.dart' show UploadPostPage;
@@ -271,12 +272,77 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       drawer: const MyDrawer(),
       body: BlocBuilder<PostCubit, PostState>(
         builder: (context, state) {
+          // Handle upload progress state - integrate with loaded posts
+          if (state is PostsUploadingProgress) {
+            return RefreshIndicator(
+              color: Colors.black,
+              backgroundColor: Colors.white,
+              onRefresh: refreshPosts,
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  // Display the uploading post at the top
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8, left: 8, right: 8),
+                      child: UploadingPostTile(
+                        post: state.post,
+                        progress: state.progress,
+                      ),
+                    ),
+                  ),
+                  
+                  // Separator
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              'PREVIOUS POSTS',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  // Loading indicator for previous posts
+                  SliverToBoxAdapter(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: PercentCircleIndicator(
+                          size: 40,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          
           if (state is PostsUploading || state is PostsLoading) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  PercentCircleIndicator(),
+                  PercentCircleIndicator(
+                    color: Colors.black,
+                  ),
                   SizedBox(height: 16),
                   Text(
                     'Loading posts...',
@@ -334,7 +400,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       icon: Icon(Icons.add),
                       label: Text('Create Post'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue[700],
+                        backgroundColor: Colors.black,
                         foregroundColor: Colors.white,
                         padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
@@ -356,9 +422,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 itemCount: allPosts.length,
                 itemBuilder: (context, index) {
                   final post = allPosts[index];
-                  return PostTile(
-                    post: post,
-                    onDelete: () => deletePost(post.id),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: PostTile(
+                      post: post,
+                      onDelete: () => deletePost(post.id),
+                    ),
                   );
                 },
               ),
@@ -396,7 +465,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     icon: Icon(Icons.refresh),
                     label: Text('Try Again'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[700],
+                      backgroundColor: Colors.black,
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
@@ -406,28 +475,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
             );
           }
-          
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.feed,
-                  size: 60,
-                  color: Colors.grey[400],
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'No posts available',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          );
+
+          return const Center(child: PercentCircleIndicator(color: Colors.black));
         },
       ),
       floatingActionButton: AnimatedSlide(
