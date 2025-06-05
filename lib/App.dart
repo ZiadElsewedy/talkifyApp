@@ -17,13 +17,16 @@ import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 import 'package:talkifyapp/features/Chat/Data/firebase_chat_repo.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
+import 'package:talkifyapp/features/Notifcations/data/notification_repository_impl.dart';
+import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_cubit.dart';
 // things need to do ! 
 // 1. add firebase options
 // bloc providers for state management
 // - auth 
 // - chat 
-// profile 
-// search 
+// - profile 
+// - search 
+// - notifications ✓
 // Theme
 
 /// Main application widget that sets up dependencies and app structure
@@ -42,6 +45,7 @@ class _MyAppState extends State<MyApp> {
   final _firebasePostRepo = FirebasePostRepo();
   final _firebaseSearchRepo = FirebaseSearchRepo();
   final _firebaseChatRepo = FirebaseChatRepo();
+  final _notificationRepositoryImpl = NotificationRepositoryImpl();
   final _audioHandler = AudioHandler();
   
   // Key for SnackBar management
@@ -83,6 +87,11 @@ class _MyAppState extends State<MyApp> {
             return cubit;
           },
         ),
+        BlocProvider<NotificationCubit>(
+          create: (context) => NotificationCubit(
+            notificationRepository: _notificationRepositoryImpl,
+          ),
+        ),
       ],
     
       child: WillPopScope(
@@ -112,7 +121,7 @@ class _MyAppState extends State<MyApp> {
               } else if (state is EmailVerificationState) {
                 _showSnackBar(state.message, Colors.blue);
               } else if (state is Authanticated) {
-                _showSnackBar("Welcome back", Colors.green);
+                print("Welcome back , User is logged in");
               }
             },
             builder: (context, state) {

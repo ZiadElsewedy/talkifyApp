@@ -100,12 +100,15 @@ Future<void> deletePost(String postId) async{
 } 
 
 // toggle like in a post 
-Future<void> toggleLikePost(String postId, String userId) async{
-  try{
+Future<void> toggleLikePost(String postId, String userId) async {
+  try {
+    // Update the like status in the database
     await postRepo.toggleLikePost(postId, userId);
-  }
-  catch(e){
-    emit(PostsError("Failed to toggle like: $e"));
+    
+    // No need to refresh all posts, the notification will be handled by the repository
+  } catch (e) {
+    print('Error toggling like: $e');
+    throw Exception('Failed to toggle like: $e');
   }
 }
 
