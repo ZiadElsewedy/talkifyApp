@@ -17,6 +17,7 @@ import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 import 'package:talkifyapp/features/Chat/Data/firebase_chat_repo.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
+import 'package:talkifyapp/features/Welcome/welcome_page.dart';
 // things need to do ! 
 // 1. add firebase options
 // bloc providers for state management
@@ -117,7 +118,7 @@ class _MyAppState extends State<MyApp> {
             },
             builder: (context, state) {
               if (state is Authanticated) {
-                return HomePage();
+                return const WelcomePage();
               } else if (state is UnverifiedState || state is EmailVerificationState) {
                 return const VerificationEmail();
               } else if (state is UnAuthanticated || state is AuthErrorState) {
