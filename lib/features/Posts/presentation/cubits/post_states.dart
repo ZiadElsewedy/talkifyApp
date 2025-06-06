@@ -22,8 +22,9 @@ class PostsUploading extends PostState {}
 class PostsUploadingProgress extends PostState {
   final double progress;
   final Post post; // The local post being uploaded
+  final List<Post> previousPosts; // Keep track of previously loaded posts
   
-  PostsUploadingProgress(this.progress, this.post);
+  PostsUploadingProgress(this.progress, this.post, {this.previousPosts = const []});
 }
 
 

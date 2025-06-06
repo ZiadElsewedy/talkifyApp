@@ -27,6 +27,12 @@ class PostCubit extends Cubit<PostState> {
   // create a new post 
   Future<void> createPost(Post post, {String? imagePath, Uint8List? imageBytes}) async {
     try {
+      // Save current posts if they are loaded
+      List<Post> previousPosts = [];
+      if (state is PostsLoaded) {
+        previousPosts = (state as PostsLoaded).posts;
+      }
+      
       // Initially emit uploading state
       emit(PostsUploading());
       
@@ -54,7 +60,7 @@ class PostCubit extends Cubit<PostState> {
         _uploadProgressSubscription?.cancel();
         _uploadProgressSubscription = _storageRepo.uploadProgressStream.listen((progress) {
           print('Upload progress: ${(progress * 100).toStringAsFixed(1)}%');
-          emit(PostsUploadingProgress(progress, localPost));
+          emit(PostsUploadingProgress(progress, localPost, previousPosts: previousPosts));
         });
         
         // Upload to appropriate storage location

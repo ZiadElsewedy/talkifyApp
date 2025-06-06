@@ -272,65 +272,43 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       drawer: const MyDrawer(),
       body: BlocBuilder<PostCubit, PostState>(
         builder: (context, state) {
-          // Handle upload progress state - integrate with loaded posts
+          // Handle different post states
           if (state is PostsUploadingProgress) {
+            // Show the uploading post together with previously loaded posts
+            final previousPosts = state.previousPosts;
+            
             return RefreshIndicator(
               color: Colors.black,
               backgroundColor: Colors.white,
               onRefresh: refreshPosts,
-              child: CustomScrollView(
+              child: ListView.builder(
                 controller: _scrollController,
                 physics: const BouncingScrollPhysics(),
-                slivers: [
-                  // Display the uploading post at the top
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 8, left: 8, right: 8),
+                padding: const EdgeInsets.only(top: 8, bottom: 80),
+                // Add 1 for the uploading post plus all previous posts
+                itemCount: 1 + previousPosts.length,
+                itemBuilder: (context, index) {
+                  // First item is always the uploading post
+                  if (index == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
                       child: UploadingPostTile(
                         post: state.post,
                         progress: state.progress,
                       ),
-                    ),
-                  ),
+                    );
+                  }
                   
-                  // Separator
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: Row(
-                        children: [
-                          const Expanded(child: Divider()),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              'PREVIOUS POSTS',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 1.0,
-                              ),
-                            ),
-                          ),
-                          const Expanded(child: Divider()),
-                        ],
-                      ),
+                  // Remaining items are previous posts
+                  final post = previousPosts[index - 1];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: PostTile(
+                      post: post,
+                      onDelete: () => deletePost(post.id),
                     ),
-                  ),
-                  
-                  // Loading indicator for previous posts
-                  SliverToBoxAdapter(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16.0),
-                        child: PercentCircleIndicator(
-                          size: 40,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                  );
+                },
               ),
             );
           }
