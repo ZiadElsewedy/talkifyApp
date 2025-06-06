@@ -440,7 +440,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   Icon(
                     Icons.error_outline,
                     size: 80,
-                    color: Colors.red[300],
+                    color: const Color.fromARGB(255, 27, 12, 12),
                   ),
                   SizedBox(height: 16),
                   Text(

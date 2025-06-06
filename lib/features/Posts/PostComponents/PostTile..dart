@@ -1057,21 +1057,25 @@ void addComment() async {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const CircularProgressIndicator(),
+                const CircularProgressIndicator(
+                  color: Colors.grey,
+                ),
                 const SizedBox(height: 10),
                 if (!_isVideoInitialized && widget.post.imageUrl.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Text(
                       "Unable to load video. Tap to retry.",
+                      style: TextStyle(color: Colors.grey),
+
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade700),
+                      
                     ),
                   ),
                 if (!_isVideoInitialized && widget.post.imageUrl.isNotEmpty)
                   TextButton(
                     onPressed: _initializeVideoController,
-                    child: const Text("Retry"),
+                    child: const Text("Retry" , style: TextStyle(color: Colors.grey),),
                   )
               ],
             ),
