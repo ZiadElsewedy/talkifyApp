@@ -13,6 +13,8 @@ class Post{
   final List<Comments> comments;
   final List<String> savedBy; // store user ids who saved the post
   final int shareCount; // track number of times post was shared
+  final bool isVideo; // flag to indicate if the post is a video
+  final String? localFilePath; // local file path for upload tracking (not stored in DB)
   
   Post({
     required this.id,
@@ -26,12 +28,16 @@ class Post{
     required this.comments,
     required this.savedBy,
     this.shareCount = 0,
+    this.isVideo = false,
+    this.localFilePath,
   });
 
   // if u need change anything in this post
   Post copyWith({
     String? imageUrl,
     int? shareCount,
+    bool? isVideo,
+    String? localFilePath,
   }){
     return Post(
       id: id,
@@ -45,6 +51,8 @@ class Post{
       comments: comments,
       savedBy: savedBy,
       shareCount: shareCount ?? this.shareCount,
+      isVideo: isVideo ?? this.isVideo,
+      localFilePath: localFilePath ?? this.localFilePath,
     );
   }
 
@@ -62,6 +70,8 @@ class Post{
       "comments": comments.map((comment) => comment.toJson()).toList(),
       "savedBy": savedBy,
       "shareCount": shareCount,
+      "isVideo": isVideo,
+      // localFilePath is not stored in the database
     };
   }
 
@@ -84,6 +94,8 @@ class Post{
       comments: comments,
       savedBy: List<String>.from(json["savedBy"] ?? []),
       shareCount: json["shareCount"] as int? ?? 0,
+      isVideo: json["isVideo"] as bool? ?? false,
+      // localFilePath is not stored in the database
     );
   }
 }

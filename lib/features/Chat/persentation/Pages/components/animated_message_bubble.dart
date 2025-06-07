@@ -9,6 +9,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/user_profile_page.dart';
 import 'package:talkifyapp/features/Chat/Utils/chat_styles.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/components/audio_message_player.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/document_viewer_page.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/components/video_message_player.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/components/fullscreen_video_player.dart';
 
 class AnimatedMessageBubble extends StatefulWidget {
   final Message message;
@@ -183,10 +186,7 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
                             if (widget.isFromCurrentUser) ...[
                               const SizedBox(width: 4),
                               _buildStatusIcon(context),
-                              if (widget.message.status == MessageStatus.read) ...[
-                                const SizedBox(width: 4),
-                                _buildReadReceiptAvatar(context),
-                              ],
+                              // Removed read receipt avatar to avoid duplicate indicators
                             ],
                             
                             // Edited indicator
@@ -311,6 +311,30 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
                     }
                   },
                 ),
+                
+              if (widget.message.type == MessageType.video)
+                ListTile(
+                  leading: const Icon(Icons.video_library_outlined),
+                  title: const Text('Watch video'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    if (widget.message.fileUrl != null) {
+                      _openFullscreenVideo(context, widget.message.fileUrl!, widget.message.fileName);
+                    }
+                  },
+                ),
+              
+              if (widget.message.type == MessageType.document)
+                ListTile(
+                  leading: const Icon(Icons.description_outlined),
+                  title: const Text('Open document'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    if (widget.message.fileUrl != null) {
+                      _openDocument(context, widget.message.fileUrl!, widget.message.fileName ?? 'Document');
+                    }
+                  },
+                ),
               
               if (widget.message.type == MessageType.text)
                 ListTile(
@@ -380,6 +404,17 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
       ),
     );
   }
+  
+  void _openFullscreenVideo(BuildContext context, String videoUrl, String? title) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FullscreenVideoPlayer(
+          videoUrl: videoUrl,
+          title: title,
+        ),
+      ),
+    );
+  }
 
   Widget _buildMessageContent(BuildContext context) {
     switch (widget.message.type) {
@@ -400,6 +435,9 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
       case MessageType.audio:
         return _buildAudioMessage(context);
       
+      case MessageType.document:
+        return _buildDocumentMessage(context);
+        
       case MessageType.file:
         return _buildFileMessage(context);
       
@@ -461,7 +499,19 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
   }
 
   Widget _buildVideoMessage(BuildContext context) {
-    // Video message implementation (unchanged but styled)
+    // Check if video URL is available
+    if (widget.message.fileUrl != null) {
+      return GestureDetector(
+        onTap: () => _openFullscreenVideo(context, widget.message.fileUrl!, widget.message.fileName),
+        child: VideoMessagePlayer(
+          videoUrl: widget.message.fileUrl!,
+          isCurrentUser: widget.isFromCurrentUser,
+          caption: widget.message.content != widget.message.fileName ? widget.message.content : null,
+        ),
+      );
+    }
+    
+    // Fallback if no video URL is available
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -588,6 +638,186 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
     );
   }
 
+  Widget _buildDocumentMessage(BuildContext context) {
+    // Get document type from metadata
+    final String documentType = widget.message.metadata?['documentType'] ?? 'generic';
+    final String? fileExtension = widget.message.metadata?['fileExtension'] ?? '';
+    
+    // Choose icon based on document type
+    IconData documentIcon;
+    Color iconColor;
+    
+    switch (documentType) {
+      case 'pdf':
+        documentIcon = Icons.picture_as_pdf;
+        iconColor = Colors.red;
+        break;
+      case 'word':
+        documentIcon = Icons.description;
+        iconColor = Colors.blue;
+        break;
+      case 'excel':
+        documentIcon = Icons.table_chart;
+        iconColor = Colors.green;
+        break;
+      case 'powerpoint':
+        documentIcon = Icons.slideshow;
+        iconColor = Colors.orange;
+        break;
+      case 'text':
+        documentIcon = Icons.text_snippet;
+        iconColor = Colors.grey;
+        break;
+      default:
+        documentIcon = Icons.insert_drive_file;
+        iconColor = Colors.grey;
+    }
+    
+    return GestureDetector(
+      onTap: () {
+        if (widget.message.fileUrl != null) {
+          _openDocument(context, widget.message.fileUrl!, widget.message.fileName ?? 'Document');
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: widget.isFromCurrentUser 
+              ? Colors.black.withOpacity(0.2)
+              : Colors.grey.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                documentIcon,
+                color: iconColor,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.message.fileName ?? 'Document',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: widget.isFromCurrentUser
+                          ? Colors.white
+                          : Colors.black87,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      if (fileExtension != null && fileExtension.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: iconColor.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            fileExtension.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: iconColor,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      if (widget.message.fileSize != null)
+                        Text(
+                          _formatFileSize(widget.message.fileSize!),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: widget.isFromCurrentUser
+                                ? Colors.white.withOpacity(0.7)
+                                : Colors.grey[600],
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.download,
+                        size: 12,
+                        color: widget.isFromCurrentUser
+                            ? Colors.white.withOpacity(0.6)
+                            : Colors.grey[600],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Tap to view or download',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                          color: widget.isFromCurrentUser
+                              ? Colors.white.withOpacity(0.6)
+                              : Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openDocument(BuildContext context, String documentUrl, String fileName) {
+    // Show a loading indicator
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+            SizedBox(width: 16),
+            Text('Opening document...'),
+          ],
+        ),
+        duration: Duration(seconds: 2),
+      ),
+    );
+    
+    // Launch document viewer
+    _launchDocumentViewer(context, documentUrl, fileName);
+  }
+  
+  void _launchDocumentViewer(BuildContext context, String documentUrl, String fileName) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DocumentViewerPage(documentUrl: documentUrl, fileName: fileName),
+      ),
+    );
+  }
+
   Widget _buildStatusIcon(BuildContext context) {
     switch (widget.message.status) {
       case MessageStatus.sending:
@@ -607,7 +837,7 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
         return Tooltip(
           message: 'Sent',
           child: const Icon(
-            Icons.done_all,
+            Icons.check,  // Use single check for sent
             size: 12,
             color: Colors.white,
           ),

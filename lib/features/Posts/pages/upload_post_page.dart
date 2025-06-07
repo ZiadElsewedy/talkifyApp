@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:talkifyapp/features/Posts/PostComponents/VideoUploadIndicator.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
@@ -13,6 +14,7 @@ import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_states.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/components/MyTextField.dart';
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
+import 'package:video_player/video_player.dart';
 
 class UploadPostPage extends StatefulWidget {
   const UploadPostPage({super.key});
@@ -22,12 +24,16 @@ class UploadPostPage extends StatefulWidget {
 }
 
 class _UploadPostPageState extends State<UploadPostPage> {
-  // mobile image picker
-  PlatformFile? imagepickedfile;
+  // mobile file picker
+  PlatformFile? pickedFile;
   File? croppedImageFile;
+  
+  // video player controller
+  VideoPlayerController? _videoController;
+  bool isVideo = false;
 
-  // web image picker
-  Uint8List? webImage;
+  // web image/video picker
+  Uint8List? webFile;
 
   // text controller -> caption
   final TextController = TextEditingController();
@@ -38,8 +44,14 @@ class _UploadPostPageState extends State<UploadPostPage> {
   @override
   void initState() {
     super.initState();
-
     getCurrentUser();
+  }
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    TextController.dispose();
+    super.dispose();
   }
 
   // get current user
@@ -48,35 +60,67 @@ class _UploadPostPageState extends State<UploadPostPage> {
     currentUser = authCubit.GetCurrentUser();
   }
 
-
-  // Pick image
-  Future<void> pickImage() async {
+  // Pick media (image or video)
+  Future<void> pickMedia(FileType fileType) async {
     final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
+      type: fileType,
       withData: kIsWeb,
     );
     
     if (result != null) {
+      // Check if we're dealing with a video
+      isVideo = fileType == FileType.video;
+
       setState(() {
-        imagepickedfile = result.files.first;
+        pickedFile = result.files.first;
         if (kIsWeb) {
-          webImage = imagepickedfile!.bytes;
+          webFile = pickedFile!.bytes;
         }
       });
       
-      // Open image editor if not on web
-      if (!kIsWeb && imagepickedfile != null) {
+      // Setup video controller if it's a video
+      if (isVideo) {
+        if (_videoController != null) {
+          _videoController!.dispose();
+        }
+        
+        if (kIsWeb) {
+          // Handle web video preview
+          // Note: Web video playback from memory is complex
+          // This is just a placeholder
+        } else {
+          // Handle mobile video preview
+          _videoController = VideoPlayerController.file(
+            File(pickedFile!.path!),
+          )
+          ..initialize().then((_) {
+            setState(() {});
+          });
+        }
+      }
+      // Open image editor if it's an image and not on web
+      else if (!kIsWeb && pickedFile != null) {
         await _cropImage();
       }
     }
   }
   
+  // Pick image specifically
+  Future<void> pickImage() async {
+    await pickMedia(FileType.image);
+  }
+  
+  // Pick video specifically
+  Future<void> pickVideo() async {
+    await pickMedia(FileType.video);
+  }
+  
   // Crop and edit image
   Future<void> _cropImage() async {
-    if (imagepickedfile == null) return;
+    if (pickedFile == null || isVideo) return;
     
     final croppedFile = await ImageCropper().cropImage(
-      sourcePath: imagepickedfile!.path!,
+      sourcePath: pickedFile!.path!,
       compressQuality: 90,
       aspectRatio: CropAspectRatio(ratioX: 1, ratioY: 1),
       uiSettings: [
@@ -106,7 +150,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
 
   // Edit current image
   void editCurrentImage() async {
-    if (imagepickedfile == null) {
+    if (pickedFile == null || isVideo) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select an image first'))
       );
@@ -118,12 +162,15 @@ class _UploadPostPageState extends State<UploadPostPage> {
 
   // create & upload post
   void uploadPost() {
-    if (imagepickedfile == null || TextController.text.isEmpty) {
+    if (pickedFile == null || TextController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Both image and caption are required'))
+        const SnackBar(content: Text('Both media and caption are required'))
       );
       return;
     }
+
+    // Get the local file path for images or videos
+    final String? localFilePath = isVideo || !kIsWeb ? pickedFile?.path : null;
 
     // create a new post
     final newPost = Post(
@@ -137,6 +184,8 @@ class _UploadPostPageState extends State<UploadPostPage> {
         likes: [],
         comments: [],
         savedBy: [],
+        isVideo: isVideo,
+        localFilePath: localFilePath,
     );
 
 
@@ -145,19 +194,13 @@ class _UploadPostPageState extends State<UploadPostPage> {
 
     // web upload 
     if (kIsWeb) {
-      postCubit.createPost(newPost, imageBytes: imagepickedfile?.bytes);
+      postCubit.createPost(newPost, imageBytes: pickedFile?.bytes);
     }
     // mobile upload - use cropped image if available
     else {
-      final String? imagePath = croppedImageFile?.path ?? imagepickedfile?.path;
-      postCubit.createPost(newPost, imagePath: imagePath);
+      final String? filePath = isVideo ? pickedFile?.path : (croppedImageFile?.path ?? pickedFile?.path);
+      postCubit.createPost(newPost, imagePath: filePath);
     }
-  }
-
-  @override
-  void dispose() {
-    TextController.dispose();
-    super.dispose();
   }
 
   // Build UI
@@ -165,8 +208,125 @@ class _UploadPostPageState extends State<UploadPostPage> {
   Widget build(BuildContext context) {
     return BlocConsumer<PostCubit, PostState>(
       builder: (context, state) {
-        // Loading or uploading 
-        if (state is PostsLoading || state is PostsUploading) {
+        // Handle loading state
+        if (state is PostsLoading) {
+          return const Scaffold(
+            body: Center(
+              child: PercentCircleIndicator(),
+            ),
+          );
+        }
+        
+        // Handle uploading with progress state
+        if (state is PostsUploadingProgress) {
+          // For video uploads, show preview with progress indicator
+          if (state.post.isVideo && _videoController != null && _videoController!.value.isInitialized) {
+            return Scaffold(
+              appBar: AppBar(
+                title: const Text('Uploading Video...'),
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+              ),
+              body: Container(
+                color: Colors.black,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        child: AspectRatio(
+                          aspectRatio: _videoController!.value.aspectRatio,
+                          child: VideoUploadPreview(
+                            progress: state.progress,
+                            child: VideoPlayer(_videoController!),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Your video is uploading... ${(state.progress * 100).toInt()}%',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Please wait until upload completes',
+                        style: TextStyle(
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: 200,
+                        child: LinearProgressIndicator(
+                          value: state.progress,
+                          backgroundColor: Colors.grey[800],
+                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                          minHeight: 8,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+          
+          // For image uploads or web
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Uploading Media...'),
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+            ),
+            body: Container(
+              color: Colors.black,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    VideoUploadIndicator(progress: state.progress),
+                    const SizedBox(height: 32),
+                    Text(
+                      'Uploading: ${(state.progress * 100).toInt()}%',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Your post is being uploaded',
+                      style: TextStyle(
+                        color: Colors.white70,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: 200,
+                      child: LinearProgressIndicator(
+                        value: state.progress,
+                        backgroundColor: Colors.grey[800],
+                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                        minHeight: 8,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+        
+        // Handle generic uploading state
+        if (state is PostsUploading) {
           return const Scaffold(
             body: Center(
               child: PercentCircleIndicator(),
@@ -215,7 +375,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              // Image preview section
+              // Media preview section
               Container(
                 height: 350,
                 width: double.infinity,
@@ -225,32 +385,34 @@ class _UploadPostPageState extends State<UploadPostPage> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: imagepickedfile != null
-                      ? kIsWeb
-                          ? Image.memory(
-                              webImage!,
-                              fit: BoxFit.cover,
-                            )
-                          : croppedImageFile != null
-                              ? Image.file(
-                                  croppedImageFile!,
+                  child: pickedFile != null
+                      ? isVideo
+                          ? _buildVideoPreview()
+                          : kIsWeb
+                              ? Image.memory(
+                                  webFile!,
                                   fit: BoxFit.cover,
                                 )
-                              : Image.file(
-                                  File(imagepickedfile!.path!),
-                                  fit: BoxFit.cover,
-                                )
+                              : croppedImageFile != null
+                                  ? Image.file(
+                                      croppedImageFile!,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Image.file(
+                                      File(pickedFile!.path!),
+                                      fit: BoxFit.cover,
+                                    )
                       : Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
-                              Icons.image,
+                              Icons.photo_library,
                               size: 50,
                               color: iconColor,
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'No image selected',
+                              'No media selected',
                               style: TextStyle(
                                 color: subTextColor,
                                 fontSize: 16,
@@ -262,7 +424,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
               ),
               const SizedBox(height: 20),
 
-              // Image buttons row
+              // Media selection buttons row
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -281,14 +443,14 @@ class _UploadPostPageState extends State<UploadPostPage> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Edit image button (only shown when image is selected)
+                  // Pick video button
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: imagepickedfile != null && !kIsWeb ? editCurrentImage : null,
-                      icon: const Icon(Icons.crop, color: Colors.white),
-                      label: const Text('Edit Photo', style: TextStyle(color: Colors.white)),
+                      onPressed: pickVideo,
+                      icon: const Icon(Icons.videocam, color: Colors.white),
+                      label: const Text('Select Video', style: TextStyle(color: Colors.white)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: imagepickedfile != null && !kIsWeb ? Colors.black : Colors.grey,
+                        backgroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(
                           vertical: 12,
                         ),
@@ -296,6 +458,22 @@ class _UploadPostPageState extends State<UploadPostPage> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              // Edit image button (only shown when image is selected)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: !isVideo && pickedFile != null && !kIsWeb ? editCurrentImage : null,
+                  icon: const Icon(Icons.crop, color: Colors.white),
+                  label: const Text('Edit Photo', style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: !isVideo && pickedFile != null && !kIsWeb ? Colors.black : Colors.grey,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
 
@@ -314,13 +492,15 @@ class _UploadPostPageState extends State<UploadPostPage> {
                 child: ElevatedButton.icon(
                   onPressed: uploadPost,
                   icon: const Icon(Icons.upload_file, color: Colors.white),
-                  label: const Text('Share Post', style: TextStyle(color: Colors.white)),
+                  label: const Text('Share Post', style: TextStyle(color: Colors.white, fontSize: 16)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 14,
                     ),
+                    elevation: 2,
+                    shadowColor: Colors.black.withOpacity(0.3),
                   ),
                 ),
               ),
@@ -329,5 +509,60 @@ class _UploadPostPageState extends State<UploadPostPage> {
         ),
       ),
     );
+  }
+
+  // Build video preview widget
+  Widget _buildVideoPreview() {
+    if (_videoController != null && _videoController!.value.isInitialized) {
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          AspectRatio(
+            aspectRatio: _videoController!.value.aspectRatio,
+            child: VideoPlayer(_videoController!),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.black.withOpacity(0.5),
+            ),
+            child: IconButton(
+            icon: Icon(
+              _videoController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
+              color: Colors.white,
+                size: 40,
+            ),
+            onPressed: () {
+              setState(() {
+                _videoController!.value.isPlaying
+                    ? _videoController!.pause()
+                    : _videoController!.play();
+              });
+            },
+            ),
+          ),
+        ],
+      );
+    } else if (kIsWeb) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.videocam, size: 50, color: Colors.grey),
+            const SizedBox(height: 10),
+            const Text('Video preview not available on web'),
+            const SizedBox(height: 5),
+            Text('Selected: ${pickedFile?.name ?? "Unknown"}',
+                style: TextStyle(color: Colors.grey[600])),
+          ],
+        ),
+      );
+    } else {
+      return const Center(
+        child: PercentCircleIndicator(
+          color: Colors.black,
+        ),
+      );
+    }
   }
 }

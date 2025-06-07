@@ -9,6 +9,8 @@ import 'package:talkifyapp/features/Chat/persentation/Pages/user_profile_page.da
 import 'package:talkifyapp/features/Posts/PostComponents/PostTile..dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/components/video_message_player.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/components/fullscreen_video_player.dart';
 
 class MessageBubble extends StatelessWidget {
   final Message message;
@@ -242,6 +244,17 @@ class MessageBubble extends StatelessWidget {
                   }
                 },
               ),
+            if (message.type == MessageType.video)
+              ListTile(
+                leading: const Icon(Icons.video_library_outlined),
+                title: const Text('Watch video'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  if (message.fileUrl != null) {
+                    _openFullscreenVideo(context, message.fileUrl!, message.fileName);
+                  }
+                },
+              ),
             if (message.type == MessageType.text)
               ListTile(
                 leading: const Icon(Icons.copy),
@@ -335,6 +348,64 @@ class MessageBubble extends StatelessWidget {
     bool isSharedPost = message.replyToMessageId != null && 
                         message.replyToMessageId!.startsWith("post:") &&
                         (message.metadata != null && message.metadata!['sharedType'] == 'post');
+    
+    // Handle shared post that includes video (direct sharing with video)
+    if (message.type == MessageType.video && message.metadata != null && message.metadata!['sharedType'] == 'post') {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Message caption
+          if (message.content.isNotEmpty && message.content != message.fileName)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                message.content,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isFromCurrentUser ? Colors.white : Colors.black87,
+                ),
+              ),
+            ),
+          
+          // Video player
+          if (message.fileUrl != null)
+            VideoMessagePlayer(
+              videoUrl: message.fileUrl!,
+              isCurrentUser: isFromCurrentUser,
+              caption: null, // Don't show duplicate caption
+            ),
+          
+          // Compact post info footer
+          Container(
+            margin: EdgeInsets.only(top: 6),
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isFromCurrentUser ? Colors.black.withOpacity(0.2) : Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.account_circle,
+                  size: 12,
+                  color: isFromCurrentUser ? Colors.white70 : Colors.grey.shade700,
+                ),
+                SizedBox(width: 4),
+                Text(
+                  message.metadata!['postUserName'] ?? 'Post',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: isFromCurrentUser ? Colors.white70 : Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
     
     // Handle shared post that includes image (direct sharing with image)
     if (message.type == MessageType.image && message.metadata != null && message.metadata!['sharedType'] == 'post') {
@@ -634,7 +705,31 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
+  void _openFullscreenVideo(BuildContext context, String videoUrl, String? title) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FullscreenVideoPlayer(
+          videoUrl: videoUrl,
+          title: title,
+        ),
+      ),
+    );
+  }
+  
   Widget _buildVideoMessage(BuildContext context) {
+    // Check if video URL is available
+    if (message.fileUrl != null) {
+      return GestureDetector(
+        onTap: () => _openFullscreenVideo(context, message.fileUrl!, message.fileName),
+        child: VideoMessagePlayer(
+          videoUrl: message.fileUrl!,
+          isCurrentUser: isFromCurrentUser,
+          caption: message.content != message.fileName ? message.content : null,
+        ),
+      );
+    }
+    
+    // Fallback if no video URL is available
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

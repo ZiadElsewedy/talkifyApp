@@ -2,7 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/domain/repos/Post_repo.dart';
+
+
+
 import 'package:talkifyapp/features/Notifcations/data/notification_service.dart';
+
 
 class FirebasePostRepo implements PostRepo{
 final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -14,6 +18,18 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
   @override
   Future <void> CreatePost(Post post) async{
     try{
+      // Log post details
+      print('Creating post in Firebase: id=${post.id}, isVideo=${post.isVideo}');
+      if (post.isVideo) {
+        print('Video URL: ${post.imageUrl}');
+        print('Video URL length: ${post.imageUrl.length}');
+        if (post.imageUrl.startsWith('http')) {
+          print('Valid URL format detected');
+        } else {
+          print('WARNING: Invalid URL format detected');
+        }
+      }
+      
       // Create a new document reference
       final docRef = postsCollection.doc();
       // Create a new post with the document ID
@@ -28,9 +44,15 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
         likes: post.likes,
         comments: post.comments,
         savedBy: post.savedBy,
+        isVideo: post.isVideo,
       );
+      
+      // Log the final post data
+      print('Saving post to Firestore: id=${postWithId.id}, imageUrl=${postWithId.imageUrl.substring(0, min(50, postWithId.imageUrl.length))}...');
+      
       // Set the document with the post data
       await docRef.set(postWithId.toJson());
+      print('Post successfully saved to Firestore');
     }catch(e){
       print('Error creating post: $e');
       throw Exception("Error creating post: $e");

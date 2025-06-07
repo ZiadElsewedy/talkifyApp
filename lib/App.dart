@@ -17,9 +17,12 @@ import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 import 'package:talkifyapp/features/Chat/Data/firebase_chat_repo.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
+
+import 'package:talkifyapp/features/Welcome/welcome_page.dart';
 import 'package:talkifyapp/theme/Cubits/theme_cubit.dart';
 import 'package:talkifyapp/features/Notifcations/data/notification_repository_impl.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_cubit.dart';
+
 
 // things need to do ! 
 // 1. add firebase options
@@ -112,6 +115,7 @@ class _MyAppState extends State<MyApp> {
               }
               return true;
             },
+
               child: MaterialApp(
               scaffoldMessengerKey: _scaffoldMessengerKey,
               debugShowCheckedModeBanner: false,
@@ -153,6 +157,7 @@ class _MyAppState extends State<MyApp> {
             ),
           );
         }
+
       ),
     );
   }
@@ -162,8 +167,13 @@ class _MyAppState extends State<MyApp> {
   void _showSnackBar(String message, Color backgroundColor) {
     _scaffoldMessengerKey.currentState?.showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: backgroundColor,
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: backgroundColor == Colors.orange || backgroundColor == Colors.red 
+            ? backgroundColor 
+            : Colors.black,
         duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
         

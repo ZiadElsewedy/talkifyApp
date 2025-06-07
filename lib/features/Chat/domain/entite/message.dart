@@ -6,6 +6,7 @@ enum MessageType {
   file,
   audio,
   video,
+  document, // Added document type specifically for viewable documents like PDFs
   system, // For system notifications (user joined, left, etc.)
 }
 

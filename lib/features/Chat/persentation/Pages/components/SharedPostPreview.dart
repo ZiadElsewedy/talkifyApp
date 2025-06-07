@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:video_player/video_player.dart';
 
 class SharedPostPreview extends StatefulWidget {
   final String postId;
@@ -28,6 +29,10 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
   late AnimationController _scaleController;
   late Animation<double> _scaleAnimation;
   
+  // Video player controller
+  VideoPlayerController? _videoController;
+  bool _isVideoInitialized = false;
+  
   @override
   void initState() {
     super.initState();
@@ -51,6 +56,7 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
   @override
   void dispose() {
     _scaleController.dispose();
+    _videoController?.dispose();
     super.dispose();
   }
   
@@ -70,12 +76,36 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
           post = loadedPost;
           isLoading = false;
         });
+        
+        // Initialize video controller if it's a video post
+        if (post != null && post!.isVideo && post!.imageUrl.isNotEmpty) {
+          _initializeVideoController();
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           error = 'Could not load post: $e';
           isLoading = false;
+        });
+      }
+    }
+  }
+  
+  Future<void> _initializeVideoController() async {
+    _videoController = VideoPlayerController.network(post!.imageUrl);
+    try {
+      await _videoController!.initialize();
+      if (mounted) {
+        setState(() {
+          _isVideoInitialized = true;
+        });
+      }
+    } catch (e) {
+      print('Error initializing video: $e');
+      if (mounted) {
+        setState(() {
+          _isVideoInitialized = false;
         });
       }
     }
@@ -239,37 +269,80 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
               ),
             ),
               
-            // Image preview (if any)
+            // Media content (image or video)
             if (post!.imageUrl.isNotEmpty)
               Container(
                 height: 160,
                 width: double.infinity,
-                child: CachedNetworkImage(
-                  imageUrl: post!.imageUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: Colors.grey.shade200,
-                    child: Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.black45,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Show video player if it's a video and initialized
+                    if (post!.isVideo && _isVideoInitialized && _videoController != null)
+                      AspectRatio(
+                        aspectRatio: _videoController!.value.aspectRatio,
+                        child: VideoPlayer(_videoController!),
+                      )
+                    // Otherwise show the image or loading state
+                    else
+                      CachedNetworkImage(
+                        imageUrl: post!.imageUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: Colors.grey.shade200,
+                          child: Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.black45,
+                              ),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: Colors.grey.shade200,
+                          child: Center(
+                            child: Icon(
+                              Icons.error_outline,
+                              size: 24,
+                              color: Colors.grey.shade400,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    color: Colors.grey.shade200,
-                    child: Center(
-                      child: Icon(
-                        Icons.error_outline,
-                        size: 24,
-                        color: Colors.grey.shade400,
+                    
+                    // Play button overlay for videos
+                    if (post!.isVideo)
+                      GestureDetector(
+                        onTap: () {
+                          if (_isVideoInitialized && _videoController != null) {
+                            if (_videoController!.value.isPlaying) {
+                              _videoController!.pause();
+                            } else {
+                              _videoController!.play();
+                            }
+                            setState(() {});
+                          }
+                        },
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            _isVideoInitialized && _videoController != null && _videoController!.value.isPlaying
+                                ? Icons.pause
+                                : Icons.play_arrow,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
+                  ],
                 ),
               ),
               

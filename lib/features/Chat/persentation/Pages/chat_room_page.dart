@@ -8,6 +8,7 @@ import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_states.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/components/animated_message_bubble.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/components/animated_typing_indicator.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/components/voice_note_recorder.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/components/uploading_video_bubble.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/user_profile_page.dart';
@@ -209,6 +210,8 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
             messageType = MessageType.video;
           } else if (['mp3', 'wav', 'aac', 'm4a'].contains(extension)) {
             messageType = MessageType.audio;
+          } else if (['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt'].contains(extension)) {
+            messageType = MessageType.document;
           }
         }
 
@@ -230,6 +233,84 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to pick file: $e'), 
+          backgroundColor: Colors.black,
+        ),
+      );
+    }
+  }
+  
+  Future<void> _pickAndSendDocument() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'csv'],
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final file = result.files.single;
+        final currentUser = context.read<AuthCubit>().GetCurrentUser();
+        
+        if (currentUser == null) return;
+
+        // Always use document type for these file extensions
+        context.read<ChatCubit>().sendMediaMessage(
+          chatRoomId: widget.chatRoom.id,
+          senderId: currentUser.id,
+          senderName: currentUser.name,
+          senderAvatar: currentUser.profilePictureUrl,
+          filePath: file.path!,
+          fileName: file.name,
+          type: MessageType.document,
+          metadata: {
+            'fileSize': file.size,
+            'fileExtension': file.extension,
+          },
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to pick document: $e'), 
+          backgroundColor: Colors.black,
+        ),
+      );
+    }
+  }
+
+  Future<void> _pickAndSendVideo() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'], // Common video formats
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final file = result.files.single;
+        final currentUser = context.read<AuthCubit>().GetCurrentUser();
+        
+        if (currentUser == null) return;
+
+        // Send as video type
+        context.read<ChatCubit>().sendMediaMessage(
+          chatRoomId: widget.chatRoom.id,
+          senderId: currentUser.id,
+          senderName: currentUser.name,
+          senderAvatar: currentUser.profilePictureUrl,
+          filePath: file.path!,
+          fileName: file.name,
+          type: MessageType.video,
+          metadata: {
+            'fileSize': file.size,
+            'fileExtension': file.extension,
+          },
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to pick video: $e'), 
           backgroundColor: Colors.black,
         ),
       );
@@ -685,11 +766,30 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                     return _buildEmptyMessagesState();
                   }
 
+                  // Check if there's an uploading video
+                  Widget? uploadingVideoWidget;
+                  if (state is UploadingMediaProgress && state.type == MessageType.video) {
+                    uploadingVideoWidget = Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: UploadingVideoBubble(
+                        localFilePath: state.localFilePath,
+                        progress: state.progress,
+                        isFromCurrentUser: state.isFromCurrentUser,
+                        caption: state.caption,
+                      ),
+                    );
+                  }
+                  
                   return ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(16),
-                    itemCount: _messages.length,
+                    itemCount: _messages.length + (uploadingVideoWidget != null ? 1 : 0),
                     itemBuilder: (context, index) {
+                      // Show uploading video at the end
+                      if (uploadingVideoWidget != null && index == _messages.length) {
+                        return uploadingVideoWidget;
+                      }
+                      
                       final message = _messages[index];
                       final currentUser = context.read<AuthCubit>().GetCurrentUser();
                       final isFromCurrentUser = currentUser != null && message.isFromCurrentUser(currentUser.id);
@@ -1141,6 +1241,15 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                   },
                 ),
                 _buildAttachmentOption(
+                  icon: Icons.videocam,
+                  label: 'Video',
+                  color: Colors.pink,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickAndSendVideo();
+                  },
+                ),
+                _buildAttachmentOption(
                   icon: Icons.camera_alt,
                   label: 'Camera',
                   color: Colors.red,
@@ -1175,7 +1284,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                   color: Colors.blue,
                   onTap: () {
                     Navigator.pop(context);
-                    _pickAndSendFile();
+                    _pickAndSendDocument();
                   },
                 ),
                 _buildAttachmentOption(

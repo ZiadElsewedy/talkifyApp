@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Posts/PostComponents/UploadingPostTile.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Posts/PostComponents/PostTile..dart';
 import 'package:talkifyapp/features/Posts/pages/upload_post_page.dart' show UploadPostPage;
@@ -126,7 +127,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Future<void> fetchPosts() async {
-    await postCubit.fetechAllPosts();
+    await postCubit.fetchAllPosts();
   }
 
   Future<void> fetchFollowingPosts() async {
@@ -334,12 +335,55 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       drawer: const MyDrawer(),
       body: BlocBuilder<PostCubit, PostState>(
         builder: (context, state) {
+          // Handle different post states
+          if (state is PostsUploadingProgress) {
+            // Show the uploading post together with previously loaded posts
+            final previousPosts = state.previousPosts;
+            
+            return RefreshIndicator(
+              color: Colors.black,
+              backgroundColor: Colors.white,
+              onRefresh: refreshPosts,
+              child: ListView.builder(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.only(top: 8, bottom: 80),
+                // Add 1 for the uploading post plus all previous posts
+                itemCount: 1 + previousPosts.length,
+                itemBuilder: (context, index) {
+                  // First item is always the uploading post
+                  if (index == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: UploadingPostTile(
+                        post: state.post,
+                        progress: state.progress,
+                      ),
+                    );
+                  }
+                  
+                  // Remaining items are previous posts
+                  final post = previousPosts[index - 1];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: PostTile(
+                      post: post,
+                      onDelete: () => deletePost(post.id),
+                    ),
+                  );
+                },
+              ),
+            );
+          }
+          
           if (state is PostsUploading || state is PostsLoading) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  PercentCircleIndicator(),
+                  PercentCircleIndicator(
+                    color: Colors.black,
+                  ),
                   SizedBox(height: 16),
                   Text(
                     'Loading posts...',
@@ -397,8 +441,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       icon: Icon(Icons.add),
                       label: Text('Create Post'),
                       style: ElevatedButton.styleFrom(
+
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+
                         backgroundColor: fabBg,
                         foregroundColor: fabFg,
+
                         padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       ),
@@ -419,9 +468,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 itemCount: allPosts.length,
                 itemBuilder: (context, index) {
                   final post = allPosts[index];
-                  return PostTile(
-                    post: post,
-                    onDelete: () => deletePost(post.id),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: PostTile(
+                      post: post,
+                      onDelete: () => deletePost(post.id),
+                    ),
                   );
                 },
               ),
@@ -434,7 +486,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   Icon(
                     Icons.error_outline,
                     size: 80,
+
+                    color: const Color.fromARGB(255, 27, 12, 12),
+
                     color: errorIconColor,
+
                   ),
                   SizedBox(height: 16),
                   Text(
@@ -459,9 +515,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     icon: Icon(Icons.refresh),
                     label: Text('Try Again'),
                     style: ElevatedButton.styleFrom(
+
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+
                       backgroundColor: fabBg,
                       foregroundColor: fabFg,
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
                   ),
@@ -469,6 +529,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
             );
           }
+<
+
+          return const Center(child: PercentCircleIndicator(color: Colors.black));
+=======
           
           return Center(
             child: Column(
@@ -491,6 +555,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ],
             ),
           );
+
         },
       ),
       floatingActionButton: AnimatedSlide(

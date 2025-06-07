@@ -2,6 +2,9 @@ import 'package:talkifyapp/features/Chat/domain/entite/message.dart';
 import 'package:talkifyapp/features/Chat/domain/entite/chat_room.dart';
 
 abstract class ChatRepo {
+  // Progress stream for uploads
+  Stream<double> get uploadProgressStream;
+  
   // Chat Room operations
   Future<ChatRoom> createChatRoom({
     required List<String> participantIds,
@@ -118,10 +121,27 @@ abstract class ChatRepo {
     required String fileName,
   });
   
+  // Media upload with progress tracking
+  Future<String> uploadChatMediaWithProgress({
+    required String filePath,
+    required String chatRoomId,
+    required String fileName,
+  });
+  
   // Unread count
   Future<int> getUnreadMessageCount({
     required String chatRoomId,
     required String userId,
+  });
+  
+  // Get message read status details
+  Future<Map<String, DateTime>> getMessageReadStatus(String messageId);
+  
+  // Mark specific message as read with timestamp
+  Future<void> markMessageAsRead({
+    required String messageId,
+    required String userId,
+    required DateTime timestamp,
   });
   
   // Search messages

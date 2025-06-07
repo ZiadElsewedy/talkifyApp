@@ -93,8 +93,8 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
         _isLoading = true;
       });
       
-      // Fetch all posts to get updated comments
-      await _postCubit.fetechAllPosts();
+      // Use the PostCubit to refresh the posts data
+      await _postCubit.fetchAllPosts();
       
     } catch (e) {
       _showErrorSnackBar('Failed to refresh comments: $e');

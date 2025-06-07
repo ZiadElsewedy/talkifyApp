@@ -142,17 +142,38 @@ class SendMessageError extends ChatState {
 // Media upload states
 class UploadingMedia extends ChatState {}
 
+class UploadingMediaProgress extends ChatState {
+  final double progress;
+  final String localFilePath;
+  final String messageId;
+  final MessageType type;
+  final String? caption;
+  final bool isFromCurrentUser;
+  
+  UploadingMediaProgress({
+    required this.progress,
+    required this.localFilePath,
+    required this.messageId,
+    required this.type, 
+    required this.isFromCurrentUser,
+    this.caption,
+  });
+}
+
 class MediaUploaded extends ChatState {
   final String fileUrl;
   final String fileName;
+  final String messageId;
   
-  MediaUploaded(this.fileUrl, this.fileName);
+  MediaUploaded(this.fileUrl, this.fileName, this.messageId);
 }
 
 class MediaUploadError extends ChatState {
   final String message;
+  final String messageId;
+  final String localFilePath;
   
-  MediaUploadError(this.message);
+  MediaUploadError(this.message, this.messageId, this.localFilePath);
 }
 
 // Search states

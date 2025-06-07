@@ -38,6 +38,10 @@ class ProfilePageState extends State<ProfilePage> {
   List<Post> userPosts = [];
   final ScrollController _scrollController = ScrollController();
   bool _showNameInHeader = false;
+
+  bool _isLoadingPosts = false;
+  bool _isDeletingPost = false;
+
   bool _isScrolled = false;
 
   @override
@@ -84,33 +88,44 @@ class ProfilePageState extends State<ProfilePage> {
   Future<void> initializeProfile() async {
     if (widget.userId != null) {
       await profileCubit.fetchUserProfile(widget.userId!);
-      await fetchUserPosts();
+      await _fetchUserPosts();
       await fetchUserPostCount();
     }
   }
   
   Future<void> fetchUserPostCount() async {
     try {
-      final posts = await postCubit.postRepo.fetechPostsByUserId(widget.userId!);
+      final posts = await postCubit.fetchUserPosts(widget.userId!);
       if (mounted) {
         setState(() {
           userPostCount = posts.length;
         });
       }
     } catch (e) {
-      print('Error fetching post count: $e');
+      print('Error fetching user post count: $e');
     }
   }
 
-  Future<void> fetchUserPosts() async {
+  Future<void> _fetchUserPosts() async {
+    setState(() {
+      _isLoadingPosts = true;
+    });
     try {
-      final posts = await postCubit.postRepo.fetechPostsByUserId(widget.userId!);
-      if (mounted) {
-        setState(() {
-          userPosts = posts;
-        });
+      if (widget.userId != null) {
+        final posts = await postCubit.fetchUserPosts(widget.userId!);
+        if (mounted) {
+          setState(() {
+            userPosts = posts;
+            _isLoadingPosts = false;
+          });
+        }
       }
     } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingPosts = false;
+        });
+      }
       print('Error fetching user posts: $e');
     }
   }
@@ -147,29 +162,36 @@ class ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> handlePostDelete(Post post, int index) async {
+  void _deletePost(Post post) async {
     try {
-      await postCubit.postRepo.deletePost(post.id);
-      if (mounted) {
-        setState(() {
-          userPosts.removeAt(index);
-          userPostCount--;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Post deleted successfully'),
-          ),
-        );
-      }
+      // Show loading indicator
+      setState(() {
+        _isDeletingPost = true;
+      });
+      
+      // Delete the post using the cubit's method
+      await postCubit.deletePost(post.id);
+      
+      // Update UI
+      setState(() {
+        userPosts.removeWhere((p) => p.id == post.id);
+        _isDeletingPost = false;
+      });
+      
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Post deleted successfully'))
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error deleting post: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      // Update UI
+      setState(() {
+        _isDeletingPost = false;
+      });
+      
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete post: $e'))
+      );
     }
   }
 
@@ -607,6 +629,31 @@ class ProfilePageState extends State<ProfilePage> {
                                       width: 1,
                                     ),
                                   ),
+
+                                  child: _isLoadingPosts
+                                      ? const Center(child: CircularProgressIndicator())
+                                      : userPosts.isEmpty
+                                          ? AnimatedContainer(
+                                              duration: const Duration(milliseconds: 300),
+                                              height: 200,
+                                              child: Center(
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.post_add_outlined,
+                                                      size: 50,
+                                                      color: Colors.black.withOpacity(0.3),
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                    Text(
+                                                      'No posts yet',
+                                                      style: TextStyle(
+                                                        color: Colors.black54,
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.w500,
+                                                        letterSpacing: 0.5,
+
                                   child: userPosts.isEmpty
                                       ? AnimatedContainer(
                                           duration: const Duration(milliseconds: 300),
@@ -655,29 +702,57 @@ class ProfilePageState extends State<ProfilePage> {
                                                       side: const BorderSide(color: Colors.black),
                                                       shape: RoundedRectangleBorder(
                                                         borderRadius: BorderRadius.circular(8),
+
                                                       ),
-                                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                                     ),
-                                                    child: const Text('Create a post'),
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                        )
-                                      : ListView.builder(
-                                          shrinkWrap: true,
-                                          physics: const NeverScrollableScrollPhysics(),
-                                          itemCount: userPosts.length,
-                                          itemBuilder: (context, index) {
-                                            final post = userPosts[index];
-                                            return PostTile(
-                                              post: post,
-                                              onDelete: () async {
-                                                await handlePostDelete(post, index);
+                                                    const SizedBox(height: 5),
+                                                    Text(
+                                                      'Posts will appear here',
+                                                      style: TextStyle(
+                                                        color: Colors.black38,
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                    if (isOwner) const SizedBox(height: 16),
+                                                    if (isOwner)
+                                                      OutlinedButton(
+                                                        onPressed: () {
+                                                          // Navigate to create post
+                                                          ScaffoldMessenger.of(context).showSnackBar(
+                                                            const SnackBar(
+                                                              content: Text('Create post feature coming soon!'),
+                                                              backgroundColor: Colors.black,
+                                                            ),
+                                                          );
+                                                        },
+                                                        style: OutlinedButton.styleFrom(
+                                                          foregroundColor: Colors.black,
+                                                          side: const BorderSide(color: Colors.black),
+                                                          shape: RoundedRectangleBorder(
+                                                            borderRadius: BorderRadius.circular(8),
+                                                          ),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                        ),
+                                                        child: const Text('Create a post'),
+                                                      ),
+                                                  ],
+                                                ),
+                                              ),
+                                            )
+                                          : ListView.builder(
+                                              shrinkWrap: true,
+                                              physics: const NeverScrollableScrollPhysics(),
+                                              itemCount: userPosts.length,
+                                              itemBuilder: (context, index) {
+                                                final post = userPosts[index];
+                                                return PostTile(
+                                                  post: post,
+                                                  onDelete: () {
+                                                    _deletePost(post);
+                                                  },
+                                                );
                                               },
-                                            );
-                                          },
-                                        ),
+                                            ),
                                 ),
                               ],
                             ),

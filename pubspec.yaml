@@ -62,11 +62,28 @@ dependencies:
   circular_countdown_timer: ^0.2.3
   percent_indicator: ^4.2.3
   image_cropper: ^9.1.0
+
+  url_launcher: ^6.3.1
+  intl: ^0.19.0
+  share_plus: ^7.2.1
+  video_player: ^2.8.1
+  flutter_downloader: ^1.11.6
+
+  # Audio recording and playback
+  record: ^5.0.4
+  just_audio: ^0.9.36
+  audio_service: ^0.18.12
+  path_provider: ^2.1.5
+  permission_handler: ^12.0.0+1
+  shared_preferences: ^2.5.3
+  flutter_pdfview: ^1.4.0+1
+
   timeago: ^3.6.0
   giphy_picker: ^3.0.1
   flutter_native_splash: ^2.4.0
   photo_manager: ^3.0.0
   
+
 
 
 
@@ -79,12 +96,39 @@ flutter:
   uses-material-design: true
 
   assets:
-    - lib/assets/Logo1.png
-    - lib/assets/logo_animation.json
-    - lib/assets/Register.json
-    - lib/assets/Verfiy.json
-    - lib/assets/Search.json
-    - lib/assets/profile.json
-    - lib/assets/Logo5.json
-    - lib/assets/notification.wav
-    - lib/assets/
+    - lib\assets\Logo1.png
+    - lib\assets\logo_animation.json
+    - lib\assets\Register.json
+    - lib\assets\Verfiy.json
+    - lib\assets\Search.json
+    - lib\assets\profile.json
+    - lib\assets\Logo5.json
+    - lib\assets\WelcomPage.json
+
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/to/resolution-aware-images
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
+
