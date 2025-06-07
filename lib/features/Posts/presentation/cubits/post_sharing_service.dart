@@ -41,18 +41,22 @@ class PostSharingService {
         'postText': post.Text,
         'postTimestamp': post.timestamp.millisecondsSinceEpoch,
         'sharedType': 'post',
+        'isVideo': post.isVideo,
       };
       
       if (post.imageUrl.isNotEmpty) {
-        // If the post has an image, send it as an image message type with direct URL
+        // Determine if it's a video or image post
+        final messageType = post.isVideo ? MessageType.video : MessageType.image;
+        
+        // Send media message with appropriate type
         await chatCubit.sendMediaUrlMessage(
           chatRoomId: chatRoomId,
           senderId: currentUser.id,
           senderName: currentUser.name,
           senderAvatar: currentUser.profilePictureUrl,
           mediaUrl: post.imageUrl,
-          displayName: 'Post from ${post.UserName}',
-          type: MessageType.image,
+          displayName: post.isVideo ? 'Video from ${post.UserName}' : 'Post from ${post.UserName}',
+          type: messageType,
           content: formattedMessage,
           replyToMessageId: "post:${post.id}",
           metadata: postMetadata,
