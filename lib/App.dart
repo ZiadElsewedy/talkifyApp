@@ -43,18 +43,45 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  final _audioHandler = AudioHandler();
+  final _firebaseAuthRepo = FirebaseAuthRepo();
+  final _firebaseChatRepo = FirebaseChatRepo();
+  final _firebasePostRepo = FirebasePostRepo();
   // Repository instances
   final _firebaseProfileRepo = FirebaseProfileRepo();
-  final _firebaseStorageRepo = FirebaseStorageRepo();
-  final _firebaseAuthRepo = FirebaseAuthRepo();
-  final _firebasePostRepo = FirebasePostRepo();
+
   final _firebaseSearchRepo = FirebaseSearchRepo();
-  final _firebaseChatRepo = FirebaseChatRepo();
+  final _firebaseStorageRepo = FirebaseStorageRepo();
   final _notificationRepositoryImpl = NotificationRepositoryImpl();
-  final _audioHandler = AudioHandler();
-  
   // Key for SnackBar management
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
+  /// Shows a SnackBar with the given message and color
+  void _showSnackBar(String message, Color backgroundColor) {
+    _scaffoldMessengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: backgroundColor == Colors.orange || backgroundColor == Colors.red 
+            ? backgroundColor 
+            : Colors.black,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        
+        margin: const EdgeInsets.only(
+            bottom: 10, // Position under the bottom navigation bar but below New Post button
+            left: 16,
+            right: 16,
+           
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -158,34 +185,6 @@ class _MyAppState extends State<MyApp> {
           );
         }
 
-      ),
-    );
-  }
-
-  
-  /// Shows a SnackBar with the given message and color
-  void _showSnackBar(String message, Color backgroundColor) {
-    _scaffoldMessengerKey.currentState?.showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white),
-        ),
-        backgroundColor: backgroundColor == Colors.orange || backgroundColor == Colors.red 
-            ? backgroundColor 
-            : Colors.black,
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-        
-        margin: const EdgeInsets.only(
-            bottom: 10, // Position under the bottom navigation bar but below New Post button
-            left: 16,
-            right: 16,
-           
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
       ),
     );
   }

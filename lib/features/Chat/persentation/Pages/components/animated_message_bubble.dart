@@ -507,6 +507,7 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
           videoUrl: widget.message.fileUrl!,
           isCurrentUser: widget.isFromCurrentUser,
           caption: widget.message.content != widget.message.fileName ? widget.message.content : null,
+          timestamp: widget.message.timestamp,
         ),
       );
     }

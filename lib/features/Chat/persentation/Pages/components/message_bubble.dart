@@ -373,6 +373,7 @@ class MessageBubble extends StatelessWidget {
               videoUrl: message.fileUrl!,
               isCurrentUser: isFromCurrentUser,
               caption: null, // Don't show duplicate caption
+              timestamp: message.timestamp,
             ),
           
           // Compact post info footer
@@ -725,6 +726,7 @@ class MessageBubble extends StatelessWidget {
           videoUrl: message.fileUrl!,
           isCurrentUser: isFromCurrentUser,
           caption: message.content != message.fileName ? message.content : null,
+          timestamp: message.timestamp,
         ),
       );
     }

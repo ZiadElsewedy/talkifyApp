@@ -14,10 +14,10 @@ dependencies:
   flutter_bloc: ^9.1.1
   bloc: ^9.0.0
   cached_network_image: ^3.3.1
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.16.0
-  cloud_firestore: ^4.14.0
-  firebase_storage: ^11.6.0
+  firebase_core: ^3.13.1
+  firebase_auth: ^5.5.4
+  cloud_firestore: ^5.6.8
+  firebase_storage: ^12.4.6
   dio: ^5.4.0
   shared_preferences: ^2.2.2
   path_provider: ^2.1.1
@@ -25,7 +25,7 @@ dependencies:
   permission_handler: ^12.0.0+1
   uuid: ^4.2.2
   image_picker: ^1.0.5
-  intl: ^0.18.1
+  intl: ^0.20.2
   pie_chart: ^5.4.0
   audioplayers: ^6.4.0
   just_audio: ^0.9.36

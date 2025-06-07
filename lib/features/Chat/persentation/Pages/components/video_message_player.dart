@@ -3,17 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:talkifyapp/features/Chat/Utils/chat_styles.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/components/fullscreen_video_player.dart';
+import 'package:intl/intl.dart';
 
 class VideoMessagePlayer extends StatefulWidget {
   final String videoUrl;
   final bool isCurrentUser;
   final String? caption;
+  final DateTime timestamp;
   
   const VideoMessagePlayer({
     Key? key,
     required this.videoUrl,
     required this.isCurrentUser,
     this.caption,
+    required this.timestamp,
   }) : super(key: key);
 
   @override
@@ -140,6 +143,7 @@ class _VideoMessagePlayerState extends State<VideoMessagePlayer> {
     final textColor = widget.isCurrentUser ? Colors.white : Colors.black87;
     final secondaryColor = widget.isCurrentUser ? Colors.white70 : Colors.black54;
     final bool isMessageRead = true; // This would come from the message data
+    final String formattedTime = DateFormat('h:mm a').format(widget.timestamp);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,7 +324,7 @@ class _VideoMessagePlayerState extends State<VideoMessagePlayer> {
             mainAxisAlignment: widget.isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
             children: [
               Text(
-                '12:30 PM',  // This would come from the message timestamp
+                formattedTime,
                 style: TextStyle(
                   fontSize: 10,
                   color: secondaryColor.withOpacity(0.8),
