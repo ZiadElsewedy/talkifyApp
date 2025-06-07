@@ -9,6 +9,8 @@ import 'package:talkifyapp/features/Chat/persentation/Pages/user_profile_page.da
 import 'package:talkifyapp/features/Posts/PostComponents/PostTile..dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/components/video_message_player.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/components/fullscreen_video_player.dart';
 
 class MessageBubble extends StatelessWidget {
   final Message message;
@@ -234,6 +236,17 @@ class MessageBubble extends StatelessWidget {
                   Navigator.of(context).pop();
                   if (message.fileUrl != null) {
                     _showFullScreenImage(context, message.fileUrl!);
+                  }
+                },
+              ),
+            if (message.type == MessageType.video)
+              ListTile(
+                leading: const Icon(Icons.video_library_outlined),
+                title: const Text('Watch video'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  if (message.fileUrl != null) {
+                    _openFullscreenVideo(context, message.fileUrl!, message.fileName);
                   }
                 },
               ),
@@ -629,7 +642,31 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
+  void _openFullscreenVideo(BuildContext context, String videoUrl, String? title) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FullscreenVideoPlayer(
+          videoUrl: videoUrl,
+          title: title,
+        ),
+      ),
+    );
+  }
+  
   Widget _buildVideoMessage(BuildContext context) {
+    // Check if video URL is available
+    if (message.fileUrl != null) {
+      return GestureDetector(
+        onTap: () => _openFullscreenVideo(context, message.fileUrl!, message.fileName),
+        child: VideoMessagePlayer(
+          videoUrl: message.fileUrl!,
+          isCurrentUser: isFromCurrentUser,
+          caption: message.content != message.fileName ? message.content : null,
+        ),
+      );
+    }
+    
+    // Fallback if no video URL is available
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

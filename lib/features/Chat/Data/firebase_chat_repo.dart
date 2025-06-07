@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:talkifyapp/features/Chat/domain/repo/chat_repo.dart';
 import 'package:talkifyapp/features/Chat/domain/entite/chat_room.dart';
 import 'package:talkifyapp/features/Chat/domain/entite/message.dart';
+import 'package:flutter/foundation.dart';
 
 class FirebaseChatRepo implements ChatRepo {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -13,6 +15,12 @@ class FirebaseChatRepo implements ChatRepo {
   static const String _chatRoomsCollection = 'chatRooms';
   static const String _messagesCollection = 'messages';
   static const String _typingCollection = 'typing';
+
+  // Stream controller for upload progress
+  final _uploadProgressController = StreamController<double>.broadcast();
+  
+  @override
+  Stream<double> get uploadProgressStream => _uploadProgressController.stream;
 
   @override
   Future<ChatRoom> createChatRoom({
@@ -631,6 +639,43 @@ class FirebaseChatRepo implements ChatRepo {
       throw Exception('Failed to upload media: $e');
     }
   }
+  
+  @override
+  Future<String> uploadChatMediaWithProgress({
+    required String filePath,
+    required String chatRoomId,
+    required String fileName,
+  }) async {
+    try {
+      final file = File(filePath);
+      final ref = _storage.ref().child('chat_media/$chatRoomId/$fileName');
+      
+      // Add timestamp to filename to avoid cache issues
+      final timestampedFileName = '${DateTime.now().millisecondsSinceEpoch}_$fileName';
+      final videoRef = _storage.ref().child('chat_media/$chatRoomId/$timestampedFileName');
+      
+      final uploadTask = videoRef.putFile(file);
+      
+      // Monitor upload progress
+      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+        final progress = snapshot.bytesTransferred / snapshot.totalBytes;
+        _uploadProgressController.add(progress);
+      });
+      
+      // Wait for upload to complete
+      final snapshot = await uploadTask;
+      
+      // Add final 100% progress
+      _uploadProgressController.add(1.0);
+      
+      // Get download URL
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      // Send error progress
+      _uploadProgressController.add(0);
+      throw Exception('Failed to upload media: $e');
+    }
+  }
 
   @override
   Future<int> getUnreadMessageCount({
@@ -642,6 +687,82 @@ class FirebaseChatRepo implements ChatRepo {
       return chatRoom?.unreadCount[userId] ?? 0;
     } catch (e) {
       throw Exception('Failed to get unread message count: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, DateTime>> getMessageReadStatus(String messageId) async {
+    try {
+      // Find which chat room contains this message
+      final chatRoomsSnapshot = await _firestore.collection(_chatRoomsCollection).get();
+      
+      for (final chatRoomDoc in chatRoomsSnapshot.docs) {
+        final chatRoomId = chatRoomDoc.id;
+        final messageRef = chatRoomDoc.reference
+            .collection(_messagesCollection)
+            .doc(messageId);
+        
+        final messageDoc = await messageRef.get();
+        if (messageDoc.exists) {
+          final Map<String, dynamic>? messageData = messageDoc.data();
+          
+          if (messageData != null && messageData.containsKey('readBy')) {
+            final Map<String, dynamic> readByData = messageData['readBy'] ?? {};
+            Map<String, DateTime> readBy = {};
+            
+            readByData.forEach((userId, timestampValue) {
+              if (timestampValue is Timestamp) {
+                readBy[userId] = timestampValue.toDate();
+              } else if (timestampValue is String) {
+                try {
+                  readBy[userId] = DateTime.parse(timestampValue);
+                } catch (e) {
+                  // Skip invalid timestamp values
+                }
+              }
+            });
+            
+            return readBy;
+          }
+          return {};
+        }
+      }
+      
+      return {};
+    } catch (e) {
+      throw Exception('Failed to get message read status: $e');
+    }
+  }
+
+  @override
+  Future<void> markMessageAsRead({
+    required String messageId,
+    required String userId,
+    required DateTime timestamp,
+  }) async {
+    try {
+      // Find which chat room contains this message
+      final chatRoomsSnapshot = await _firestore.collection(_chatRoomsCollection).get();
+      
+      for (final chatRoomDoc in chatRoomsSnapshot.docs) {
+        final chatRoomId = chatRoomDoc.id;
+        final messageRef = chatRoomDoc.reference
+            .collection(_messagesCollection)
+            .doc(messageId);
+        
+        final messageDoc = await messageRef.get();
+        if (messageDoc.exists) {
+          // Update the message with the read timestamp
+          await messageRef.update({
+            'readBy.$userId': timestamp,
+            'status': MessageStatus.read.name,
+          });
+          
+          return;
+        }
+      }
+    } catch (e) {
+      throw Exception('Failed to mark message as read: $e');
     }
   }
 

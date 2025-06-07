@@ -10,6 +10,8 @@ import 'package:talkifyapp/features/Chat/persentation/Pages/user_profile_page.da
 import 'package:talkifyapp/features/Chat/Utils/chat_styles.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/components/audio_message_player.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/document_viewer_page.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/components/video_message_player.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/components/fullscreen_video_player.dart';
 
 class AnimatedMessageBubble extends StatefulWidget {
   final Message message;
@@ -184,10 +186,7 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
                             if (widget.isFromCurrentUser) ...[
                               const SizedBox(width: 4),
                               _buildStatusIcon(context),
-                              if (widget.message.status == MessageStatus.read) ...[
-                                const SizedBox(width: 4),
-                                _buildReadReceiptAvatar(context),
-                              ],
+                              // Removed read receipt avatar to avoid duplicate indicators
                             ],
                             
                             // Edited indicator
@@ -312,6 +311,18 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
                     }
                   },
                 ),
+                
+              if (widget.message.type == MessageType.video)
+                ListTile(
+                  leading: const Icon(Icons.video_library_outlined),
+                  title: const Text('Watch video'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    if (widget.message.fileUrl != null) {
+                      _openFullscreenVideo(context, widget.message.fileUrl!, widget.message.fileName);
+                    }
+                  },
+                ),
               
               if (widget.message.type == MessageType.document)
                 ListTile(
@@ -390,6 +401,17 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
             child: child,
           );
         },
+      ),
+    );
+  }
+  
+  void _openFullscreenVideo(BuildContext context, String videoUrl, String? title) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FullscreenVideoPlayer(
+          videoUrl: videoUrl,
+          title: title,
+        ),
       ),
     );
   }
@@ -477,7 +499,19 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
   }
 
   Widget _buildVideoMessage(BuildContext context) {
-    // Video message implementation (unchanged but styled)
+    // Check if video URL is available
+    if (widget.message.fileUrl != null) {
+      return GestureDetector(
+        onTap: () => _openFullscreenVideo(context, widget.message.fileUrl!, widget.message.fileName),
+        child: VideoMessagePlayer(
+          videoUrl: widget.message.fileUrl!,
+          isCurrentUser: widget.isFromCurrentUser,
+          caption: widget.message.content != widget.message.fileName ? widget.message.content : null,
+        ),
+      );
+    }
+    
+    // Fallback if no video URL is available
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -803,7 +837,7 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
         return Tooltip(
           message: 'Sent',
           child: const Icon(
-            Icons.done_all,
+            Icons.check,  // Use single check for sent
             size: 12,
             color: Colors.white,
           ),

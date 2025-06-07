@@ -178,6 +178,10 @@ class ChatCubit extends Cubit<ChatState> {
     Map<String, dynamic>? metadata,
   }) async {
     emit(UploadingMedia());
+    
+    // Generate a temporary message ID to track this upload
+    final temporaryMessageId = DateTime.now().millisecondsSinceEpoch.toString();
+    
     try {
       // Check if we need to determine the file type based on extension
       MessageType finalType = type;
@@ -197,15 +201,48 @@ class ChatCubit extends Cubit<ChatState> {
       String fileUrl;
       if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
         fileUrl = filePath;
-        emit(MediaUploaded(fileUrl, fileName));
+        emit(MediaUploaded(fileUrl, fileName, temporaryMessageId));
       } else {
-        // Upload media first
-        fileUrl = await chatRepo.uploadChatMedia(
-          filePath: filePath,
-          chatRoomId: chatRoomId,
-          fileName: fileName,
-        );
-        emit(MediaUploaded(fileUrl, fileName));
+        // For video files specifically, show progress during upload
+        if (finalType == MessageType.video) {
+          // Set up a listener for upload progress
+          final progressSubscription = chatRepo.uploadProgressStream.listen((progress) {
+            emit(UploadingMediaProgress(
+              progress: progress,
+              localFilePath: filePath,
+              messageId: temporaryMessageId,
+              type: finalType,
+              isFromCurrentUser: true,
+              caption: content,
+            ));
+          });
+          
+          try {
+            // Upload media with progress tracking
+            fileUrl = await chatRepo.uploadChatMediaWithProgress(
+              filePath: filePath,
+              chatRoomId: chatRoomId,
+              fileName: fileName,
+            );
+            
+            // Cancel the progress subscription
+            await progressSubscription.cancel();
+            
+            // Emit final success state
+            emit(MediaUploaded(fileUrl, fileName, temporaryMessageId));
+          } catch (e) {
+            await progressSubscription.cancel();
+            throw e;
+          }
+        } else {
+          // For non-video files, use the original upload method
+          fileUrl = await chatRepo.uploadChatMedia(
+            filePath: filePath,
+            chatRoomId: chatRoomId,
+            fileName: fileName,
+          );
+          emit(MediaUploaded(fileUrl, fileName, temporaryMessageId));
+        }
       }
 
       // Then send message with media URL
@@ -226,7 +263,7 @@ class ChatCubit extends Cubit<ChatState> {
       print('ChatCubit: Message sent: ${message.id}');  
       emit(MessageSent(message));
     } catch (e) {
-      emit(MediaUploadError('Failed to send media: $e'));
+      emit(MediaUploadError('Failed to send media: $e', temporaryMessageId, filePath));
     }
   }
 
