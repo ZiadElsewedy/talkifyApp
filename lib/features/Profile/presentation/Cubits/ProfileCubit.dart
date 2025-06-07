@@ -87,4 +87,14 @@ Future<void> toggleFollow(String currentUserId, String otherUserId) async {
     emit(ProfileErrorState(e.toString())); // Emit error if exception occurs
   }
 }
+
+// Check if a user is following another user
+Future<bool> isFollowing(String currentUserId, String otherUserId) async {
+  try {
+    return await profileRepo.isFollowing(currentUserId, otherUserId);
+  } catch (e) {
+    print('Error checking follow status in cubit: $e');
+    return false; // Default to not following if there's an error
+  }
+}
 } 

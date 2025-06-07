@@ -28,5 +28,7 @@ abstract class AuthRepo {
 
   Future<void> updateUserVerificationStatus(AppUser user);
 
+  Future<void> deleteAccount(String password);
+
   User? get currentUser;
 }

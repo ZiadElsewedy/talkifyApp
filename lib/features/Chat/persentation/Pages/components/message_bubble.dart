@@ -24,9 +24,11 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     // Special handling for system messages
     if (message.isSystemMessage) {
-      return _buildSystemMessage(context);
+      return _buildSystemMessage(context, isDarkMode);
     }
     
     return GestureDetector(
@@ -45,7 +47,7 @@ class MessageBubble extends StatelessWidget {
                 onTap: () => _openUserProfile(context),
                 child: CircleAvatar(
                   radius: 16,
-                  backgroundColor: Colors.grey[200],
+                  backgroundColor: isDarkMode ? Colors.grey[800] : Colors.grey[200],
                   backgroundImage: message.senderAvatar.isNotEmpty
                       ? CachedNetworkImageProvider(message.senderAvatar)
                       : null,
@@ -54,7 +56,10 @@ class MessageBubble extends StatelessWidget {
                           message.senderName.isNotEmpty 
                               ? message.senderName[0].toUpperCase() 
                               : 'U',
-                          style: const TextStyle(fontSize: 12, color: Colors.black),
+                          style: TextStyle(
+                            fontSize: 12, 
+                            color: isDarkMode ? Colors.white : Colors.black
+                          ),
                         )
                       : null,
                 ),
@@ -71,8 +76,8 @@ class MessageBubble extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: isFromCurrentUser
-                      ? Colors.black
-                      : Colors.grey[100],
+                      ? (isDarkMode ? Colors.blue.shade800 : Colors.black)
+                      : (isDarkMode ? Colors.grey[800] : Colors.grey[100]),
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(16),
                     topRight: const Radius.circular(16),
@@ -93,10 +98,10 @@ class MessageBubble extends StatelessWidget {
                         onTap: () => _openUserProfile(context),
                         child: Text(
                           message.senderName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black,
+                            color: isDarkMode ? Colors.white : Colors.black,
                           ),
                         ),
                       ),
@@ -118,7 +123,7 @@ class MessageBubble extends StatelessWidget {
                             fontSize: 10,
                             color: isFromCurrentUser
                                 ? Colors.white.withOpacity(0.7)
-                                : Colors.grey[600],
+                                : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
                           ),
                         ),
                         
@@ -138,7 +143,7 @@ class MessageBubble extends StatelessWidget {
                               fontStyle: FontStyle.italic,
                               color: isFromCurrentUser
                                   ? Colors.white.withOpacity(0.7)
-                                  : Colors.grey[600],
+                                  : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
                             ),
                           ),
                         ],
@@ -158,14 +163,14 @@ class MessageBubble extends StatelessWidget {
   }
   
   // Build system message (centered, gray, italic)
-  Widget _buildSystemMessage(BuildContext context) {
+  Widget _buildSystemMessage(BuildContext context, bool isDarkMode) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       child: Center(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.grey[200],
+            color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -174,7 +179,7 @@ class MessageBubble extends StatelessWidget {
               Text(
                 message.content,
                 style: TextStyle(
-                  color: Colors.grey[800],
+                  color: isDarkMode ? Colors.grey[300] : Colors.grey[800],
                   fontStyle: FontStyle.italic,
                   fontSize: 13,
                 ),
@@ -185,7 +190,7 @@ class MessageBubble extends StatelessWidget {
                 timeago.format(message.timestamp),
                 style: TextStyle(
                   fontSize: 10,
-                  color: Colors.grey[600],
+                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                 ),
               ),
             ],

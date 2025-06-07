@@ -206,8 +206,6 @@ class _UploadPostPageState extends State<UploadPostPage> {
   // Build UI
   @override
   Widget build(BuildContext context) {
-
-    // Block consumer -> builder + listener
     return BlocConsumer<PostCubit, PostState>(
       builder: (context, state) {
         // Handle loading state
@@ -350,6 +348,16 @@ class _UploadPostPageState extends State<UploadPostPage> {
   }
 
   Widget buildUploadPage() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color cardColor = isDarkMode ? Colors.grey[900]! : Colors.white;
+    final Color textColor = isDarkMode ? Colors.grey[200]! : Colors.black87;
+    final Color subTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final Color iconColor = isDarkMode ? Colors.grey[400]! : Colors.black54;
+    final Color dividerColor = isDarkMode ? Colors.grey[800]! : Colors.grey[300]!;
+    final Color inputBg = isDarkMode ? Colors.grey[900]! : Colors.grey[100]!;
+    final Color inputText = isDarkMode ? Colors.white : Colors.black87;
+    final Color hintText = isDarkMode ? Colors.grey[500]! : Colors.grey[400]!;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Post'),
@@ -372,7 +380,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
                 height: 350,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.grey[200],
+                  color: cardColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ClipRRect(
@@ -400,13 +408,13 @@ class _UploadPostPageState extends State<UploadPostPage> {
                             Icon(
                               Icons.photo_library,
                               size: 50,
-                              color: Colors.grey[400],
+                              color: iconColor,
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'No media selected',
                               style: TextStyle(
-                                color: Colors.grey[600],
+                                color: subTextColor,
                                 fontSize: 16,
                               ),
                             ),

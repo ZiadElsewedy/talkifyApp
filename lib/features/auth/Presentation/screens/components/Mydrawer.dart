@@ -16,6 +16,7 @@ import 'package:talkifyapp/features/Profile/presentation/Cubits/Profile_states.d
 import 'package:talkifyapp/features/auth/Presentation/screens/About/AboutPage.dart';
 import 'package:talkifyapp/features/Posts/pages/SavedPostsPage.dart';
 import 'package:talkifyapp/features/Posts/presentation/HomePage.dart';
+import 'package:talkifyapp/features/Settings/SettingsPage.dart';
 
 class MyDrawer extends StatefulWidget {
   const MyDrawer({super.key});
@@ -47,6 +48,9 @@ class _MyDrawerState extends State<MyDrawer> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final dividerColor = isDarkMode ? Colors.grey[700] : Color.fromARGB(255, 92, 89, 89);
+    
     return Drawer(
       backgroundColor: Theme.of(context).colorScheme.surface,
       child: SafeArea(
@@ -72,7 +76,7 @@ class _MyDrawerState extends State<MyDrawer> {
             ),
             
             Divider(
-              color: Color.fromARGB(255, 92, 89, 89),
+              color: dividerColor,
               thickness: 1.5,
               height: 1,
             ),
@@ -167,7 +171,12 @@ class _MyDrawerState extends State<MyDrawer> {
                       icon: Icons.settings,
                       title: 'S E T T I N G S',
                       onTap: () {
-                        // Handle settings tap
+                        Navigator.of(context).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsPage(),
+                          ),
+                        );
                       },
                     ),
                     MyDrawerTile(
@@ -193,13 +202,15 @@ class _MyDrawerState extends State<MyDrawer> {
               child: Column(
                 children: [
                   Divider(
-                    color: Color.fromARGB(255, 92, 89, 89),
+                    color: dividerColor,
                     thickness: 1,
                     height: 1,
                   ),
                   MyDrawerTile(
                     icon: Icons.logout,
                     title: 'L O G O U T',
+                    iconColor: isDarkMode ? Colors.redAccent[100] : Colors.red[700],
+                    textColor: isDarkMode ? Colors.redAccent[100] : Colors.red[700],
                     onTap: () async {
                       final shouldLogout = await showConfirmLogoutDialog(context);
 

@@ -9,53 +9,67 @@ class NewsCubit extends Cubit<NewsState> {
   // Cache for articles by category
   final Map<String, List<NewsArticle>> _articlesByCategory = {};
   
+  // Cache for Egyptian news sources
+  List<Map<String, dynamic>>? _egyptianSources;
+  
   NewsCubit({required this.newsRepository}) : super(NewsInitial());
+  
+  // Safe emit method to prevent "emit after close" errors
+  void safeEmit(NewsState state) {
+    try {
+      if (!isClosed) {
+        emit(state);
+      }
+    } catch (e) {
+      print('Error emitting state: $e');
+    }
+  }
   
   // Fetch top headlines
   Future<void> fetchTopHeadlines() async {
     try {
-      emit(NewsLoading());
+      safeEmit(NewsLoading());
       final articles = await newsRepository.fetchTopHeadlines();
-      emit(NewsLoaded(articles, category: 'general'));
+      safeEmit(NewsLoaded(articles, category: 'general'));
     } catch (e) {
-      emit(NewsError('Failed to fetch top headlines: $e'));
+      safeEmit(NewsError('Failed to fetch top headlines: $e'));
     }
   }
   
   // Fetch breaking news
   Future<void> fetchBreakingNews() async {
     try {
-      emit(NewsLoading());
+      safeEmit(NewsLoading());
       final articles = await newsRepository.fetchBreakingNews();
-      emit(NewsLoaded(articles, category: 'breaking'));
+      safeEmit(NewsLoaded(articles, category: 'breaking'));
     } catch (e) {
-      emit(NewsError('Failed to fetch breaking news: $e'));
+      safeEmit(NewsError('Failed to fetch breaking news: $e'));
     }
   }
   
   // Fetch politics news
   Future<void> fetchPoliticsNews() async {
     try {
-      emit(NewsLoading());
+      safeEmit(NewsLoading());
       final articles = await newsRepository.fetchPoliticsNews();
-      emit(NewsLoaded(articles, category: 'politics'));
+      safeEmit(NewsLoaded(articles, category: 'politics'));
     } catch (e) {
-      emit(NewsError('Failed to fetch politics news: $e'));
+      safeEmit(NewsError('Failed to fetch politics news: $e'));
     }
   }
   
   // Fetch news by category
   Future<void> fetchNewsByCategory(String category) async {
     try {
-      emit(NewsLoading());
+      safeEmit(NewsLoading());
       final articles = await newsRepository.fetchNewsByCategory(category);
       
       // Cache the results
       _articlesByCategory[category] = articles;
       
-      emit(NewsLoaded(articles, category: category));
+      safeEmit(NewsLoaded(articles, category: category));
     } catch (e) {
-      emit(NewsError('Failed to fetch $category news: $e'));
+      safeEmit(NewsError('Failed to fetch $category news: $e'));
     }
   }
   
@@ -66,18 +80,47 @@ class NewsCubit extends Cubit<NewsState> {
     }
     
     try {
-      emit(NewsLoading());
+      safeEmit(NewsLoading());
       final articles = await newsRepository.searchNews(query);
-      emit(NewsLoaded(articles, category: 'search'));
+      safeEmit(NewsLoaded(articles, category: 'search'));
     } catch (e) {
-      emit(NewsError('Failed to search news: $e'));
+      safeEmit(NewsError('Failed to search news: $e'));
+    }
+  }
+  
+  // Get Egyptian news sources
+  Future<List<Map<String, dynamic>>> getEgyptianNewsSources() async {
+    if (_egyptianSources != null && _egyptianSources!.isNotEmpty) {
+      return _egyptianSources!;
+    }
+    
+    try {
+      _egyptianSources = await newsRepository.getEgyptianNewsSources();
+      return _egyptianSources!;
+    } catch (e) {
+      print('Error fetching Egyptian news sources: $e');
+      return [];
+    }
+  }
+  
+  // Fetch news from a specific Egyptian source
+  Future<void> fetchNewsFromEgyptianSource(String sourceId) async {
+    try {
+      emit(NewsLoading());
+      
+      // Use search with the source ID to filter by that source
+      final articles = await newsRepository.searchNews('source:$sourceId');
+      
+      emit(NewsLoaded(articles, category: 'egyptian_source:$sourceId'));
+    } catch (e) {
+      emit(NewsError('Failed to fetch news from Egyptian source $sourceId: $e'));
     }
   }
   
   // Load multiple categories at once
   Future<void> loadAllCategories() async {
     try {
-      emit(NewsLoading());
+      safeEmit(NewsLoading());
       
       // Define categories to fetch
       final categories = ['business', 'sports', 'technology', 'culture', 'health'];
@@ -107,9 +150,9 @@ class NewsCubit extends Cubit<NewsState> {
         })
       );
       
-      emit(NewsCategoriesLoaded(_articlesByCategory));
+      safeEmit(NewsCategoriesLoaded(_articlesByCategory));
     } catch (e) {
-      emit(NewsError('Failed to load categories: $e'));
+      safeEmit(NewsError('Failed to load categories: $e'));
     }
   }
 
@@ -118,19 +161,25 @@ class NewsCubit extends Cubit<NewsState> {
     final currentState = state;
     
     if (currentState is NewsLoaded) {
-      switch (currentState.category) {
-        case 'general':
-          await fetchTopHeadlines();
-          break;
-        case 'breaking':
-          await fetchBreakingNews();
-          break;
-        case 'politics':
-          await fetchPoliticsNews();
-          break;
-        default:
-          await fetchNewsByCategory(currentState.category);
-          break;
+      if (currentState.category.startsWith('egyptian_source:')) {
+        // Extract the source ID from the category
+        final sourceId = currentState.category.split(':')[1];
+        await fetchNewsFromEgyptianSource(sourceId);
+      } else {
+        switch (currentState.category) {
+          case 'general':
+            await fetchTopHeadlines();
+            break;
+          case 'breaking':
+            await fetchBreakingNews();
+            break;
+          case 'politics':
+            await fetchPoliticsNews();
+            break;
+          default:
+            await fetchNewsByCategory(currentState.category);
+            break;
+        }
       }
     } else if (currentState is NewsCategoriesLoaded) {
       await loadAllCategories();

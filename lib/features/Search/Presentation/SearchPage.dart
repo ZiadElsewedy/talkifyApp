@@ -73,42 +73,61 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final scaffoldBg = isDarkMode ? Theme.of(context).scaffoldBackgroundColor : Colors.white;
+    final appBarBg = isDarkMode ? colorScheme.surface : Colors.white;
+    final appBarText = colorScheme.inversePrimary;
+    final searchBg = isDarkMode ? Colors.grey[900]! : lightGrey;
+    final searchBorder = isDarkMode ? Colors.grey[800]! : mediumGrey;
+    final searchText = isDarkMode ? Colors.white : primaryBlack;
+    final searchHint = isDarkMode ? Colors.grey[500]! : darkGrey;
+    final searchIcon = isDarkMode ? Colors.grey[400]! : darkGrey;
+    final cardBg = isDarkMode ? Colors.grey[900]! : Colors.white;
+    final cardBorder = isDarkMode ? Colors.grey[800]! : mediumGrey;
+    final avatarBg = isDarkMode ? Colors.grey[800]! : lightGrey;
+    final nameText = isDarkMode ? Colors.white : primaryBlack;
+    final descText = isDarkMode ? Colors.grey[400]! : darkGrey;
+    final divider = isDarkMode ? Colors.grey[800]! : mediumGrey;
+    final iconColor = isDarkMode ? Colors.grey[400]! : darkGrey;
+    final infoText = isDarkMode ? Colors.grey[300]! : darkGrey;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: appBarBg,
         elevation: 0,
         title: Container(
           height: 45,
           decoration: BoxDecoration(
-            color: lightGrey,
+            color: searchBg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: mediumGrey, width: 1),
+            border: Border.all(color: searchBorder, width: 1),
           ),
           child: TextField(
             controller: _searchController,
-            style: const TextStyle(
-              color: primaryBlack,
+            style: TextStyle(
+              color: searchText,
               fontSize: 15,
               fontWeight: FontWeight.w500,
             ),
             decoration: InputDecoration(
               hintText: 'Search users...',
               hintStyle: TextStyle(
-                color: darkGrey,
+                color: searchHint,
                 fontSize: 15,
                 fontWeight: FontWeight.w400,
               ),
               prefixIcon: Icon(
                 Icons.search,
-                color: darkGrey,
+                color: searchIcon,
                 size: 22,
               ),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
                       icon: Icon(
                         Icons.clear,
-                        color: darkGrey,
+                        color: searchIcon,
                         size: 22,
                       ),
                       onPressed: () {
@@ -123,6 +142,8 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
             onChanged: _performSearch,
           ),
         ),
+        iconTheme: IconThemeData(color: appBarText),
+        titleTextStyle: TextStyle(color: appBarText, fontSize: 20, fontWeight: FontWeight.bold),
       ),
       body: BlocBuilder<SearchCubit, SearchState>(
         builder: (context, state) {
@@ -143,7 +164,7 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
                   Text(
                     'Searching...',
                     style: TextStyle(
-                      color: darkGrey,
+                      color: infoText,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -162,13 +183,13 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
                       Icon(
                         Icons.search_off,
                         size: 56,
-                        color: darkGrey,
+                        color: iconColor,
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'No results found',
                         style: TextStyle(
-                          color: darkGrey,
+                          color: infoText,
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
@@ -187,7 +208,7 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
                   final user = state.users[index];
                   return SlideTransition(
                     position: _slideAnimation,
-                    child: _buildUserCard(user),
+                    child: _buildUserCard(user, cardBg, cardBorder, avatarBg, nameText, descText, divider),
                   );
                 },
               ),
@@ -200,13 +221,13 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
                   Icon(
                     Icons.error_outline,
                     size: 56,
-                    color: darkGrey,
+                    color: iconColor,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     state.message,
                     style: TextStyle(
-                      color: darkGrey,
+                      color: infoText,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -231,7 +252,7 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
                 Text(
                   'Enter a name to search',
                   style: TextStyle(
-                    color: darkGrey,
+                    color: infoText,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -244,13 +265,13 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildUserCard(ProfileUser user) {
+  Widget _buildUserCard(ProfileUser user, Color cardBg, Color cardBorder, Color avatarBg, Color nameText, Color descText, Color divider) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         border: Border(
           bottom: BorderSide(
-            color: mediumGrey,
+            color: divider,
             width: 0.5,
           ),
         ),
@@ -277,19 +298,19 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
                 Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: mediumGrey, width: 1),
+                    border: Border.all(color: cardBorder, width: 1),
                   ),
                   child: CircleAvatar(
                     radius: 28,
-                    backgroundColor: lightGrey,
+                    backgroundColor: avatarBg,
                     backgroundImage: user.profilePictureUrl.isNotEmpty
                         ? CachedNetworkImageProvider(user.profilePictureUrl)
                         : null,
                     child: user.profilePictureUrl.isEmpty
                         ? Text(
                             user.name[0].toUpperCase(),
-                            style: const TextStyle(
-                              color: primaryBlack,
+                            style: TextStyle(
+                              color: nameText,
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
                             ),
@@ -304,8 +325,8 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
                     children: [
                       Text(
                         user.name,
-                        style: const TextStyle(
-                          color: primaryBlack,
+                        style: TextStyle(
+                          color: nameText,
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
                         ),
@@ -315,7 +336,7 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
                         Text(
                           user.HintDescription,
                           style: TextStyle(
-                            color: darkGrey,
+                            color: descText,
                             fontSize: 14,
                             fontWeight: FontWeight.w400,
                           ),

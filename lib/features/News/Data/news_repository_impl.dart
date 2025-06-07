@@ -70,4 +70,17 @@ class NewsRepositoryImpl implements NewsRepository {
       return [];
     }
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> getEgyptianNewsSources() async {
+    try {
+      final sources = await _apiService.getEgyptianNewsSources();
+      print('Repository: Got ${sources.length} Egyptian news sources');
+      return sources;
+    } catch (e) {
+      print('Repository Error in getEgyptianNewsSources: $e');
+      // Return empty list instead of throwing
+      return [];
+    }
+  }
 } 
