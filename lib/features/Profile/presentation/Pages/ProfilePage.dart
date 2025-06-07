@@ -499,8 +499,6 @@ class ProfilePageState extends State<ProfilePage> {
                                   },
                                 ),
                                 const SizedBox(height: 10),
-                                // Subtle indicator to encourage scrolling
-                              
                               ],
                             ),
                           ),
@@ -629,130 +627,7 @@ class ProfilePageState extends State<ProfilePage> {
                                       width: 1,
                                     ),
                                   ),
-
-                                  child: _isLoadingPosts
-                                      ? const Center(child: CircularProgressIndicator())
-                                      : userPosts.isEmpty
-                                          ? AnimatedContainer(
-                                              duration: const Duration(milliseconds: 300),
-                                              height: 200,
-                                              child: Center(
-                                                child: Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.post_add_outlined,
-                                                      size: 50,
-                                                      color: Colors.black.withOpacity(0.3),
-                                                    ),
-                                                    const SizedBox(height: 10),
-                                                    Text(
-                                                      'No posts yet',
-                                                      style: TextStyle(
-                                                        color: Colors.black54,
-                                                        fontSize: 16,
-                                                        fontWeight: FontWeight.w500,
-                                                        letterSpacing: 0.5,
-
-                                  child: userPosts.isEmpty
-                                      ? AnimatedContainer(
-                                          duration: const Duration(milliseconds: 300),
-                                          height: 200,
-                                          child: Center(
-                                            child: Column(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                Icon(
-                                                  Icons.post_add_outlined,
-                                                  size: 50,
-                                                  color: iconColor,
-                                                ),
-                                                const SizedBox(height: 10),
-                                                Text(
-                                                  'No posts yet',
-                                                  style: TextStyle(
-                                                    color: cardSubText,
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w500,
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 5),
-                                                Text(
-                                                  'Posts will appear here',
-                                                  style: TextStyle(
-                                                    color: cardSubText,
-                                                    fontSize: 14,
-                                                  ),
-                                                ),
-                                                if (isOwner) const SizedBox(height: 16),
-                                                if (isOwner)
-                                                  OutlinedButton(
-                                                    onPressed: () {
-                                                      // Navigate to create post
-                                                      ScaffoldMessenger.of(context).showSnackBar(
-                                                        const SnackBar(
-                                                          content: Text('Create post feature coming soon!'),
-                                                          backgroundColor: Colors.black,
-                                                        ),
-                                                      );
-                                                    },
-                                                    style: OutlinedButton.styleFrom(
-                                                      foregroundColor: Colors.black,
-                                                      side: const BorderSide(color: Colors.black),
-                                                      shape: RoundedRectangleBorder(
-                                                        borderRadius: BorderRadius.circular(8),
-
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 5),
-                                                    Text(
-                                                      'Posts will appear here',
-                                                      style: TextStyle(
-                                                        color: Colors.black38,
-                                                        fontSize: 14,
-                                                      ),
-                                                    ),
-                                                    if (isOwner) const SizedBox(height: 16),
-                                                    if (isOwner)
-                                                      OutlinedButton(
-                                                        onPressed: () {
-                                                          // Navigate to create post
-                                                          ScaffoldMessenger.of(context).showSnackBar(
-                                                            const SnackBar(
-                                                              content: Text('Create post feature coming soon!'),
-                                                              backgroundColor: Colors.black,
-                                                            ),
-                                                          );
-                                                        },
-                                                        style: OutlinedButton.styleFrom(
-                                                          foregroundColor: Colors.black,
-                                                          side: const BorderSide(color: Colors.black),
-                                                          shape: RoundedRectangleBorder(
-                                                            borderRadius: BorderRadius.circular(8),
-                                                          ),
-                                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                                        ),
-                                                        child: const Text('Create a post'),
-                                                      ),
-                                                  ],
-                                                ),
-                                              ),
-                                            )
-                                          : ListView.builder(
-                                              shrinkWrap: true,
-                                              physics: const NeverScrollableScrollPhysics(),
-                                              itemCount: userPosts.length,
-                                              itemBuilder: (context, index) {
-                                                final post = userPosts[index];
-                                                return PostTile(
-                                                  post: post,
-                                                  onDelete: () {
-                                                    _deletePost(post);
-                                                  },
-                                                );
-                                              },
-                                            ),
+                                  child: _buildPostsContent(iconColor, cardSubText, isOwner),
                                 ),
                               ],
                             ),
@@ -839,6 +714,87 @@ class ProfilePageState extends State<ProfilePage> {
           );
         }
         return const SizedBox.shrink();
+      },
+    );
+  }
+  
+  // Extracted method to build posts content to avoid duplication
+  Widget _buildPostsContent(Color iconColor, Color cardSubText, bool isOwner) {
+    if (_isLoadingPosts) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
+    if (userPosts.isEmpty) {
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        height: 200,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.post_add_outlined,
+                size: 50,
+                color: iconColor,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'No posts yet',
+                style: TextStyle(
+                  color: cardSubText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                'Posts will appear here',
+                style: TextStyle(
+                  color: cardSubText,
+                  fontSize: 14,
+                ),
+              ),
+              if (isOwner) const SizedBox(height: 16),
+              if (isOwner)
+                OutlinedButton(
+                  onPressed: () {
+                    // Navigate to create post
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Create post feature coming soon!'),
+                        backgroundColor: Colors.black,
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.black,
+                    side: const BorderSide(color: Colors.black),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                  child: const Text('Create a post'),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: userPosts.length,
+      itemBuilder: (context, index) {
+        final post = userPosts[index];
+        return PostTile(
+          post: post,
+          onDelete: () {
+            _deletePost(post);
+          },
+        );
       },
     );
   }

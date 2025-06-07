@@ -441,13 +441,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       icon: Icon(Icons.add),
                       label: Text('Create Post'),
                       style: ElevatedButton.styleFrom(
-
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-
                         backgroundColor: fabBg,
                         foregroundColor: fabFg,
-
                         padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       ),
@@ -486,11 +481,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   Icon(
                     Icons.error_outline,
                     size: 80,
-
-                    color: const Color.fromARGB(255, 27, 12, 12),
-
                     color: errorIconColor,
-
                   ),
                   SizedBox(height: 16),
                   Text(
@@ -515,13 +506,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     icon: Icon(Icons.refresh),
                     label: Text('Try Again'),
                     style: ElevatedButton.styleFrom(
-
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-
                       backgroundColor: fabBg,
                       foregroundColor: fabFg,
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
                   ),
@@ -529,11 +516,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
             );
           }
-<
-
-          return const Center(child: PercentCircleIndicator(color: Colors.black));
-=======
           
+          // Default state - show empty state
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -555,7 +539,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ],
             ),
           );
-
         },
       ),
       floatingActionButton: AnimatedSlide(

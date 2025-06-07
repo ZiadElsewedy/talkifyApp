@@ -854,14 +854,19 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
         );
       
       case MessageStatus.read:
-        return Tooltip(
-          message: 'Read',
-          child: const Icon(
-            Icons.done_all,
-            size: 12,
-            color: Colors.blue,
-          ),
-        );
+        // Show read receipt with avatar if available
+        if (widget.message.readBy.isNotEmpty) {
+          return _buildReadReceiptAvatar(context);
+        } else {
+          return Tooltip(
+            message: 'Read',
+            child: const Icon(
+              Icons.done_all,
+              size: 12,
+              color: Colors.blue,
+            ),
+          );
+        }
       
       case MessageStatus.failed:
         return Tooltip(
@@ -886,73 +891,52 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
   }
 
   Widget _buildReadReceiptAvatar(BuildContext context) {
-    // Get the chat room to access participant information
-    final chatRoomState = context.read<ChatCubit>().state;
+    final chatCubit = context.read<ChatCubit>();
+    final chatRoom = chatCubit.getChatRoomById(widget.message.chatRoomId);
     
-    if (chatRoomState is MessagesLoaded) {
-      final chatRoomId = chatRoomState.chatRoomId;
+    if (chatRoom != null) {
+      // Find the first reader who is not the sender
+      final otherParticipantId = widget.message.readBy.firstWhere(
+        (id) => id != widget.message.senderId,
+        orElse: () => '',
+      );
       
-      // Get the chat room from the cubit state
-      final chatRoomsState = context.read<ChatCubit>().state;
-      
-      if (chatRoomsState is ChatRoomsLoaded) {
-        // Find the chatRoom matching the current chatRoomId or return null
-        ChatRoom? chatRoom;
-        try {
-          chatRoom = chatRoomsState.chatRooms.firstWhere(
-            (room) => room.id == chatRoomId,
-          );
-        } catch (e) {
-          // If no matching chat room is found, chatRoom will remain null
-        }
+      if (otherParticipantId.isNotEmpty && chatRoom.participantAvatars.containsKey(otherParticipantId)) {
+        final avatarUrl = chatRoom.participantAvatars[otherParticipantId] ?? '';
         
-        if (chatRoom != null) {
-          // For simplicity, we'll show the first participant that's not the sender
-          // In a real implementation, you might want to show multiple avatars
-          // or the avatar of the user who most recently read the message
-          final otherParticipantId = chatRoom.participants.firstWhere(
-            (id) => id != widget.message.senderId,
-            orElse: () => '',
-          );
-          
-          if (otherParticipantId.isNotEmpty) {
-            final avatarUrl = chatRoom.participantAvatars[otherParticipantId] ?? '';
-            
-            return Container(
-              width: 18,
-              height: 18,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 2,
-                    offset: const Offset(0, 1),
+        return Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 2,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: ClipOval(
+            child: avatarUrl.isNotEmpty
+              ? CachedNetworkImage(
+                  imageUrl: avatarUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: Colors.grey[200],
                   ),
-                ],
-              ),
-              child: ClipOval(
-                child: avatarUrl.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: avatarUrl,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: Colors.grey[200],
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.person, size: 10, color: Colors.grey),
-                        ),
-                      )
-                    : Container(
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.person, size: 10, color: Colors.grey),
-                      ),
-              ),
-            );
-          }
-        }
+                  errorWidget: (context, url, error) => Container(
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.person, size: 10, color: Colors.grey),
+                  ),
+                )
+              : Container(
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.person, size: 10, color: Colors.grey),
+                ),
+          ),
+        );
       }
     }
     

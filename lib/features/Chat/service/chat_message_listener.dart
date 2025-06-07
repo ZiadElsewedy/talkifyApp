@@ -43,6 +43,16 @@ class ChatMessageListener {
     _currentChatRoomId = chatRoomId;
   }
   
+  /// Get the current chat room ID
+  String? getCurrentChatRoomId() {
+    return _currentChatRoomId;
+  }
+  
+  /// Check if the user is currently viewing a specific chat room
+  bool isViewingChatRoom(String chatRoomId) {
+    return _currentChatRoomId == chatRoomId;
+  }
+  
   /// Start listening to all user's chat rooms
   void _startListeningToUserChats() {
     if (_currentUserId.isEmpty) return;

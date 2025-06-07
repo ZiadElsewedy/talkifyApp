@@ -602,4 +602,20 @@ class ChatCubit extends Cubit<ChatState> {
       print('Error initializing chat: $e');
     }
   }
+
+  // Get a specific chat room by ID
+  ChatRoom? getChatRoomById(String chatRoomId) {
+    if (state is ChatRoomsLoaded) {
+      final chatRoomsState = state as ChatRoomsLoaded;
+      try {
+        return chatRoomsState.chatRooms.firstWhere(
+          (room) => room.id == chatRoomId,
+        );
+      } catch (e) {
+        // If no matching chat room is found, return null
+        return null;
+      }
+    }
+    return null;
+  }
 } 

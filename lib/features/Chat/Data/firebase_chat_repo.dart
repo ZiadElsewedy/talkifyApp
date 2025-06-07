@@ -225,13 +225,19 @@ class FirebaseChatRepo implements ChatRepo {
           .get();
 
       final batch = _firestore.batch();
+      final now = DateTime.now();
+      
       for (final doc in messagesQuery.docs) {
-        batch.update(doc.reference, {'status': MessageStatus.read.name});
+        batch.update(doc.reference, {
+          'status': MessageStatus.read.name,
+          'readBy': FieldValue.arrayUnion([userId]),
+        });
       }
       
       await batch.commit();
     } catch (e) {
-      throw Exception('Failed to mark messages as read: $e');
+      debugPrint('Error marking messages as read: $e');
+      rethrow;
     }
   }
 

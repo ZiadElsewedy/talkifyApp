@@ -88,7 +88,7 @@ class Message {
       chatRoomId: json['chatRoomId'] as String,
       senderId: json['senderId'] as String,
       senderName: json['senderName'] as String,
-      senderAvatar: json['senderAvatar'] as String? ?? '',
+      senderAvatar: json['senderAvatar'] as String,
       content: json['content'] as String,
       type: MessageType.values.firstWhere(
         (e) => e.name == json['type'],
@@ -99,24 +99,22 @@ class Message {
         orElse: () => MessageStatus.sent,
       ),
       timestamp: (json['timestamp'] as Timestamp).toDate(),
-      editedAt: json['editedAt'] != null 
-        ? (json['editedAt'] as Timestamp).toDate() 
-        : null,
+      editedAt: json['editedAt'] != null ? (json['editedAt'] as Timestamp).toDate() : null,
       fileUrl: json['fileUrl'] as String?,
       fileName: json['fileName'] as String?,
       fileSize: json['fileSize'] as int?,
       replyToMessageId: json['replyToMessageId'] as String?,
       metadata: json['metadata'] as Map<String, dynamic>?,
       readBy: json['readBy'] != null 
-        ? List<String>.from(json['readBy']) 
-        : [],
+          ? List<String>.from(json['readBy']) 
+          : [],
       deletedForUsers: json['deletedForUsers'] != null 
-        ? List<String>.from(json['deletedForUsers']) 
-        : [],
+          ? List<String>.from(json['deletedForUsers']) 
+          : [],
     );
   }
 
-  // Copy with method for updates
+  // Create a copy of the message with updated fields
   Message copyWith({
     String? id,
     String? chatRoomId,
@@ -157,9 +155,14 @@ class Message {
     );
   }
 
-  // Check if message is from current user
+  // Check if the message is from the current user
   bool isFromCurrentUser(String currentUserId) {
     return senderId == currentUserId;
+  }
+  
+  // Check if message has been read by a specific user
+  bool isReadBy(String userId) {
+    return readBy.contains(userId);
   }
 
   // Check if message has been edited
@@ -167,6 +170,11 @@ class Message {
 
   // Check if message is a reply
   bool get isReply => replyToMessageId != null;
+
+  // Check if message has been deleted for a specific user
+  bool isDeletedFor(String userId) {
+    return deletedForUsers.contains(userId);
+  }
 
   // Check if message has media content
   bool get hasMedia => type != MessageType.text && type != MessageType.system;

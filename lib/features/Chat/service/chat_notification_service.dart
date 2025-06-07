@@ -12,8 +12,7 @@ class ChatNotificationService {
   static bool _isVisible = false;
   static AudioPlayer? _audioPlayer;
   
-  // Key prefix for storing muted chat rooms in SharedPreferences
-  static const String _mutedChatPrefix = 'muted_chat_';
+  static const String _mutedChatsKey = 'muted_chats';
   
   /// Shows a chat notification if the chat is not muted
   static Future<void> showChatMessageNotification({
@@ -112,64 +111,39 @@ class ChatNotificationService {
     }
   }
   
-  /// Check if a chat room is muted
+  /// Check if a chat is muted
   static Future<bool> isChatMuted(String chatRoomId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getBool('$_mutedChatPrefix$chatRoomId') ?? false;
-    } catch (e) {
-      print('Error checking if chat is muted: $e');
-      return false;
-    }
+    final prefs = await SharedPreferences.getInstance();
+    final mutedChats = prefs.getStringList(_mutedChatsKey) ?? [];
+    return mutedChats.contains(chatRoomId);
   }
   
-  /// Mute notifications for a specific chat room
+  /// Mute a chat
   static Future<void> muteChat(String chatRoomId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('$_mutedChatPrefix$chatRoomId', true);
-      print('Chat muted: $chatRoomId');
-    } catch (e) {
-      print('Error muting chat: $e');
+    final prefs = await SharedPreferences.getInstance();
+    final mutedChats = prefs.getStringList(_mutedChatsKey) ?? [];
+    
+    if (!mutedChats.contains(chatRoomId)) {
+      mutedChats.add(chatRoomId);
+      await prefs.setStringList(_mutedChatsKey, mutedChats);
     }
   }
   
-  /// Unmute notifications for a specific chat room
+  /// Unmute a chat
   static Future<void> unmuteChat(String chatRoomId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('$_mutedChatPrefix$chatRoomId', false);
-      print('Chat unmuted: $chatRoomId');
-    } catch (e) {
-      print('Error unmuting chat: $e');
+    final prefs = await SharedPreferences.getInstance();
+    final mutedChats = prefs.getStringList(_mutedChatsKey) ?? [];
+    
+    if (mutedChats.contains(chatRoomId)) {
+      mutedChats.remove(chatRoomId);
+      await prefs.setStringList(_mutedChatsKey, mutedChats);
     }
   }
   
-  /// Toggle mute status for a chat room
-  static Future<bool> toggleMuteStatus(String chatRoomId) async {
-    final isMuted = await isChatMuted(chatRoomId);
-    if (isMuted) {
-      await unmuteChat(chatRoomId);
-      return false; // Now unmuted
-    } else {
-      await muteChat(chatRoomId);
-      return true; // Now muted
-    }
-  }
-  
-  /// Get a list of all muted chat room IDs
+  /// Get all muted chats
   static Future<List<String>> getMutedChats() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final keys = prefs.getKeys();
-      return keys
-          .where((key) => key.startsWith(_mutedChatPrefix) && prefs.getBool(key) == true)
-          .map((key) => key.substring(_mutedChatPrefix.length))
-          .toList();
-    } catch (e) {
-      print('Error getting muted chats: $e');
-      return [];
-    }
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_mutedChatsKey) ?? [];
   }
 }
 
