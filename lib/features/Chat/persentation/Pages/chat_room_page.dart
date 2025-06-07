@@ -101,10 +101,10 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
     final currentUser = context.read<AuthCubit>().GetCurrentUser();
     if (currentUser != null) {
       // Use the user-specific message loading method
-      context.read<ChatCubit>().loadChatMessagesForUser(widget.chatRoom.id, currentUser.id);
+      context.read<ChatCubit>().loadMessages(widget.chatRoom.id);
     } else {
       // Fallback to regular message loading if no user is authenticated
-      context.read<ChatCubit>().loadChatMessages(widget.chatRoom.id);
+      context.read<ChatCubit>().loadMessages(widget.chatRoom.id);
     }
   }
 
@@ -144,12 +144,12 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
     final currentUser = context.read<AuthCubit>().GetCurrentUser();
     if (currentUser == null) return;
 
-    context.read<ChatCubit>().sendTextMessage(
-      chatRoomId: widget.chatRoom.id,
+    context.read<ChatCubit>().sendMessage(
+      chatRoom: widget.chatRoom,
+      content: content,
       senderId: currentUser.id,
       senderName: currentUser.name,
-      senderAvatar: currentUser.profilePictureUrl,
-      content: content,
+      type: MessageType.text,
     );
 
     _messageController.clear();
@@ -730,17 +730,24 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                     });
                     _scrollToBottomOnNewMessages();
                   } else if (state is MessageDeleted) {
-                    // Remove the deleted message from local list
-                    setState(() {
-                      _messages.removeWhere((message) => message.id == state.messageId);
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Message deleted permanently', style: TextStyle(color: snackBarTextColor)),
-                        backgroundColor: snackBarBackgroundColor,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
+                    // Find and remove deleted messages from local list
+                    if (mounted) {
+                      setState(() {
+                        // Filter out deleted messages from our local list
+                        // The state now provides the updated message list
+                        _messages
+                          ..clear()
+                          ..addAll(state.messages);
+                      });
+                    
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Message deleted permanently', style: TextStyle(color: snackBarTextColor)),
+                          backgroundColor: snackBarBackgroundColor,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
                   } else if (state is SendMessageError) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -826,7 +833,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
             // Last seen message indicator
             BlocBuilder<ChatCubit, ChatState>(
               builder: (context, state) {
-                if (state is MessagesLoaded && state.chatRoomId == widget.chatRoom.id) {
+                if (state is MessagesLoaded) {
                   final currentUser = context.read<AuthCubit>().GetCurrentUser();
                   if (currentUser == null) return const SizedBox.shrink();
                   

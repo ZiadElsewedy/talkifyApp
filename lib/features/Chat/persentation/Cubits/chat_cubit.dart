@@ -47,13 +47,13 @@ class ChatCubit extends Cubit<ChatState> {
   }
 
   // Load messages for a specific chat room
-  Future<void> loadChatMessages(String chatRoomId) async {
+  Future<void> loadMessages(String chatRoomId) async {
     emit(MessagesLoading());
     try {
       _messagesSubscription?.cancel();
       _messagesSubscription = chatRepo.getChatMessages(chatRoomId).listen(
         (messages) {
-          emit(MessagesLoaded(messages, chatRoomId));
+          emit(MessagesLoaded(messages));
         },
         onError: (error) {
           emit(MessagesError('Failed to load messages: $error'));
@@ -71,7 +71,7 @@ class ChatCubit extends Cubit<ChatState> {
       _messagesSubscription?.cancel();
       _messagesSubscription = chatRepo.getChatMessagesForUser(chatRoomId, userId).listen(
         (messages) {
-          emit(MessagesLoaded(messages, chatRoomId));
+          emit(MessagesLoaded(messages));
         },
         onError: (error) {
           emit(MessagesError('Failed to load messages: $error'));
@@ -138,27 +138,41 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
-  // Send a text message
-  Future<void> sendTextMessage({
-    required String chatRoomId,
+  // Send a message
+  Future<void> sendMessage({
+    required ChatRoom chatRoom,
+    required String content,
     required String senderId,
     required String senderName,
-    required String senderAvatar,
-    required String content,
+    required MessageType type,
+    String? fileUrl,
+    String? fileName,
     String? replyToMessageId,
   }) async {
-    emit(SendingMessage());
     try {
-      final message = await chatRepo.sendMessage(
-        chatRoomId: chatRoomId,
+      // Get current messages if any
+      List<Message> currentMessages = [];
+      if (state is MessagesLoaded) {
+        currentMessages = (state as MessagesLoaded).messages;
+      }
+      
+      // Update UI immediately with temp message
+      emit(MessageSending(currentMessages));
+      
+      // Send the message
+      await chatRepo.sendMessage(
+        chatRoomId: chatRoom.id,
         senderId: senderId,
         senderName: senderName,
-        senderAvatar: senderAvatar,
+        senderAvatar: chatRoom.participantAvatars[senderId] ?? '',
         content: content,
-        type: MessageType.text,
+        type: type,
+        fileUrl: fileUrl,
+        fileName: fileName,
         replyToMessageId: replyToMessageId,
       );
-      emit(MessageSent(message));
+      
+      // The real-time listener will update the UI with the actual message
     } catch (e) {
       emit(SendMessageError('Failed to send message: $e'));
     }
@@ -261,7 +275,7 @@ class ChatCubit extends Cubit<ChatState> {
         metadata: metadata,
       );
       print('ChatCubit: Message sent: ${message.id}');  
-      emit(MessageSent(message));
+      emit(MessageSent([message]));
     } catch (e) {
       emit(MediaUploadError('Failed to send media: $e', temporaryMessageId, filePath));
     }
@@ -295,7 +309,7 @@ class ChatCubit extends Cubit<ChatState> {
         metadata: metadata,
       );
       print('ChatCubit: Media URL message sent: ${message.id}');
-      emit(MessageSent(message));
+      emit(MessageSent([message]));
     } catch (e) {
       emit(SendMessageError('Failed to send media message: $e'));
     }
@@ -365,7 +379,15 @@ class ChatCubit extends Cubit<ChatState> {
     try {
       // Delete the message from the repository first
       await chatRepo.deleteMessage(messageId);
-      emit(MessageDeleted(messageId));
+      
+      // Get current messages
+      List<Message> currentMessages = [];
+      if (state is MessagesLoaded) {
+        currentMessages = List.from((state as MessagesLoaded).messages)
+          ..removeWhere((m) => m.id == messageId);
+      }
+      
+      emit(MessageDeleted(currentMessages));
       
       // Get the audio handler and clean up after message deletion is complete
       // Use microtask to ensure this happens after the current execution
@@ -617,5 +639,51 @@ class ChatCubit extends Cubit<ChatState> {
       }
     }
     return null;
+  }
+
+  // Community chat methods
+  Future<void> getChatRoomForCommunity(String communityId) async {
+    emit(ChatRoomForCommunityLoading());
+    try {
+      final chatRoom = await chatRepo.getChatRoomForCommunity(communityId);
+      if (chatRoom != null) {
+        emit(ChatRoomForCommunityLoaded(chatRoom));
+      } else {
+        emit(ChatRoomForCommunityNotFound(communityId));
+      }
+    } catch (e) {
+      emit(ChatRoomForCommunityError('Failed to load community chat: $e'));
+    }
+  }
+
+  Future<void> createGroupChatRoom({
+    required List<String> participants,
+    required Map<String, String> participantNames,
+    required Map<String, String> participantAvatars,
+    required Map<String, int> unreadCount,
+    required String groupName,
+    String? communityId,
+  }) async {
+    emit(ChatRoomCreating());
+    try {
+      // Add groupName to the participant names map
+      participantNames['groupName'] = groupName;
+      
+      // Create admin list with the first participant as admin
+      final List<String> admins = [participants.first];
+      
+      // Create chat room
+      final chatRoom = await chatRepo.createChatRoom(
+        participantIds: participants,
+        participantNames: participantNames,
+        participantAvatars: participantAvatars,
+        adminIds: admins,
+        unreadCount: unreadCount,
+        communityId: communityId,
+      );
+      emit(ChatRoomCreated(chatRoom));
+    } catch (e) {
+      emit(ChatRoomCreationError('Failed to create group: $e'));
+    }
   }
 } 

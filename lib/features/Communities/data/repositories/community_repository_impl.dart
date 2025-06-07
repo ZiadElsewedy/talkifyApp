@@ -1,0 +1,311 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../domain/Entites/community.dart';
+import '../../domain/Entites/community_message.dart';
+import '../../domain/Entites/community_member.dart';
+import '../../domain/repo/community_repository.dart';
+import '../models/community_model.dart';
+import '../models/community_message_model.dart';
+import '../models/community_member_model.dart';
+
+class CommunityRepositoryImpl implements CommunityRepository {
+  final FirebaseFirestore _firestore;
+
+  CommunityRepositoryImpl({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  // Community operations
+  @override
+  Future<List<Community>> getCommunities() async {
+    final querySnapshot = await _firestore.collection('communities').get();
+    return querySnapshot.docs
+        .map((doc) => CommunityModel.fromJson({
+              'id': doc.id,
+              ...doc.data(),
+            }))
+        .toList();
+  }
+
+  @override
+  Future<List<Community>> getTrendingCommunities() async {
+    final querySnapshot = await _firestore
+        .collection('communities')
+        .orderBy('memberCount', descending: true)
+        .limit(10)
+        .get();
+    
+    return querySnapshot.docs
+        .map((doc) => CommunityModel.fromJson({
+              'id': doc.id,
+              ...doc.data(),
+            }))
+        .toList();
+  }
+
+  @override
+  Future<List<Community>> searchCommunities(String query) async {
+    final querySnapshot = await _firestore
+        .collection('communities')
+        .where('name', isGreaterThanOrEqualTo: query)
+        .where('name', isLessThanOrEqualTo: query + '\uf8ff')
+        .get();
+    
+    return querySnapshot.docs
+        .map((doc) => CommunityModel.fromJson({
+              'id': doc.id,
+              ...doc.data(),
+            }))
+        .toList();
+  }
+
+  @override
+  Future<Community> getCommunityById(String id) async {
+    final docSnapshot = await _firestore.collection('communities').doc(id).get();
+    
+    if (!docSnapshot.exists) {
+      throw Exception('Community not found');
+    }
+    
+    return CommunityModel.fromJson({
+      'id': docSnapshot.id,
+      ...docSnapshot.data()!,
+    });
+  }
+
+  @override
+  Future<Community> createCommunity(Community community) async {
+    final communityMap = (community as CommunityModel).toJson();
+    
+    // Remove id as Firestore will generate one
+    communityMap.remove('id');
+    
+    final docRef = await _firestore.collection('communities').add(communityMap);
+    
+    // Get the newly created community
+    final newCommunity = await getCommunityById(docRef.id);
+    return newCommunity;
+  }
+
+  @override
+  Future<void> updateCommunity(Community community) async {
+    final communityMap = (community as CommunityModel).toJson();
+    
+    // Remove id from the map as it's used as the document ID
+    communityMap.remove('id');
+    
+    await _firestore
+        .collection('communities')
+        .doc(community.id)
+        .update(communityMap);
+  }
+
+  @override
+  Future<void> deleteCommunity(String id) async {
+    await _firestore.collection('communities').doc(id).delete();
+  }
+
+  // Member operations
+  @override
+  Future<List<CommunityMember>> getCommunityMembers(String communityId) async {
+    final querySnapshot = await _firestore
+        .collection('communities')
+        .doc(communityId)
+        .collection('members')
+        .get();
+    
+    return querySnapshot.docs
+        .map((doc) => CommunityMemberModel.fromJson({
+              'id': doc.id,
+              ...doc.data(),
+            }))
+        .toList();
+  }
+
+  @override
+  Future<CommunityMember> joinCommunity(String communityId, String userId) async {
+    // Get user data from users collection
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    
+    if (!userDoc.exists) {
+      throw Exception('User not found');
+    }
+    
+    final userData = userDoc.data()!;
+    
+    final member = CommunityMemberModel(
+      id: '', // Will be set by Firestore
+      communityId: communityId,
+      userId: userId,
+      userName: userData['name'] ?? 'Anonymous',
+      userAvatar: userData['avatar'] ?? '',
+      role: MemberRole.member,
+      joinedAt: DateTime.now(),
+    );
+    
+    final memberMap = member.toJson();
+    memberMap.remove('id');
+    
+    final docRef = await _firestore
+        .collection('communities')
+        .doc(communityId)
+        .collection('members')
+        .add(memberMap);
+    
+    // Update member count
+    final communityDoc = await _firestore.collection('communities').doc(communityId).get();
+    final currentCount = communityDoc.data()?['memberCount'] ?? 0;
+    
+    await _firestore
+        .collection('communities')
+        .doc(communityId)
+        .update({'memberCount': currentCount + 1});
+    
+    return CommunityMemberModel.fromJson({
+      'id': docRef.id,
+      ...memberMap,
+    });
+  }
+
+  @override
+  Future<void> leaveCommunity(String communityId, String userId) async {
+    // Find the member document
+    final querySnapshot = await _firestore
+        .collection('communities')
+        .doc(communityId)
+        .collection('members')
+        .where('userId', isEqualTo: userId)
+        .limit(1)
+        .get();
+    
+    if (querySnapshot.docs.isEmpty) {
+      throw Exception('User is not a member of this community');
+    }
+    
+    // Delete the member document
+    await _firestore
+        .collection('communities')
+        .doc(communityId)
+        .collection('members')
+        .doc(querySnapshot.docs.first.id)
+        .delete();
+    
+    // Update member count
+    final communityDoc = await _firestore.collection('communities').doc(communityId).get();
+    final currentCount = communityDoc.data()?['memberCount'] ?? 0;
+    
+    if (currentCount > 0) {
+      await _firestore
+          .collection('communities')
+          .doc(communityId)
+          .update({'memberCount': currentCount - 1});
+    }
+  }
+
+  @override
+  Future<void> updateMemberRole(String communityId, String userId, MemberRole role) async {
+    // Find the member document
+    final querySnapshot = await _firestore
+        .collection('communities')
+        .doc(communityId)
+        .collection('members')
+        .where('userId', isEqualTo: userId)
+        .limit(1)
+        .get();
+    
+    if (querySnapshot.docs.isEmpty) {
+      throw Exception('User is not a member of this community');
+    }
+    
+    // Update the role
+    await _firestore
+        .collection('communities')
+        .doc(communityId)
+        .collection('members')
+        .doc(querySnapshot.docs.first.id)
+        .update({'role': role.toString().split('.').last});
+  }
+
+  // Message operations
+  @override
+  Future<List<CommunityMessage>> getCommunityMessages(String communityId) async {
+    final querySnapshot = await _firestore
+        .collection('communities')
+        .doc(communityId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .limit(50)
+        .get();
+    
+    return querySnapshot.docs
+        .map((doc) => CommunityMessageModel.fromJson({
+              'id': doc.id,
+              ...doc.data(),
+            }))
+        .toList();
+  }
+
+  @override
+  Future<CommunityMessage> sendMessage(CommunityMessage message) async {
+    final messageMap = (message as CommunityMessageModel).toJson();
+    
+    // Remove id as Firestore will generate one
+    messageMap.remove('id');
+    
+    final docRef = await _firestore
+        .collection('communities')
+        .doc(message.communityId)
+        .collection('messages')
+        .add(messageMap);
+    
+    return CommunityMessageModel.fromJson({
+      'id': docRef.id,
+      ...messageMap,
+    });
+  }
+
+  @override
+  Future<void> pinMessage(String messageId, bool isPinned) async {
+    // Need to find the community ID first
+    final querySnapshot = await _firestore
+        .collectionGroup('messages')
+        .where(FieldPath.documentId, isEqualTo: messageId)
+        .limit(1)
+        .get();
+    
+    if (querySnapshot.docs.isEmpty) {
+      throw Exception('Message not found');
+    }
+    
+    final messagePath = querySnapshot.docs.first.reference.path;
+    final pathParts = messagePath.split('/');
+    
+    if (pathParts.length < 4) {
+      throw Exception('Invalid message path');
+    }
+    
+    final communityId = pathParts[pathParts.length - 3];
+    
+    await _firestore
+        .collection('communities')
+        .doc(communityId)
+        .collection('messages')
+        .doc(messageId)
+        .update({'isPinned': isPinned});
+  }
+
+  @override
+  Future<List<CommunityMessage>> getPinnedMessages(String communityId) async {
+    final querySnapshot = await _firestore
+        .collection('communities')
+        .doc(communityId)
+        .collection('messages')
+        .where('isPinned', isEqualTo: true)
+        .get();
+    
+    return querySnapshot.docs
+        .map((doc) => CommunityMessageModel.fromJson({
+              'id': doc.id,
+              ...doc.data(),
+            }))
+        .toList();
+  }
+} 

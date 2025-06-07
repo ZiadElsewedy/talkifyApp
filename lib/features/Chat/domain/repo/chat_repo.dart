@@ -11,6 +11,8 @@ abstract class ChatRepo {
     required Map<String, String> participantNames,
     required Map<String, String> participantAvatars,
     List<String>? adminIds,
+    Map<String, int>? unreadCount,
+    String? communityId,
   });
   
   Future<ChatRoom?> getChatRoom(String chatRoomId);
@@ -18,6 +20,9 @@ abstract class ChatRepo {
   Future<ChatRoom?> findChatRoomBetweenUsers(List<String> userIds);
   
   Stream<List<ChatRoom>> getUserChatRooms(String userId);
+  
+  // Community chat methods
+  Future<ChatRoom?> getChatRoomForCommunity(String communityId);
   
   Future<void> updateChatRoomLastMessage({
     required String chatRoomId,

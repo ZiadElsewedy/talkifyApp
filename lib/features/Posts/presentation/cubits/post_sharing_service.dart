@@ -48,6 +48,12 @@ class PostSharingService {
         // Determine if it's a video or image post
         final messageType = post.isVideo ? MessageType.video : MessageType.image;
         
+        // Get the chat room
+        final chatRoom = await chatCubit.getChatRoomById(chatRoomId);
+        if (chatRoom == null) {
+          throw Exception('Chat room not found');
+        }
+        
         // Send media message with appropriate type
         await chatCubit.sendMediaUrlMessage(
           chatRoomId: chatRoomId,
@@ -63,12 +69,17 @@ class PostSharingService {
         );
       } else {
         // If no image, send as a text message with post reference
-        await chatCubit.sendTextMessage(
-          chatRoomId: chatRoomId,
+        final chatRoom = await chatCubit.getChatRoomById(chatRoomId);
+        if (chatRoom == null) {
+          throw Exception('Chat room not found');
+        }
+        
+        await chatCubit.sendMessage(
+          chatRoom: chatRoom,
+          content: formattedMessage,
           senderId: currentUser.id,
           senderName: currentUser.name,
-          senderAvatar: currentUser.profilePictureUrl,
-          content: formattedMessage,
+          type: MessageType.text,
           replyToMessageId: "post:${post.id}",
         );
       }

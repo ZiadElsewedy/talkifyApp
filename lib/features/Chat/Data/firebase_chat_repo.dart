@@ -28,48 +28,69 @@ class FirebaseChatRepo implements ChatRepo {
     required Map<String, String> participantNames,
     required Map<String, String> participantAvatars,
     List<String>? adminIds,
+    Map<String, int>? unreadCount,
+    String? communityId,
   }) async {
     try {
-      // Initialize unreadCount for all participants to 0
-      Map<String, int> unreadCount = {};
-      for (final userId in participantIds) {
-        unreadCount[userId] = 0;
-      }
-
-      // Create initial admins list - by default, first user is admin
-      List<String> finalAdminIds = adminIds ?? [participantIds.first];
-
-      // Create new chat room document
-      final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc();
-      final now = DateTime.now();
+      // Initialize unread count if not provided
+      final Map<String, int> initialUnreadCount = unreadCount ?? {};
       
+      // Ensure all participants have an unread count entry
+      for (final userId in participantIds) {
+        if (!initialUnreadCount.containsKey(userId)) {
+          initialUnreadCount[userId] = 0;
+        }
+      }
+      
+      // Create a new chat room document
+      final chatRoomRef = _firestore.collection('chatRooms').doc();
+      final chatRoomId = chatRoomRef.id;
+      
+      // Initialize left participants map
+      final Map<String, bool> leftParticipants = {};
+      
+      // Create chat room object
       final chatRoom = ChatRoom(
-        id: chatRoomRef.id,
+        id: chatRoomId,
         participants: participantIds,
         participantNames: participantNames,
         participantAvatars: participantAvatars,
-        unreadCount: unreadCount,
-        createdAt: now,
-        updatedAt: now,
-        admins: finalAdminIds,
-        leftParticipants: {},
+        unreadCount: initialUnreadCount,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        admins: adminIds ?? [],
+        leftParticipants: leftParticipants,
       );
       
-      // Save to Firestore
-      await chatRoomRef.set(chatRoom.toJson());
+      // Convert to JSON and save
+      final chatRoomData = chatRoom.toJson();
       
-      // If this is a group chat, send a system message about creation
-      if (participantIds.length > 2) {
-        final creatorName = participantNames[participantIds.first] ?? 'Someone';
-        await sendSystemMessage(
-          chatRoomId: chatRoomRef.id,
-          content: '$creatorName created this group',
-        );
+      // Add communityId if provided
+      if (communityId != null) {
+        chatRoomData['communityId'] = communityId;
       }
+      
+      await chatRoomRef.set(chatRoomData);
+      
+      // Create a system message
+      String systemMessage;
+      if (communityId != null) {
+        systemMessage = "Community chat created";
+      } else if (participantIds.length > 2) {
+        systemMessage = "Group chat created";
+      } else {
+        systemMessage = "Chat started";
+      }
+      
+      await sendSystemMessage(
+        chatRoomId: chatRoomId,
+        content: systemMessage,
+      );
       
       return chatRoom;
     } catch (e) {
-      throw Exception('Failed to create chat room: $e');
+      print("Error creating chat room: $e");
+      rethrow;
     }
   }
 
@@ -1149,6 +1170,28 @@ class FirebaseChatRepo implements ChatRepo {
       }
     } catch (e) {
       throw Exception('Failed to delete message for user: $e');
+    }
+  }
+
+  @override
+  Future<ChatRoom?> getChatRoomForCommunity(String communityId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('chatRooms')
+          .where('communityId', isEqualTo: communityId)
+          .limit(1)
+          .get();
+      
+      if (querySnapshot.docs.isNotEmpty) {
+        final doc = querySnapshot.docs.first;
+        final data = doc.data();
+        return ChatRoom.fromJson(data);
+      }
+      
+      return null;
+    } catch (e) {
+      print("Error getting chat room for community: $e");
+      rethrow;
     }
   }
 }

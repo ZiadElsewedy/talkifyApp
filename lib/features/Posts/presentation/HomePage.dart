@@ -13,8 +13,6 @@ import 'package:talkifyapp/features/auth/Presentation/screens/components/Mydrawe
 import 'package:talkifyapp/features/Notifcations/presentation/pages/notifications_page.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_cubit.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification_state.dart';
-import 'package:talkifyapp/features/Notifcations/data/notification_repository_impl.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:talkifyapp/features/Chat/service/chat_message_listener.dart';
 
 class HomePage extends StatefulWidget {

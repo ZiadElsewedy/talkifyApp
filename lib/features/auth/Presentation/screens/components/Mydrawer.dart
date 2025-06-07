@@ -1,6 +1,7 @@
 // this code for drawer 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Communities/community_main.dart';
 import 'package:talkifyapp/features/News/Data/news_repository_impl.dart';
 import 'package:talkifyapp/features/News/Presentation/Cubit/news_cubit.dart';
 import 'package:talkifyapp/features/News/Presentation/pages/news_page.dart';
@@ -152,6 +153,18 @@ class _MyDrawerState extends State<MyDrawer> {
                         Navigator.of(context).pushReplacement(
                           MaterialPageRoute(
                             builder: (context) => const ChatListPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    MyDrawerTile(
+                      icon: Icons.people,
+                      title: 'C O M M U N I T I E S',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const CommunityMain(),
                           ),
                         );
                       },
