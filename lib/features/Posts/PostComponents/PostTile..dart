@@ -1552,7 +1552,7 @@ void addComment() async {
           const SizedBox(width: 24),
           _buildActionButton(
             icon: CupertinoIcons.share,
-            color: Colors.black87,
+            color: Colors.grey.shade600,
             count: widget.post.shareCount,
             onTap: sharePost,
           ),
