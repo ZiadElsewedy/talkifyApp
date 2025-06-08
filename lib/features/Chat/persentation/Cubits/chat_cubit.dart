@@ -643,15 +643,23 @@ class ChatCubit extends Cubit<ChatState> {
 
   // Community chat methods
   Future<void> getChatRoomForCommunity(String communityId) async {
+    print("DEBUG: ChatCubit.getChatRoomForCommunity called with ID: $communityId");
     emit(ChatRoomForCommunityLoading());
     try {
+      print("DEBUG: Calling chatRepo.getChatRoomForCommunity");
       final chatRoom = await chatRepo.getChatRoomForCommunity(communityId);
+      print("DEBUG: Result from chatRepo.getChatRoomForCommunity: ${chatRoom != null ? 'Found' : 'Not Found'}");
+      
       if (chatRoom != null) {
+        print("DEBUG: Chat room found, ID: ${chatRoom.id}, participants: ${chatRoom.participants.length}");
         emit(ChatRoomForCommunityLoaded(chatRoom));
       } else {
+        print("DEBUG: Chat room not found for community: $communityId");
         emit(ChatRoomForCommunityNotFound(communityId));
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print("DEBUG: Error in getChatRoomForCommunity: $e");
+      print("DEBUG: Stack trace: $stackTrace");
       emit(ChatRoomForCommunityError('Failed to load community chat: $e'));
     }
   }
@@ -666,6 +674,9 @@ class ChatCubit extends Cubit<ChatState> {
   }) async {
     emit(ChatRoomCreating());
     try {
+      print('Starting chat room creation process for community: $communityId');
+      print('Participants: $participants');
+      
       // Add groupName to the participant names map
       participantNames['groupName'] = groupName;
       
@@ -681,8 +692,12 @@ class ChatCubit extends Cubit<ChatState> {
         unreadCount: unreadCount,
         communityId: communityId,
       );
+      
+      print('Chat room created successfully: ${chatRoom.id}');
       emit(ChatRoomCreated(chatRoom));
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('Error creating group chat room: $e');
+      print('Stack trace: $stackTrace');
       emit(ChatRoomCreationError('Failed to create group: $e'));
     }
   }

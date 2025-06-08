@@ -1,22 +1,24 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../domain/Entites/community.dart';
-import '../../domain/Entites/community_member.dart';
-import '../cubit/community_cubit.dart';
-import '../cubit/community_member_cubit.dart';
-import '../cubit/community_state.dart';
-import '../cubit/community_member_state.dart';
-import 'community_chat_page.dart';
-import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
-import 'package:talkifyapp/features/Storage/Data/Filebase_Storage_repo.dart';
 import 'package:collection/collection.dart';
+import 'package:talkifyapp/features/Chat/domain/entite/chat_room.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_states.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/chat_room_page.dart';
-import 'dart:async';
+import 'package:talkifyapp/features/Communities/domain/Entites/community.dart';
+import 'package:talkifyapp/features/Communities/domain/Entites/community_member.dart';
+import 'package:talkifyapp/features/Communities/presentation/cubit/community_cubit.dart';
+import 'package:talkifyapp/features/Communities/presentation/cubit/community_member_cubit.dart';
+import 'package:talkifyapp/features/Communities/presentation/cubit/community_member_state.dart';
+import 'package:talkifyapp/features/Communities/presentation/cubit/community_state.dart';
+import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
+import 'package:talkifyapp/features/Communities/data/repositories/community_repository_impl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:talkifyapp/features/Storage/Data/Filebase_Storage_repo.dart';
+import 'community_chat_page.dart';
 
 class CommunityDetailsPage extends StatefulWidget {
   final String communityId;
@@ -144,6 +146,10 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
     final community = (context.read<CommunityCubit>().state as CommunityDetailLoaded).community;
     final chatCubit = context.read<ChatCubit>();
     
+    print("DEBUG: _navigateToChat - Starting navigation to chat for community: ${community.id}, name: ${community.name}");
+    print("DEBUG: Current user ID: ${_currentUserId}");
+    print("DEBUG: Is user member? $_isUserMember");
+    
     // Show loading dialog
     showDialog(
       context: context,
@@ -160,6 +166,8 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
       ),
     );
     
+    print("DEBUG: About to call getChatRoomForCommunity with ID: ${community.id}");
+    
     // Get the chat room for this community
     chatCubit.getChatRoomForCommunity(community.id);
     
@@ -167,14 +175,19 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
     late StreamSubscription subscription;
     
     // Listen for the result in a separate listener
-    subscription = chatCubit.stream.listen((state) {
+    subscription = chatCubit.stream.listen((state) async {
       // Check if still mounted before using context
       if (!mounted) {
+        print("DEBUG: Widget no longer mounted, cancelling subscription");
         subscription.cancel();
         return;
       }
       
+      print("DEBUG: Received chat state update: ${state.runtimeType}");
+      
       if (state is ChatRoomForCommunityLoaded) {
+        print("DEBUG: ChatRoomForCommunityLoaded state received. Chat room ID: ${state.chatRoom.id}");
+        
         // Close the loading dialog if it's showing
         if (Navigator.canPop(context)) {
           Navigator.pop(context);
@@ -193,6 +206,69 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
         // Cancel subscription after navigation
         subscription.cancel();
       } else if (state is ChatRoomForCommunityNotFound || state is ChatRoomForCommunityError) {
+        print("DEBUG: Error/NotFound state received: ${state.runtimeType}");
+        if (state is ChatRoomForCommunityError) {
+          print("DEBUG: Error message: ${state.message}");
+        } else if (state is ChatRoomForCommunityNotFound) {
+          print("DEBUG: Community ID not found: ${state.communityId}");
+          
+          // Try to create a new community chat room directly from here
+          print("DEBUG: Attempting to create community chat room directly");
+          
+          final currentUser = context.read<AuthCubit>().GetCurrentUser();
+          if (currentUser != null) {
+            // Get community member list
+            try {
+              final communityRepo = CommunityRepositoryImpl();
+              final members = await communityRepo.getCommunityMembers(community.id);
+              
+              print("DEBUG: Found ${members.length} members for community ${community.id}");
+              
+              // Extract member IDs
+              final List<String> memberIds = members.map((m) => m.userId).toList();
+              
+              // Make sure current user is included
+              if (!memberIds.contains(currentUser.id)) {
+                memberIds.add(currentUser.id);
+              }
+              
+              // Create maps for participant names and avatars
+              final Map<String, String> participantNames = {};
+              final Map<String, String> participantAvatars = {};
+              final Map<String, int> unreadCounts = {};
+              
+              // Add current user
+              participantNames[currentUser.id] = currentUser.name;
+              participantAvatars[currentUser.id] = currentUser.profilePictureUrl;
+              unreadCounts[currentUser.id] = 0;
+              
+              // Add other members
+              for (final member in members) {
+                if (member.userId != currentUser.id) {
+                  participantNames[member.userId] = member.userName;
+                  participantAvatars[member.userId] = member.userAvatar;
+                  unreadCounts[member.userId] = 0;
+                }
+              }
+              
+              // Create new chat room
+              context.read<ChatCubit>().createGroupChatRoom(
+                participants: memberIds,
+                participantNames: participantNames,
+                participantAvatars: participantAvatars,
+                unreadCount: unreadCounts,
+                groupName: community.name,
+                communityId: community.id,
+              );
+              
+              // Don't cancel subscription yet, wait for ChatRoomCreated state
+              return;
+            } catch (e) {
+              print("DEBUG: Error creating community chat room: $e");
+            }
+          }
+        }
+        
         // Close the loading dialog if it's showing
         if (Navigator.canPop(context)) {
           Navigator.pop(context);
@@ -205,6 +281,12 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
         
         // Cancel subscription after error
         subscription.cancel();
+      } else if (state is ChatRoomCreating) {
+        print("DEBUG: ChatRoomCreating state received");
+      } else if (state is ChatRoomCreated) {
+        print("DEBUG: ChatRoomCreated state received. New chat room ID: ${state.chatRoom.id}");
+        // Try loading the chat room again
+        chatCubit.getChatRoomForCommunity(community.id);
       }
     }, onError: (error) {
       // Check if still mounted before using context

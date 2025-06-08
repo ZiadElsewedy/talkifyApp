@@ -11,6 +11,7 @@ import 'package:talkifyapp/features/Chat/persentation/Pages/components/message_b
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Chat/Utils/message_type_helper.dart';
+import 'package:talkifyapp/features/Communities/data/repositories/community_repository_impl.dart';
 import 'community_info_page.dart';
 
 class CommunityChatPage extends StatefulWidget {
@@ -63,6 +64,93 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
+    }
+  }
+  
+  // Load community members and create a chat with them
+  Future<void> _loadCommunityMembersAndCreateChat(dynamic currentUser) async {
+    try {
+      print("DEBUG: Starting _loadCommunityMembersAndCreateChat");
+      print("DEBUG: Current user ID: ${currentUser.id}, Name: ${currentUser.name}");
+      print("DEBUG: Community ID: ${widget.communityId}, Name: ${widget.communityName}");
+      
+      // Import and use CommunityRepositoryImpl directly
+      final communityRepo = CommunityRepositoryImpl();
+      
+      print("DEBUG: Loading members for community: ${widget.communityId}");
+      final members = await communityRepo.getCommunityMembers(widget.communityId);
+      
+      print("DEBUG: Found ${members.length} members in the community");
+      // Log member details for debugging
+      for (final member in members) {
+        print("DEBUG: Member - ID: ${member.userId}, Name: ${member.userName}, Role: ${member.role}");
+      }
+      
+      // Extract member IDs
+      final List<String> memberIds = members.map((m) => m.userId).toList();
+      
+      // Make sure the current user is included
+      if (!memberIds.contains(currentUser.id)) {
+        print("DEBUG: Current user not found in members, adding them");
+        memberIds.add(currentUser.id);
+      }
+      
+      // Create maps for participant names and avatars
+      final Map<String, String> participantNames = {};
+      final Map<String, String> participantAvatars = {};
+      final Map<String, int> unreadCounts = {};
+      
+      // Add current user
+      participantNames[currentUser.id] = currentUser.name;
+      participantAvatars[currentUser.id] = currentUser.profilePictureUrl;
+      unreadCounts[currentUser.id] = 0;
+      
+      // Add other members
+      for (final member in members) {
+        if (member.userId != currentUser.id) {
+          participantNames[member.userId] = member.userName;
+          participantAvatars[member.userId] = member.userAvatar;
+          unreadCounts[member.userId] = 0;
+        }
+      }
+      
+      print("DEBUG: Creating chat room with ${memberIds.length} participants");
+      print("DEBUG: Participant IDs: $memberIds");
+      print("DEBUG: Participant Names: $participantNames");
+      
+      // Create chat room with all members
+      context.read<ChatCubit>().createGroupChatRoom(
+        participants: memberIds,
+        participantNames: participantNames,
+        participantAvatars: participantAvatars,
+        unreadCount: unreadCounts,
+        groupName: widget.communityName ?? 'Community Chat',
+        communityId: widget.communityId,
+      );
+    } catch (e) {
+      print('Error loading community members: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load community members: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        
+        // Fallback to creating chat with just current user
+        context.read<ChatCubit>().createGroupChatRoom(
+          participants: [currentUser.id],
+          participantNames: {currentUser.id: currentUser.name},
+          participantAvatars: {currentUser.id: currentUser.profilePictureUrl},
+          unreadCount: {currentUser.id: 0},
+          groupName: widget.communityName ?? 'Community Chat',
+          communityId: widget.communityId,
+        );
+      }
     }
   }
   
@@ -286,18 +374,41 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
           } else if (state is ChatRoomForCommunityNotFound) {
             // Create a new community chat
             final currentUser = context.read<AuthCubit>().GetCurrentUser();
-            if (currentUser == null) return;
+            if (currentUser == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('User not logged in. Please log in to chat.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
             
-            // Create basic chat room with just the current user
-            context.read<ChatCubit>().createGroupChatRoom(
-              participants: [currentUser.id],
-              participantNames: {currentUser.id: currentUser.name},
-              participantAvatars: {currentUser.id: currentUser.profilePictureUrl},
-              unreadCount: {currentUser.id: 0},
-              groupName: widget.communityName ?? 'Community Chat',
-              communityId: widget.communityId,
+            // Show creating chat room indicator
+            setState(() {
+              _isLoading = true;
+            });
+            
+            print('Creating community chat room for community: ${widget.communityId}');
+            
+            // Get community members to add to the chat room
+            _loadCommunityMembersAndCreateChat(currentUser);
+          } else if (state is ChatRoomCreating) {
+            setState(() {
+              _isLoading = true;
+            });
+          } else if (state is ChatRoomCreationError) {
+            setState(() {
+              _isLoading = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to create chat room: ${state.message}'),
+                backgroundColor: Colors.red,
+              ),
             );
           } else if (state is ChatRoomCreated) {
+            print("DEBUG: ChatRoomCreated state received with ID: ${state.chatRoom.id}");
             setState(() {
               _chatRoom = state.chatRoom;
               _isLoading = false;
@@ -305,6 +416,26 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
             
             // Load messages for the new chat room
             context.read<ChatCubit>().loadMessages(_chatRoom!.id);
+            
+            // Show success message
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Community chat room created successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            
+            // Make sure community is added to the chat
+            if (_chatRoom!.communityId == null) {
+              print("DEBUG: WARNING - Chat room was created but communityId is null!");
+              // Try to fix it by updating the chat room
+              try {
+                _chatRoom = _chatRoom!.copyWith(communityId: widget.communityId);
+                print("DEBUG: Updated chat room with communityId: ${_chatRoom!.communityId}");
+              } catch (e) {
+                print("DEBUG: Error updating chat room: $e");
+              }
+            }
           } else if (state is MessagesLoaded) {
             setState(() {
               _messages = state.messages;

@@ -32,6 +32,8 @@ class FirebaseChatRepo implements ChatRepo {
     String? communityId,
   }) async {
     try {
+      print('DEBUG: FirebaseChatRepo: Creating chat room with communityId: $communityId');
+      
       // Initialize unread count if not provided
       final Map<String, int> initialUnreadCount = unreadCount ?? {};
       
@@ -46,10 +48,12 @@ class FirebaseChatRepo implements ChatRepo {
       final chatRoomRef = _firestore.collection('chatRooms').doc();
       final chatRoomId = chatRoomRef.id;
       
+      print('DEBUG: FirebaseChatRepo: Generated new chat room ID: $chatRoomId');
+      
       // Initialize left participants map
       final Map<String, bool> leftParticipants = {};
       
-      // Create chat room object
+      // Create chat room object with communityId included directly in constructor
       final chatRoom = ChatRoom(
         id: chatRoomId,
         participants: participantIds,
@@ -60,17 +64,32 @@ class FirebaseChatRepo implements ChatRepo {
         updatedAt: DateTime.now(),
         admins: adminIds ?? [],
         leftParticipants: leftParticipants,
+        communityId: communityId, // Pass directly to constructor
       );
       
-      // Convert to JSON and save
+      // Convert to JSON
       final chatRoomData = chatRoom.toJson();
       
-      // Add communityId if provided
-      if (communityId != null) {
+      // IMPORTANT: Double-check that communityId is in the data
+      if (communityId != null && !chatRoomData.containsKey('communityId')) {
+        print('DEBUG: WARNING: communityId missing from chatRoomData, adding it explicitly');
         chatRoomData['communityId'] = communityId;
       }
       
+      print('DEBUG: FirebaseChatRepo: Saving chat room data to Firestore with fields: ${chatRoomData.keys.toList()}');
+      
+      // Store the chat room in Firestore
       await chatRoomRef.set(chatRoomData);
+      
+      // Verify the chat room was created properly with communityId
+      final verificationDoc = await chatRoomRef.get();
+      if (verificationDoc.exists) {
+        final data = verificationDoc.data();
+        if (communityId != null && data?['communityId'] != communityId) {
+          print('DEBUG: ERROR: communityId not saved correctly. Attempting fix...');
+          await chatRoomRef.update({'communityId': communityId});
+        }
+      }
       
       // Create a system message
       String systemMessage;
@@ -87,9 +106,12 @@ class FirebaseChatRepo implements ChatRepo {
         content: systemMessage,
       );
       
-      return chatRoom;
+      print('DEBUG: FirebaseChatRepo: Chat room created successfully');
+      
+      // Return the chat room with guaranteed communityId
+      return chatRoom.copyWith(communityId: communityId);
     } catch (e) {
-      print("Error creating chat room: $e");
+      print("DEBUG: Error creating chat room: $e");
       rethrow;
     }
   }
@@ -1177,21 +1199,38 @@ class FirebaseChatRepo implements ChatRepo {
   @override
   Future<ChatRoom?> getChatRoomForCommunity(String communityId) async {
     try {
+      print("DEBUG: FirebaseChatRepo.getChatRoomForCommunity called with ID: $communityId");
+      print("DEBUG: Querying Firestore collection 'chatRooms' with filter communityId == $communityId");
+      
       final querySnapshot = await _firestore
           .collection('chatRooms')
           .where('communityId', isEqualTo: communityId)
           .limit(1)
           .get();
       
+      print("DEBUG: Query completed. Found ${querySnapshot.docs.length} matching documents");
+      
       if (querySnapshot.docs.isNotEmpty) {
         final doc = querySnapshot.docs.first;
         final data = doc.data();
+        print("DEBUG: Document found with ID: ${doc.id}");
+        print("DEBUG: Document data: $data");
+        
+        // Check if communityId is correctly stored in the document
+        if (data['communityId'] == null) {
+          print("DEBUG: WARNING - communityId is null in the found document");
+        } else {
+          print("DEBUG: communityId in document: ${data['communityId']}");
+        }
+        
         return ChatRoom.fromJson(data);
       }
       
+      print("DEBUG: No chat room found for community: $communityId");
       return null;
-    } catch (e) {
-      print("Error getting chat room for community: $e");
+    } catch (e, stackTrace) {
+      print("DEBUG: Error getting chat room for community: $e");
+      print("DEBUG: Stack trace: $stackTrace");
       rethrow;
     }
   }
