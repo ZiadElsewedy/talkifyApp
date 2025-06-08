@@ -140,6 +140,8 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
   }
 
   void _showGroupNameDialog() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.5),
@@ -158,19 +160,19 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
             borderRadius: BorderRadius.circular(16),
           ),
           elevation: 8,
-          backgroundColor: Colors.white,
+          backgroundColor: isDarkMode ? Colors.black : Colors.white,
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Create Group',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                    color: isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -178,7 +180,7 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                   'Give your group a name and start chatting',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[600],
+                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -257,20 +259,20 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.grey[50],
+                      color: isDarkMode ? Colors.grey[900] : Colors.grey[50],
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: isDarkMode ? Colors.grey[800]! : Colors.grey.shade200),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline, size: 16, color: Colors.grey[700]),
+                        Icon(Icons.info_outline, size: 16, color: isDarkMode ? Colors.grey[400] : Colors.grey[700]),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Each group with a unique name creates a separate chat',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[700],
+                              color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
                               fontStyle: FontStyle.italic,
                             ),
                           ),
@@ -299,27 +301,35 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                     controller: _groupNameController,
                     decoration: InputDecoration(
                       labelText: 'Group Name',
+                      labelStyle: TextStyle(
+                        color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                      ),
                       hintText: 'Enter a name for this group',
+                      hintStyle: TextStyle(
+                        color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: BorderSide(color: isDarkMode ? Colors.grey[700]! : Colors.grey.shade300),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: BorderSide(color: isDarkMode ? Colors.grey[700]! : Colors.grey.shade300),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                        borderSide: BorderSide(color: isDarkMode ? Colors.white : Colors.black, width: 1.5),
                       ),
-                      prefixIcon: const Icon(Icons.group, color: Colors.black),
-                      floatingLabelStyle: const TextStyle(color: Colors.black),
+                      prefixIcon: Icon(Icons.group, color: isDarkMode ? Colors.grey[400] : Colors.black),
+                      floatingLabelStyle: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+                      fillColor: isDarkMode ? Colors.grey[900] : Colors.white,
+                      filled: true,
                     ),
                     maxLength: 30,
                     autofocus: true,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
-                      color: Colors.black,
+                      color: isDarkMode ? Colors.white : Colors.black,
                     ),
                   ),
                 ),
@@ -345,7 +355,7 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                           _createGroupChat(null);
                         },
                         style: TextButton.styleFrom(
-                          foregroundColor: Colors.black54,
+                          foregroundColor: isDarkMode ? Colors.grey[300] : Colors.black54,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         ),
                         child: const Text('Skip'),
@@ -364,19 +374,20 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                           _createGroupChat(groupName);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
+                          backgroundColor: isDarkMode ? Colors.white : Colors.black,
+                          foregroundColor: isDarkMode ? Colors.black : Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                           elevation: 2,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Create',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
+                            color: isDarkMode ? Colors.black : Colors.white,
                           ),
                         ),
                       ),
