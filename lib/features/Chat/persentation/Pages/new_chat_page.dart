@@ -435,8 +435,10 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDarkMode ? Colors.black : Colors.white,
       appBar: AppBar(
         title: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
@@ -455,16 +457,16 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
           child: Text(
             _isCreatingGroup ? 'New Group' : 'New Chat',
             key: ValueKey<bool>(_isCreatingGroup),
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: isDarkMode ? Colors.white : Colors.black,
             ),
           ),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: isDarkMode ? Colors.black : Colors.white,
+        foregroundColor: isDarkMode ? Colors.white : Colors.black,
         elevation: 1,
-        shadowColor: Colors.black12,
+        shadowColor: isDarkMode ? Colors.black45 : Colors.black12,
         actions: [
           if (_selectedUsers.isNotEmpty)
             AnimatedBuilder(
@@ -481,8 +483,8 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                     onPressed: _startChat,
                     child: Text(
                       _isCreatingGroup ? 'Next' : 'Start',
-                      style: const TextStyle(
-                        color: Colors.black,
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -516,22 +518,25 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                     controller: _searchController,
                     decoration: InputDecoration(
                       hintText: 'Search users...',
-                      hintStyle: TextStyle(color: Colors.grey[600]),
-                      prefixIcon: const Icon(Icons.search, color: Colors.black54),
+                      hintStyle: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+                      prefixIcon: Icon(Icons.search, color: isDarkMode ? Colors.grey[400] : Colors.black54),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: BorderSide(color: isDarkMode ? Colors.grey[700]! : Colors.grey.shade300),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: BorderSide(color: isDarkMode ? Colors.grey[700]! : Colors.grey.shade300),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                        borderSide: BorderSide(color: isDarkMode ? Colors.white : Colors.black, width: 1.5),
                       ),
                       filled: true,
-                      fillColor: Colors.grey[50],
+                      fillColor: isDarkMode ? Colors.grey[900] : Colors.grey[50],
+                    ),
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black,
                     ),
                     onChanged: _searchUsers,
                   ),
@@ -547,10 +552,10 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
             height: _selectedUsers.isEmpty ? 0 : 100,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: isDarkMode ? Colors.grey[900] : Colors.grey[50],
               border: Border(
-                top: BorderSide(color: Colors.grey.shade200),
-                bottom: BorderSide(color: Colors.grey.shade200),
+                top: BorderSide(color: isDarkMode ? Colors.grey[800]! : Colors.grey.shade200),
+                bottom: BorderSide(color: isDarkMode ? Colors.grey[800]! : Colors.grey.shade200),
               ),
             ),
             child: _selectedUsers.isEmpty 
@@ -567,36 +572,36 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                               child: Icon(
                                 _isCreatingGroup ? Icons.group : Icons.person,
                                 key: ValueKey<bool>(_isCreatingGroup),
-                                size: 18,
-                                color: Colors.black87,
+                                                              size: 18,
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 300),
+                            transitionBuilder: (Widget child, Animation<double> animation) {
+                              return FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0.2, 0.0),
+                                    end: Offset.zero,
+                                  ).animate(animation),
+                                  child: child,
+                                ),
+                              );
+                            },
+                            child: Text(
+                              _isCreatingGroup
+                                  ? 'Group members (${_selectedUsers.length})'
+                                  : 'Selected (${_selectedUsers.length})',
+                              key: ValueKey<String>(_isCreatingGroup ? 'group' : 'selected'),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: isDarkMode ? Colors.white : Colors.black87,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 300),
-                              transitionBuilder: (Widget child, Animation<double> animation) {
-                                return FadeTransition(
-                                  opacity: animation,
-                                  child: SlideTransition(
-                                    position: Tween<Offset>(
-                                      begin: const Offset(0.2, 0.0),
-                                      end: Offset.zero,
-                                    ).animate(animation),
-                                    child: child,
-                                  ),
-                                );
-                              },
-                              child: Text(
-                                _isCreatingGroup
-                                    ? 'Group members (${_selectedUsers.length})'
-                                    : 'Selected (${_selectedUsers.length})',
-                                key: ValueKey<String>(_isCreatingGroup ? 'group' : 'selected'),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
-                                ),
-                              ),
                             ),
                           ],
                         ),
@@ -624,9 +629,9 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                                 },
                                 child: Chip(
                                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                                  backgroundColor: Colors.white,
+                                  backgroundColor: isDarkMode ? Colors.grey[800] : Colors.white,
                                   avatar: CircleAvatar(
-                                    backgroundColor: Colors.grey[200],
+                                    backgroundColor: isDarkMode ? Colors.grey[700] : Colors.grey[200],
                                     backgroundImage: user.profilePictureUrl.isNotEmpty
                                         ? CachedNetworkImageProvider(user.profilePictureUrl)
                                         : null,
@@ -675,7 +680,7 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
             child: BlocBuilder<SearchCubit, SearchState>(
               builder: (context, state) {
                 if (state is SearchLoading) {
-                  return const Center(child: CircularProgressIndicator(color: Colors.black));
+                  return Center(child: CircularProgressIndicator(color: isDarkMode ? Colors.white : Colors.black));
                 } else if (state is SearchLoaded) {
                   final currentUser = context.read<AuthCubit>().GetCurrentUser();
                   
@@ -710,11 +715,13 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                           );
                         },
                         child: Material(
-                          color: isSelected ? Colors.grey[50] : Colors.white,
+                          color: isDarkMode 
+                              ? (isSelected ? Colors.grey[800] : Colors.black) 
+                              : (isSelected ? Colors.grey[50] : Colors.white),
                           child: InkWell(
                             onTap: () => _toggleUserSelection(user),
-                            splashColor: Colors.grey[100],
-                            highlightColor: Colors.grey[50],
+                            splashColor: isDarkMode ? Colors.grey[700] : Colors.grey[100],
+                            highlightColor: isDarkMode ? Colors.grey[800] : Colors.grey[50],
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               child: ListTile(
@@ -728,16 +735,16 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                                     type: MaterialType.transparency,
                                     child: CircleAvatar(
                                       radius: 24,
-                                      backgroundColor: Colors.grey[200],
+                                      backgroundColor: isDarkMode ? Colors.grey[700] : Colors.grey[200],
                                       backgroundImage: user.profilePictureUrl.isNotEmpty
                                           ? CachedNetworkImageProvider(user.profilePictureUrl)
                                           : null,
                                       child: user.profilePictureUrl.isEmpty
                                           ? Text(
                                               user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.black,
+                                                color: isDarkMode ? Colors.white : Colors.black,
                                               ),
                                             )
                                           : null,
@@ -746,16 +753,16 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                                 ),
                                 title: Text(
                                   user.name,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.w500,
-                                    color: Colors.black87,
+                                    color: isDarkMode ? Colors.white : Colors.black87,
                                     fontSize: 16,
                                   ),
                                 ),
                                 subtitle: Text(
                                   user.email,
                                   style: TextStyle(
-                                    color: Colors.grey[600],
+                                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                                     fontSize: 14,
                                   ),
                                 ),
@@ -766,18 +773,22 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                                   height: 28,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: isSelected ? Colors.black : Colors.transparent,
+                                    color: isSelected 
+                                        ? (isDarkMode ? Colors.white : Colors.black) 
+                                        : Colors.transparent,
                                     border: Border.all(
-                                      color: isSelected ? Colors.black : Colors.grey,
+                                      color: isSelected 
+                                          ? (isDarkMode ? Colors.white : Colors.black) 
+                                          : (isDarkMode ? Colors.grey[400]! : Colors.grey),
                                       width: isSelected ? 0 : 1.5,
                                     ),
                                   ),
                                   child: isSelected 
-                                      ? const Center(
+                                      ? Center(
                                           child: Icon(
                                             Icons.check,
                                             size: 16,
-                                            color: Colors.white,
+                                            color: isDarkMode ? Colors.black : Colors.white,
                                           ),
                                         )
                                       : null,
@@ -812,13 +823,13 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
               },
               child: FloatingActionButton.extended(
                 onPressed: _startChat,
-                backgroundColor: Colors.black,
+                backgroundColor: isDarkMode ? Colors.white : Colors.black,
                 icon: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   child: Icon(
                     _isCreatingGroup ? Icons.group_add : Icons.chat,
                     key: ValueKey<bool>(_isCreatingGroup),
-                    color: Colors.white,
+                    color: isDarkMode ? Colors.black : Colors.white,
                   ),
                 ),
                 label: AnimatedSwitcher(
@@ -838,8 +849,8 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                   child: Text(
                     _isCreatingGroup ? 'Create Group' : 'Start Chat',
                     key: ValueKey<String>(_isCreatingGroup ? 'group' : 'chat'),
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.black : Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -852,6 +863,8 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
   }
 
   Widget _buildEmptyState() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -859,14 +872,14 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
           Icon(
             Icons.people_outline,
             size: 80,
-            color: Colors.grey[400],
+            color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
           ),
           const SizedBox(height: 16),
           Text(
             'No users found',
             style: TextStyle(
               fontSize: 18,
-              color: Colors.grey[600],
+              color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
             ),
           ),
           const SizedBox(height: 8),
@@ -883,6 +896,8 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
   }
 
   Widget _buildErrorState(String message) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -897,7 +912,7 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
             'Failed to load users',
             style: TextStyle(
               fontSize: 18,
-              color: Colors.grey[700],
+              color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
             ),
           ),
           const SizedBox(height: 8),
@@ -905,7 +920,7 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
             message,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
             ),
             textAlign: TextAlign.center,
           ),
