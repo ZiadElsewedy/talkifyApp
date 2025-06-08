@@ -97,28 +97,30 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDarkMode ? Colors.black : Colors.white,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Group Info',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: isDarkMode ? Colors.white : Colors.black,
             fontSize: 18,
           ),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: isDarkMode ? Colors.black : Colors.white,
+        foregroundColor: isDarkMode ? Colors.white : Colors.black,
         elevation: 0,
         leading: IconButton(
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.arrow_back, size: 20, color: Colors.black),
+            child: Icon(Icons.arrow_back, size: 20, color: isDarkMode ? Colors.white : Colors.black),
           ),
           onPressed: () => Navigator.pop(context),
         ),
@@ -129,7 +131,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
           future: _participantsFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator(color: Colors.black));
+              return Center(child: CircularProgressIndicator(color: isDarkMode ? Colors.white : Colors.black));
             }
 
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -169,7 +171,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
                         backgroundColor: Colors.grey[200],
                         child: Text(
                           _getGroupNameAbbreviation(),
-                          style: const TextStyle(fontSize: 40, color: Colors.black54),
+                          style: TextStyle(fontSize: 40, color: isDarkMode ? Colors.white70 : Colors.black54),
                         ),
                       ),
                     ),
@@ -184,9 +186,9 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.grey[50],
+                          color: isDarkMode ? Colors.grey[900] : Colors.grey[50],
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade200),
+                          border: Border.all(color: isDarkMode ? Colors.grey[800]! : Colors.grey.shade200),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -194,9 +196,10 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
                             Flexible(
                               child: Text(
                                 _getGroupName(),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
+                                  color: isDarkMode ? Colors.white : Colors.black,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -205,10 +208,10 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
                             Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
+                                color: isDarkMode ? Colors.grey[800] : Colors.grey.shade200,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.edit, size: 16),
+                              child: Icon(Icons.edit, size: 16, color: isDarkMode ? Colors.white : Colors.black),
                             ),
                           ],
                         ),
@@ -221,7 +224,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
                     '${participants.length} participants',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.grey[600],
+                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                     ),
                   ),
                   
@@ -235,17 +238,18 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.grey[100],
+                            color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.group, size: 18, color: Colors.black),
+                          child: Icon(Icons.group, size: 18, color: isDarkMode ? Colors.white : Colors.black),
                         ),
                         const SizedBox(width: 12),
-                        const Text(
+                        Text(
                           'Participants',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.white : Colors.black,
                           ),
                         ),
                       ],
@@ -253,7 +257,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
                   ),
                   
                   const SizedBox(height: 16),
-                  const Divider(),
+                  Divider(color: isDarkMode ? Colors.grey[800] : Colors.grey[300]),
                   
                   // Participants list with staggered animations
                   ...List.generate(participants.length, (index) {
@@ -282,7 +286,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
                   }),
                   
                   const SizedBox(height: 32),
-                  const Divider(),
+                  Divider(color: isDarkMode ? Colors.grey[800] : Colors.grey[300]),
                   
                   // Options section
                   Padding(
@@ -325,7 +329,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
                             );
                           },
                         ),
-                        const Divider(),
+                        Divider(color: isDarkMode ? Colors.grey[800] : Colors.grey[300]),
                         _buildOptionTile(
                           icon: Icons.exit_to_app,
                           title: 'Leave group',
@@ -346,27 +350,40 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
   }
 
   void _showEditGroupNameDialog() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final TextEditingController controller = TextEditingController();
     controller.text = _getGroupName();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Edit Group Name'),
+        backgroundColor: isDarkMode ? Colors.black : Colors.white,
+        title: Text(
+          'Edit Group Name',
+          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+        ),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
+          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+          decoration: InputDecoration(
             hintText: 'Enter group name',
+            hintStyle: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
             border: OutlineInputBorder(),
             focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.black),
+              borderSide: BorderSide(color: isDarkMode ? Colors.white : Colors.black),
             ),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!),
+            ),
+            fillColor: isDarkMode ? Colors.grey[900] : Colors.white,
+            filled: true,
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(foregroundColor: isDarkMode ? Colors.grey[300] : Colors.grey[700]),
             child: const Text('Cancel'),
           ),
           TextButton(
@@ -377,7 +394,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
                 if (mounted) Navigator.pop(context);
               }
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.black),
+            style: TextButton.styleFrom(foregroundColor: isDarkMode ? Colors.white : Colors.black),
             child: const Text('Save'),
           ),
         ],
@@ -480,13 +497,15 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
   }
 
   Widget _buildParticipantTile(AppUser user) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
       elevation: 0,
-      color: Colors.white,
+      color: isDarkMode ? Colors.grey[900] : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade100),
+        side: BorderSide(color: isDarkMode ? Colors.grey[800]! : Colors.grey.shade100),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -498,14 +517,14 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
               children: [
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: Colors.grey[200],
+                  backgroundColor: isDarkMode ? Colors.grey[800] : Colors.grey[200],
                   backgroundImage: user.profilePictureUrl.isNotEmpty
                       ? CachedNetworkImageProvider(user.profilePictureUrl)
                       : null,
                   child: user.profilePictureUrl.isEmpty
                       ? Text(
                           user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                          style: const TextStyle(fontSize: 16, color: Colors.black54),
+                          style: TextStyle(fontSize: 16, color: isDarkMode ? Colors.white70 : Colors.black54),
                         )
                       : null,
                 ),
@@ -525,8 +544,9 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
         ),
         title: Text(
           user.id == _currentUserId ? '${user.name} (You)' : user.name,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
+            color: isDarkMode ? Colors.white : Colors.black,
           ),
         ),
         subtitle: Text(
@@ -536,12 +556,14 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
                   ? 'Last seen ${timeago.format(user.lastSeen!)}'
                   : 'Offline',
           style: TextStyle(
-            color: user.isOnline ? ChatStyles.onlineColor : Colors.grey,
+            color: user.isOnline 
+                ? ChatStyles.onlineColor 
+                : isDarkMode ? Colors.grey[400] : Colors.grey,
           ),
         ),
         trailing: user.id != _currentUserId 
             ? IconButton(
-                icon: const Icon(Icons.message, size: 20),
+                icon: Icon(Icons.message, size: 20, color: isDarkMode ? Colors.white : Colors.black87),
                 onPressed: () => _openUserProfile(user),
               )
             : null,
@@ -557,20 +579,26 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
     Color? iconColor,
     Color? textColor,
   }) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.grey[100],
+          color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, size: 20, color: iconColor ?? Colors.black),
+        child: Icon(
+          icon, 
+          size: 20, 
+          color: iconColor ?? (isDarkMode ? Colors.white : Colors.black)
+        ),
       ),
       title: Text(
         title,
         style: TextStyle(
           fontWeight: FontWeight.w500,
-          color: textColor ?? Colors.black87,
+          color: textColor ?? (isDarkMode ? Colors.white : Colors.black87),
         ),
       ),
       onTap: onTap,

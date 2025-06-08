@@ -35,22 +35,26 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color backgroundColor = isDarkMode ? Colors.black : Colors.white;
+    final Color textColor = isDarkMode ? Colors.white : Colors.black;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
         elevation: 0,
         centerTitle: false,
-        backgroundColor: Colors.white,
-        title: const Text(
+        backgroundColor: backgroundColor,
+        title: Text(
           'Notifications',
           style: TextStyle(
-            color: Colors.black,
+            color: textColor,
             fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
@@ -59,7 +63,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
               // Only show the "Mark all as read" button if there are unread notifications
               if (state.unreadCount > 0) {
                 return IconButton(
-                  icon: const Icon(Icons.done_all, color: Colors.black),
+                  icon: Icon(Icons.done_all, color: textColor),
                   onPressed: () {
                     final notificationCubit = context.read<NotificationCubit>();
                     notificationCubit.markAllNotificationsAsRead(_currentUserId);
@@ -109,7 +113,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       context.read<NotificationCubit>().loadNotifications(_currentUserId);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
+                      backgroundColor: isDarkMode ? Colors.grey[800] : Colors.black,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),

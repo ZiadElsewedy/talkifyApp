@@ -341,15 +341,15 @@ class FirebaseChatRepo implements ChatRepo {
         .collection(_chatRoomsCollection)
         .doc(chatRoomId)
         .collection(_messagesCollection)
-        .orderBy('timestamp', descending: true)
+        .orderBy('timestamp', descending: false)  // Changed to ascending order
         .snapshots()
         .map((snapshot) {
       final messages = snapshot.docs
           .map((doc) => Message.fromJson(doc.data()))
           .toList();
       
-      // Reverse the messages to get ascending order (oldest to newest)
-      return messages.reversed.toList();
+      // Messages are already in timestamp order (oldest to newest)
+      return messages;
     });
   }
 
@@ -373,7 +373,7 @@ class FirebaseChatRepo implements ChatRepo {
               .collection(_chatRoomsCollection)
               .doc(chatRoomId)
               .collection(_messagesCollection)
-              .orderBy('timestamp', descending: true);
+              .orderBy('timestamp', descending: false);  // Changed to ascending order
               
           // If user has deleted history, only get messages after that time
           if (deletedAt != null) {
@@ -388,8 +388,8 @@ class FirebaseChatRepo implements ChatRepo {
               .where((message) => !message.deletedForUsers.contains(userId))
               .toList();
           
-          // Reverse the messages to get ascending order (oldest to newest)
-          return messages.reversed.toList();
+          // Messages are already in timestamp order (oldest to newest)
+          return messages;
         });
   }
 
@@ -510,6 +510,7 @@ class FirebaseChatRepo implements ChatRepo {
           // If this was the last message, update the chat room's last message
           if (isLastMessage) {
             // Get the previous message (now the latest message)
+            // We still need descending order here to get the latest message
             final latestMessagesQuery = await chatRoomDoc.reference
                 .collection(_messagesCollection)
                 .orderBy('timestamp', descending: true)

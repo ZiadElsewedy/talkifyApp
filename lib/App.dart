@@ -166,7 +166,7 @@ class _MyAppState extends State<MyApp> {
                 },
                 builder: (context, state) {
                   if (state is Authanticated) {
-                    return HomePage();
+                    return const WelcomePage(); // Show welcome page instead of directly going to HomePage
                   } else if (state is UnverifiedState || state is EmailVerificationState) {
                     return const VerificationEmail();
                   } else if (state is UnAuthanticated || state is AuthErrorState) {

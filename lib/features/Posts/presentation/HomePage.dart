@@ -217,6 +217,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final tabIndicator = isDarkMode ? Colors.white : Colors.black;
     final iconColor = isDarkMode ? Colors.grey[300] : Colors.black87;
     final searchIconColor = isDarkMode ? Colors.grey[400] : Colors.grey[700];
+    final notificationIconColor = isDarkMode ? Colors.grey[400] : Colors.grey[700];
     final errorIconColor = isDarkMode ? Colors.red[400] : Colors.red[300];
     final errorTextColor = isDarkMode ? Colors.white : Colors.black87;
     final errorSubTextColor = isDarkMode ? Colors.grey[400] : Colors.grey[600];
@@ -265,7 +266,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 },
                 icon: Stack(
                   children: [
-                    Icon(Icons.notifications, color: Colors.black54),
+                    Icon(Icons.notifications, color: notificationIconColor ),
                     if (state.unreadCount > 0)
                       Positioned(
                         right: 0,
