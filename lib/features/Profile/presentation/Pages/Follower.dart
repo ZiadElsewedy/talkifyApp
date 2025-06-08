@@ -376,6 +376,8 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
 
   /// Builds an empty state widget with a message and icon
   Widget buildEmptyState(String message) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -383,14 +385,14 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
           Icon(
             Icons.person_outline,
             size: 80,
-            color: mediumGrey,
+            color: isDarkMode ? Colors.grey[400] : mediumGrey,
           ),
           const SizedBox(height: 16),
           Text(
             message,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
-              color: darkGrey,
+              color: isDarkMode ? Colors.grey[300] : darkGrey,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -428,12 +430,12 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
           onTap: () => navigateToUserProfile(user),
           child: Card(
             elevation: 0,
-            color: pureWhite,
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[900] : pureWhite,
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(
-                color: lightGrey,
+              side: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800]! : lightGrey,
                 width: 1,
               ),
             ),
@@ -454,10 +456,10 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
               ),
               title: Text(
                 user.name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
-                  color: pureBlack,
+                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : pureBlack,
                 ),
               ),
               subtitle: Column(
@@ -467,9 +469,9 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
                     isFollowingList 
                         ? (currentUserId == widget.following.first ? "You are following" : "Following")
                         : (followsYou ? "Follows you" : "Follower"),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: darkGrey,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : darkGrey,
                     ),
                   ),
                   if (user.bio.isNotEmpty) ...[
@@ -505,24 +507,26 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: pureWhite,
+        backgroundColor: isDarkMode ? Colors.black : pureWhite,
         appBar: AppBar(
-          backgroundColor: pureWhite,
-          foregroundColor: pureBlack,
-          title: const Text(
+          backgroundColor: isDarkMode ? Colors.black : pureWhite,
+          foregroundColor: isDarkMode ? Colors.white : pureBlack,
+          title: Text(
             'Connections',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: pureBlack,
+              color: isDarkMode ? Colors.white : pureBlack,
             ),
           ),
           elevation: 0,
           actions: [
             IconButton(
-              icon: const Icon(Icons.refresh, color: pureBlack),
+              icon: Icon(Icons.refresh, color: isDarkMode ? Colors.white : pureBlack),
               onPressed: () {
                 // Show loading indicator
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -546,23 +550,26 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
                     onChanged: filterUsers,
                     decoration: InputDecoration(
                       hintText: 'Search users...',
-                      prefixIcon: const Icon(Icons.search, color: mediumGrey),
+                      prefixIcon: Icon(Icons.search, color: isDarkMode ? Colors.grey[400] : mediumGrey),
                       filled: true,
-                      fillColor: lightGrey.withOpacity(0.3),
+                      fillColor: isDarkMode ? Colors.grey[800] : lightGrey.withOpacity(0.3),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(25),
                         borderSide: BorderSide.none,
                       ),
                       contentPadding: const EdgeInsets.symmetric(vertical: 0),
                     ),
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
                   ),
                 ),
                 TabBar(
                   controller: _tabController,
                   indicatorWeight: 3,
-                  indicatorColor: pureBlack,
-                  labelColor: pureBlack,
-                  unselectedLabelColor: mediumGrey,
+                  indicatorColor: isDarkMode ? Colors.white : pureBlack,
+                  labelColor: isDarkMode ? Colors.white : pureBlack,
+                  unselectedLabelColor: isDarkMode ? Colors.grey[400] : mediumGrey,
                   labelStyle: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -581,10 +588,10 @@ class FollowerPageState extends State<FollowerPage> with SingleTickerProviderSta
           ),
         ),
         body: RefreshIndicator(
-          color: pureBlack,
+          color: isDarkMode ? Colors.white : pureBlack,
           onRefresh: fetchUserDetails,
           child: isLoading
-              ? const Center(child: CircularProgressIndicator(color: pureBlack))
+              ? Center(child: CircularProgressIndicator(color: isDarkMode ? Colors.white : pureBlack))
               : TabBarView(
                   controller: _tabController,
                   children: [
