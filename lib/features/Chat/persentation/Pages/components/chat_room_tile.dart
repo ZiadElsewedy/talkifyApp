@@ -108,6 +108,28 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
     // For group chats, return empty string (we'll handle differently)
     return '';
   }
+  
+  String _getParticipantName() {
+    if (widget.chatRoom.isGroupChat) {
+      // For group chats, create a name from participant names
+      final participantNames = widget.chatRoom.participantNames.values.toList();
+      if (participantNames.isEmpty) {
+        return "Group Chat";
+      } else if (participantNames.length <= 3) {
+        return participantNames.join(", ");
+      } else {
+        // Show first 2 names + count of others
+        return "${participantNames.take(2).join(", ")} + ${participantNames.length - 2} others";
+      }
+    } else {
+      // For 1-on-1 chats, get the other participant's name
+      final otherParticipantId = _getOtherParticipant();
+      if (otherParticipantId.isNotEmpty) {
+        return widget.chatRoom.participantNames[otherParticipantId] ?? 'User';
+      }
+    }
+    return 'Chat';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -425,7 +447,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
                     const SizedBox(width: 16),
                     Expanded(
                       child: Text(
-                        _getOtherParticipant(),
+                        _getParticipantName(),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
