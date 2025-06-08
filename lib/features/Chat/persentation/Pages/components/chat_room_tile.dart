@@ -382,9 +382,11 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
   }
 
   void _showOptionsDialog(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: isDarkMode ? Colors.black : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -399,7 +401,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -410,23 +412,24 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.grey[100],
+                        color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         widget.chatRoom.participants.length > 2 
                             ? Icons.group 
                             : Icons.person,
-                        color: Colors.black,
+                        color: isDarkMode ? Colors.white : Colors.black,
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Text(
                         _getOtherParticipant(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: isDarkMode ? Colors.white : Colors.black,
                         ),
                       ),
                     ),
@@ -435,8 +438,16 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
               ),
               const Divider(),
               ListTile(
-                leading: const Icon(Icons.archive_outlined),
-                title: const Text('Archive chat'),
+                leading: Icon(
+                  Icons.archive_outlined, 
+                  color: isDarkMode ? Colors.white : null
+                ),
+                title: Text(
+                  'Archive chat',
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ),
                 onTap: () {
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -452,8 +463,16 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
                 builder: (context, snapshot) {
                   final isMuted = snapshot.data ?? false;
                   return ListTile(
-                    leading: Icon(isMuted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined),
-                    title: Text(isMuted ? 'Unmute notifications' : 'Mute notifications'),
+                    leading: Icon(
+                      isMuted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined,
+                      color: isDarkMode ? Colors.white : null
+                    ),
+                    title: Text(
+                      isMuted ? 'Unmute notifications' : 'Mute notifications',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
                     onTap: () async {
                       Navigator.of(context).pop();
                       
@@ -509,8 +528,16 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
               ),
               const Divider(),
               ListTile(
-                leading: const Icon(Icons.delete_outline, color: ChatStyles.errorColor),
-                title: const Text('Delete chat'),
+                leading: Icon(
+                  Icons.delete_outline, 
+                  color: isDarkMode ? Colors.white : ChatStyles.errorColor
+                ),
+                title: Text(
+                  'Delete chat',
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ),
                 onTap: () {
                   Navigator.of(context).pop();
                   _confirmDeleteChat(context);
@@ -518,8 +545,16 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
               ),
               if (widget.chatRoom.participants.length > 2)
                 ListTile(
-                  leading: const Icon(Icons.exit_to_app),
-                  title: const Text('Leave group'),
+                  leading: Icon(
+                    Icons.exit_to_app,
+                    color: isDarkMode ? Colors.white : null
+                  ),
+                  title: Text(
+                    'Leave group',
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
+                  ),
                   onTap: () {
                     Navigator.of(context).pop();
                     _confirmLeaveGroup(context);

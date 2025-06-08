@@ -53,11 +53,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
+      backgroundColor: isDarkMode ? Colors.black : Colors.white,
       appBar: AppBar(
-        title: const Text('Contact Info'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        title: Text('Contact Info'),
+        backgroundColor: isDarkMode ? Colors.black : Colors.white,
+        foregroundColor: isDarkMode ? Colors.white : Colors.black,
         elevation: 1,
       ),
       body: FutureBuilder<AppUser?>(
@@ -127,9 +130,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
             onTap: () => _navigateToUserProfile(),
             child: Text(
               widget.userName,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
               ),
             ),
           ),
@@ -159,11 +163,13 @@ class _UserProfilePageState extends State<UserProfilePage> {
           ),
           
           const SizedBox(height: 32),
-          const Text(
+          Text(
             'No additional information available',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey,
+              color: Theme.of(context).brightness == Brightness.dark 
+                  ? Colors.grey[400] 
+                  : Colors.grey,
             ),
           ),
         ],
@@ -215,9 +221,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
             onTap: () => _navigateToUserProfile(),
             child: Text(
               user.name,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
               ),
             ),
           ),
@@ -281,15 +288,17 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }) {
     if (items.isEmpty) return const SizedBox.shrink();
     
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: isDarkMode ? Colors.white : Colors.black87,
           ),
         ),
         const SizedBox(height: 8),
@@ -304,11 +313,13 @@ class _UserProfilePageState extends State<UserProfilePage> {
     required String title,
     required String subtitle,
   }) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, size: 24, color: Colors.black54),
+          Icon(icon, size: 24, color: isDarkMode ? Colors.grey[400] : Colors.black54),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -316,16 +327,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Colors.black54,
+                    color: isDarkMode ? Colors.grey[400] : Colors.black54,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
-                    color: Colors.black,
+                    color: isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),
               ],
