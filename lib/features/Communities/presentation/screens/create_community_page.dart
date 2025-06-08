@@ -1,8 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:talkifyapp/features/Storage/Data/Filebase_Storage_repo.dart';
 import '../../data/models/community_model.dart';
 import '../cubit/community_cubit.dart';
 import '../cubit/community_state.dart';
+import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 
 class CreateCommunityPage extends StatefulWidget {
   const CreateCommunityPage({Key? key}) : super(key: key);
@@ -17,6 +21,8 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
   final TextEditingController _descriptionController = TextEditingController();
   String _selectedCategory = 'General';
   bool _isPrivate = false;
+  File? _selectedImage;
+  bool _isUploading = false;
 
   final List<String> _categories = [
     'General',
@@ -45,16 +51,64 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
     super.dispose();
   }
 
-  void _createCommunity() {
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+      });
+    }
+  }
+
+  Future<String> _uploadImage() async {
+    if (_selectedImage == null) return '';
+    
+    setState(() {
+      _isUploading = true;
+    });
+    
+    try {
+      final storage = FirebaseStorageRepo();
+      final path = 'communities/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final url = await storage.uploadFile(_selectedImage!.path, path) ?? '';
+      
+      setState(() {
+        _isUploading = false;
+      });
+      
+      return url;
+    } catch (e) {
+      setState(() {
+        _isUploading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to upload image: $e')),
+      );
+      return '';
+    }
+  }
+
+  void _createCommunity() async {
     if (_formKey.currentState!.validate()) {
+      String iconUrl = '';
+      
+      if (_selectedImage != null) {
+        iconUrl = await _uploadImage();
+      }
+      
+      final currentUser = context.read<AuthCubit>().GetCurrentUser();
+      final userId = currentUser?.id ?? 'current_user_id';
+      
       final community = CommunityModel(
         id: '',
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
         category: _selectedCategory,
-        iconUrl: '',
+        iconUrl: iconUrl,
         memberCount: 1,
-        createdBy: 'current_user_id', // Replace with actual user ID from auth
+        createdBy: userId,
         isPrivate: _isPrivate,
         createdAt: DateTime.now(),
       );
@@ -132,16 +186,20 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
                           width: 100,
                           height: 100,
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
+                            color: _selectedImage == null ? Theme.of(context).colorScheme.primary : null,
                             shape: BoxShape.circle,
+                            image: _selectedImage != null ? DecorationImage(
+                              image: FileImage(_selectedImage!),
+                              fit: BoxFit.cover,
+                            ) : null,
                           ),
-                          child: Center(
+                          child: _selectedImage == null ? Center(
                             child: Icon(
                               Icons.people,
                               color: Theme.of(context).colorScheme.surface,
                               size: 50,
                             ),
-                          ),
+                          ) : null,
                         ),
                         Positioned(
                           bottom: 0,
@@ -157,17 +215,26 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
                                 width: 2,
                               ),
                             ),
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              icon: Icon(
-                                Icons.camera_alt,
-                                color: Theme.of(context).colorScheme.surface,
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                // TODO: Implement image picker
-                              },
-                            ),
+                            child: _isUploading 
+                              ? Center(
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Theme.of(context).colorScheme.surface,
+                                    ),
+                                  ),
+                                )
+                              : IconButton(
+                                  padding: EdgeInsets.zero,
+                                  icon: Icon(
+                                    Icons.camera_alt,
+                                    color: Theme.of(context).colorScheme.surface,
+                                    size: 20,
+                                  ),
+                                  onPressed: _pickImage,
+                                ),
                           ),
                         ),
                       ],

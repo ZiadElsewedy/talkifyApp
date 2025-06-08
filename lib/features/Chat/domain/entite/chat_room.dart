@@ -14,6 +14,7 @@ class ChatRoom {
   final List<String> admins; // List of admin user IDs
   final Map<String, bool> leftParticipants; // Map of userId -> left status (to track users who left)
   final Map<String, DateTime> messageHistoryDeletedAt; // Map of userId -> timestamp when message history was deleted
+  final String? communityId; // ID of the community this chat belongs to, null for regular chats
 
   ChatRoom({
     required this.id,
@@ -29,13 +30,14 @@ class ChatRoom {
     List<String>? admins,
     Map<String, bool>? leftParticipants,
     Map<String, DateTime>? messageHistoryDeletedAt,
+    this.communityId,
   }) : this.admins = admins ?? [],
        this.leftParticipants = leftParticipants ?? {},
        this.messageHistoryDeletedAt = messageHistoryDeletedAt ?? {};
 
   // Convert ChatRoom to JSON
   Map<String, dynamic> toJson() {
-    return {
+    final json = {
       'id': id,
       'participants': participants,
       'participantNames': participantNames,
@@ -50,6 +52,13 @@ class ChatRoom {
       'leftParticipants': leftParticipants,
       'messageHistoryDeletedAt': messageHistoryDeletedAt.map((key, value) => MapEntry(key, value)),
     };
+
+    // Only include communityId if it's not null
+    if (communityId != null) {
+      json['communityId'] = communityId;
+    }
+
+    return json;
   }
 
   // Convert JSON to ChatRoom
@@ -82,6 +91,7 @@ class ChatRoom {
         ? Map<String, bool>.from(json['leftParticipants']) 
         : {},
       messageHistoryDeletedAt: messageHistoryDeletedAt,
+      communityId: json['communityId'] as String?,
     );
   }
 
@@ -100,6 +110,7 @@ class ChatRoom {
     List<String>? admins,
     Map<String, bool>? leftParticipants,
     Map<String, DateTime>? messageHistoryDeletedAt,
+    String? communityId,
   }) {
     return ChatRoom(
       id: id ?? this.id,
@@ -115,6 +126,7 @@ class ChatRoom {
       admins: admins ?? this.admins,
       leftParticipants: leftParticipants ?? this.leftParticipants,
       messageHistoryDeletedAt: messageHistoryDeletedAt ?? this.messageHistoryDeletedAt,
+      communityId: communityId ?? this.communityId,
     );
   }
 
@@ -130,9 +142,12 @@ class ChatRoom {
   
   // Check if this is a group chat (more than 2 participants)
   bool get isGroupChat => participants.length > 2;
+  
+  // Check if this is a community chat
+  bool get isCommunityChat => communityId != null;
 
   @override
   String toString() {
-    return 'ChatRoom{id: $id, participants: $participants, lastMessage: $lastMessage}';
+    return 'ChatRoom{id: $id, participants: $participants, lastMessage: $lastMessage, communityId: $communityId}';
   }
 } 

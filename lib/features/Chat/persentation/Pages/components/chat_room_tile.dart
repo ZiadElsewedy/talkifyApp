@@ -133,6 +133,11 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    // Skip rendering this tile if it's a community chat room
+    if (widget.chatRoom.communityId != null) {
+      return const SizedBox.shrink(); // Don't render community chats in the main chat list
+    }
+    
     // Get the other participant's info (for 1-on-1 chats)
     final otherParticipant = _getOtherParticipant();
     final unreadCount = widget.chatRoom.unreadCount[widget.currentUserId] ?? 0;

@@ -78,16 +78,68 @@ class CommunityRepositoryImpl implements CommunityRepository {
     // Remove id as Firestore will generate one
     communityMap.remove('id');
     
+    // Create the community document
     final docRef = await _firestore.collection('communities').add(communityMap);
+    
+    // Make the creator an admin of the community
+    await _addCreatorAsAdmin(docRef.id, community.createdBy);
     
     // Get the newly created community
     final newCommunity = await getCommunityById(docRef.id);
     return newCommunity;
   }
 
+  Future<void> _addCreatorAsAdmin(String communityId, String userId) async {
+    // Get user data from users collection
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    
+    if (!userDoc.exists) {
+      throw Exception('User not found');
+    }
+    
+    final userData = userDoc.data()!;
+    
+    final member = CommunityMemberModel(
+      id: '', // Will be set by Firestore
+      communityId: communityId,
+      userId: userId,
+      userName: userData['name'] ?? 'Anonymous',
+      userAvatar: userData['profilePictureUrl'] ?? '',
+      role: MemberRole.admin, // Make the creator an admin
+      joinedAt: DateTime.now(),
+    );
+    
+    final memberMap = member.toJson();
+    memberMap.remove('id');
+    
+    await _firestore
+        .collection('communities')
+        .doc(communityId)
+        .collection('members')
+        .add(memberMap);
+  }
+
   @override
   Future<void> updateCommunity(Community community) async {
-    final communityMap = (community as CommunityModel).toJson();
+    // Convert Community to CommunityModel if needed
+    CommunityModel communityModel;
+    if (community is CommunityModel) {
+      communityModel = community;
+    } else {
+      communityModel = CommunityModel(
+        id: community.id,
+        name: community.name,
+        description: community.description,
+        category: community.category,
+        iconUrl: community.iconUrl,
+        memberCount: community.memberCount,
+        createdBy: community.createdBy,
+        isPrivate: community.isPrivate,
+        createdAt: community.createdAt,
+      );
+    }
+    
+    final communityMap = communityModel.toJson();
     
     // Remove id from the map as it's used as the document ID
     communityMap.remove('id');
@@ -167,36 +219,39 @@ class CommunityRepositoryImpl implements CommunityRepository {
 
   @override
   Future<void> leaveCommunity(String communityId, String userId) async {
-    // Find the member document
-    final querySnapshot = await _firestore
-        .collection('communities')
-        .doc(communityId)
-        .collection('members')
-        .where('userId', isEqualTo: userId)
-        .limit(1)
-        .get();
-    
-    if (querySnapshot.docs.isEmpty) {
-      throw Exception('User is not a member of this community');
-    }
-    
-    // Delete the member document
-    await _firestore
-        .collection('communities')
-        .doc(communityId)
-        .collection('members')
-        .doc(querySnapshot.docs.first.id)
-        .delete();
-    
-    // Update member count
-    final communityDoc = await _firestore.collection('communities').doc(communityId).get();
-    final currentCount = communityDoc.data()?['memberCount'] ?? 0;
-    
-    if (currentCount > 0) {
-      await _firestore
-          .collection('communities')
-          .doc(communityId)
-          .update({'memberCount': currentCount - 1});
+    try {
+      // Use a transaction to ensure atomicity
+      await _firestore.runTransaction((transaction) async {
+        // Find the member document
+        final querySnapshot = await _firestore
+            .collection('communities')
+            .doc(communityId)
+            .collection('members')
+            .where('userId', isEqualTo: userId)
+            .limit(1)
+            .get();
+        
+        if (querySnapshot.docs.isEmpty) {
+          throw Exception('User is not a member of this community');
+        }
+        
+        final memberDoc = querySnapshot.docs.first;
+        final communityRef = _firestore.collection('communities').doc(communityId);
+        
+        // Get current member count
+        final communityDoc = await transaction.get(communityRef);
+        final currentCount = communityDoc.data()?['memberCount'] ?? 0;
+        
+        // Delete the member document
+        transaction.delete(memberDoc.reference);
+        
+        // Update member count if needed
+        if (currentCount > 0) {
+          transaction.update(communityRef, {'memberCount': currentCount - 1});
+        }
+      });
+    } catch (e) {
+      throw Exception('Failed to leave community: $e');
     }
   }
 
