@@ -45,8 +45,22 @@ class ChatNotificationService {
       _playNotificationSound();
     }
     
-    // Create the overlay entry
-    final overlay = Overlay.of(context);
+    // Check if the context is still valid
+    if (!context.mounted) {
+      print('Context is no longer mounted, skipping notification');
+      return;
+    }
+    
+    // Store a local reference to the context to avoid it being captured in closures
+    final BuildContext localContext = context;
+    
+    // Create the overlay entry - safely get overlay
+    final overlay = Overlay.maybeOf(localContext);
+    if (overlay == null) {
+      print('No overlay found, skipping notification');
+      return;
+    }
+    
     final notification = OverlayEntry(
       builder: (context) => _ChatNotification(
         senderName: senderName,
@@ -56,9 +70,9 @@ class ChatNotificationService {
         isGroupChat: isGroupChat,
         onTap: () {
           // Navigate to chat room
-          if (chatRoom != null) {
+          if (chatRoom != null && localContext.mounted) {
             Navigator.push(
-              context,
+              localContext,
               MaterialPageRoute(
                 builder: (context) => ChatRoomPage(
                   chatRoom: chatRoom,

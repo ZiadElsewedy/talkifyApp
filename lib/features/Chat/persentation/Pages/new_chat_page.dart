@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/chat_list_page.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/chat_room_page.dart';
 import 'package:talkifyapp/features/Search/Presentation/Cubit/Search_cubit.dart';
 import 'package:talkifyapp/features/Search/Presentation/Cubit/Searchstates.dart';
@@ -121,31 +122,44 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
       for (var user in _selectedUsers) user.id: user.profilePictureUrl,
     };
 
-    // Find or create chat room
-    final chatRoom = await context.read<ChatCubit>().findOrCreateChatRoom(
-      participantIds: participantIds,
-      participantNames: participantNames,
-      participantAvatars: participantAvatars,
-    );
-
-    if (chatRoom != null && mounted) {
-      // Navigate to chat room
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ChatRoomPage(chatRoom: chatRoom),
-        ),
+    try {
+      // Find or create chat room
+      final chatRoom = await context.read<ChatCubit>().findOrCreateChatRoom(
+        participantIds: participantIds,
+        participantNames: participantNames,
+        participantAvatars: participantAvatars,
       );
+
+      if (mounted) {
+        // Navigate to chat list page instead of chat room
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ChatListPage(),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error creating chat: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create chat: ${e.toString()}')),
+        );
+      }
     }
   }
 
   void _showGroupNameDialog() {
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    if (!mounted) return;
+    
+    // Store a local reference to avoid context being captured in closures
+    final BuildContext localContext = context;
+    final bool isDarkMode = Theme.of(localContext).brightness == Brightness.dark;
     
     showDialog(
-      context: context,
+      context: localContext,
       barrierColor: Colors.black.withOpacity(0.5),
-      builder: (context) => TweenAnimationBuilder<double>(
+      builder: (dialogContext) => TweenAnimationBuilder<double>(
         tween: Tween<double>(begin: 0.9, end: 1.0),
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOutQuint,
@@ -351,7 +365,7 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                     children: [
                       TextButton(
                         onPressed: () {
-                          Navigator.of(context).pop();
+                          Navigator.of(dialogContext).pop();
                           _createGroupChat(null);
                         },
                         style: TextButton.styleFrom(
@@ -365,12 +379,12 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                         onPressed: () {
                           final groupName = _groupNameController.text.trim();
                           if (groupName.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
                               const SnackBar(content: Text('Please enter a group name'))
                             );
                             return;
                           }
-                          Navigator.of(context).pop();
+                          Navigator.of(dialogContext).pop();
                           _createGroupChat(groupName);
                         },
                         style: ElevatedButton.styleFrom(
@@ -403,8 +417,13 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
   }
 
   void _createGroupChat(String? groupName) async {
+    if (!mounted) return;
+    
     final currentUser = context.read<AuthCubit>().GetCurrentUser();
     if (currentUser == null) return;
+
+    // Store context locally to avoid issues
+    final BuildContext localContext = context;
 
     // Create participant lists including current user
     final participantIds = [currentUser.id, ..._selectedUsers.map((u) => u.id)];
@@ -423,24 +442,33 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
       for (var user in _selectedUsers) user.id: user.profilePictureUrl,
     };
 
-    // Create the chat room
-    final chatRoom = await context.read<ChatCubit>().findOrCreateChatRoom(
-      participantIds: participantIds,
-      participantNames: participantNames,
-      participantAvatars: participantAvatars,
-    );
-
-    // Clear controllers
-    _groupNameController.clear();
-
-    if (chatRoom != null && mounted) {
-      // Navigate to chat room
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ChatRoomPage(chatRoom: chatRoom),
-        ),
+    try {
+      // Create the chat room
+      final chatRoom = await localContext.read<ChatCubit>().findOrCreateChatRoom(
+        participantIds: participantIds,
+        participantNames: participantNames,
+        participantAvatars: participantAvatars,
       );
+
+      // Clear controllers
+      _groupNameController.clear();
+
+      if (mounted) {
+        // Navigate to chat list page instead of the chat room
+        Navigator.pushReplacement(
+          localContext,
+          MaterialPageRoute(
+            builder: (context) => const ChatListPage(),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error creating group chat: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(localContext).showSnackBar(
+          SnackBar(content: Text('Failed to create group chat: ${e.toString()}')),
+        );
+      }
     }
   }
 
