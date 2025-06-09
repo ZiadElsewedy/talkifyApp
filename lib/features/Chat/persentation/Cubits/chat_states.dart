@@ -274,7 +274,7 @@ class ChatRoomForCommunityLoading extends ChatState {}
 
 class ChatRoomForCommunityLoaded extends ChatState {
   final ChatRoom chatRoom;
-
+  
   const ChatRoomForCommunityLoaded(this.chatRoom);
 
   @override
@@ -283,7 +283,7 @@ class ChatRoomForCommunityLoaded extends ChatState {
 
 class ChatRoomForCommunityNotFound extends ChatState {
   final String communityId;
-
+  
   const ChatRoomForCommunityNotFound(this.communityId);
 
   @override
@@ -292,7 +292,7 @@ class ChatRoomForCommunityNotFound extends ChatState {
 
 class ChatRoomForCommunityError extends ChatState {
   final String message;
-
+  
   const ChatRoomForCommunityError(this.message);
 
   @override
@@ -303,7 +303,7 @@ class ChatRoomCreating extends ChatState {}
 
 class ChatRoomCreationError extends ChatState {
   final String message;
-
+  
   const ChatRoomCreationError(this.message);
 
   @override

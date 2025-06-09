@@ -14,6 +14,7 @@ import 'package:talkifyapp/features/Chat/Utils/message_type_helper.dart';
 import 'package:talkifyapp/features/Communities/data/repositories/community_repository_impl.dart';
 import 'community_info_page.dart';
 import 'community_events_page.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/components/percent_circle_indicator.dart' as chat_indicator;
 
 class CommunityChatPage extends StatefulWidget {
   final String communityId;
@@ -322,7 +323,10 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
+      backgroundColor: isDarkMode ? Colors.black : Colors.white,
       appBar: AppBar(
+        backgroundColor: isDarkMode ? Colors.black : Colors.white,
+        elevation: 0,
         title: Text(
           widget.communityName ?? 'Community Chat',
           style: TextStyle(
@@ -330,7 +334,6 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: isDarkMode ? Theme.of(context).colorScheme.surface : Colors.white,
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back,
@@ -339,34 +342,22 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          // Make the Events button more prominent with high visibility
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-              borderRadius: BorderRadius.circular(20),
+          IconButton(
+            icon: Icon(
+              Icons.event,
+              color: isDarkMode ? Colors.white : Colors.black,
             ),
-            child: TextButton.icon(
-              icon: const Icon(Icons.event, color: Colors.white),
-              label: const Text(
-                'Events',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CommunityEventsPage(
-                      communityId: widget.communityId,
-                      communityName: widget.communityName ?? 'Community Chat',
-                    ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CommunityEventsPage(
+                    communityId: widget.communityId,
+                    communityName: widget.communityName ?? 'Community Chat',
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
           IconButton(
             icon: Icon(
@@ -388,38 +379,6 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
                 );
               }
             },
-          ),
-        ],
-      ),
-      // Add multiple floating action buttons for different actions
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Events button
-          FloatingActionButton.extended(
-            heroTag: 'eventsFAB',
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            icon: const Icon(Icons.event, color: Colors.white),
-            label: const Text('Create Event', style: TextStyle(color: Colors.white)),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CommunityEventsPage(
-                    communityId: widget.communityId,
-                    communityName: widget.communityName ?? 'Community Chat',
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          // Media button
-          FloatingActionButton(
-            heroTag: 'mediaFAB',
-            backgroundColor: Theme.of(context).colorScheme.secondary,
-            onPressed: _showAttachmentOptions,
-            child: const Icon(Icons.add, color: Colors.white),
           ),
         ],
       ),
@@ -521,7 +480,7 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
         builder: (context, state) {
           if (_isLoading) {
             return const Center(
-              child: PercentCircleIndicator(),
+              child: chat_indicator.PercentCircleIndicator(),
             );
           }
           
@@ -570,24 +529,24 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
         children: [
           Icon(
             Icons.chat_bubble_outline,
-            size: 60,
-            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+            size: 80,
+            color: isDarkMode ? Colors.white54 : Colors.black38,
           ),
           const SizedBox(height: 16),
           Text(
             'No messages yet',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 16,
+              color: isDarkMode ? Colors.white54 : Colors.black38,
               fontWeight: FontWeight.bold,
-              color: isDarkMode ? Colors.white : Colors.grey[800],
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Start the conversation in this community',
-            textAlign: TextAlign.center,
+            'Be the first to send a message!',
             style: TextStyle(
-              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+              fontSize: 14,
+              color: isDarkMode ? Colors.white38 : Colors.black26,
             ),
           ),
         ],
@@ -596,15 +555,14 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
   }
   
   Widget _buildMessageList(bool isDarkMode) {
-    final currentUser = context.read<AuthCubit>().GetCurrentUser();
-    
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
       itemCount: _messages.length,
       itemBuilder: (context, index) {
         final message = _messages[index];
-        final isMe = message.senderId == currentUser?.id;
+        final currentUser = context.read<AuthCubit>().GetCurrentUser();
+        final isMe = currentUser != null && message.senderId == currentUser.id;
         
         return MessageBubble(
           message: message,
@@ -617,15 +575,17 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
   Widget _buildMessageInput(bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      color: isDarkMode ? Theme.of(context).colorScheme.surface : Colors.white,
+      color: isDarkMode ? Colors.black : Colors.white,
       child: Row(
         children: [
           IconButton(
             icon: Icon(
-              Icons.add,
-              color: isDarkMode ? Colors.white : Colors.grey[700],
+              Icons.add_circle_outline,
+              color: Theme.of(context).colorScheme.inversePrimary,
             ),
-            onPressed: _showAttachmentOptions,
+            onPressed: () {
+              // Show attachment options
+            },
           ),
           Expanded(
             child: TextField(
@@ -633,35 +593,33 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
               decoration: InputDecoration(
                 hintText: 'Type a message...',
                 hintStyle: TextStyle(
-                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                ),
-                filled: true,
-                fillColor: isDarkMode ? Colors.grey[800] : Colors.grey[200],
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+                  color: isDarkMode ? Colors.white54 : Colors.black38,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,
                 ),
+                filled: true,
+                fillColor: isDarkMode ? Colors.grey[900] : Colors.grey[200],
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
               ),
               style: TextStyle(
                 color: isDarkMode ? Colors.white : Colors.black,
               ),
+              maxLines: null,
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => _sendMessage(),
             ),
           ),
-          const SizedBox(width: 8),
-          CircleAvatar(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            radius: 24,
-            child: IconButton(
-              icon: const Icon(
-                Icons.send,
-                color: Colors.white,
-              ),
-              onPressed: _sendMessage,
+          IconButton(
+            icon: Icon(
+              Icons.send,
+              color: Theme.of(context).colorScheme.inversePrimary,
             ),
+            onPressed: _sendMessage,
           ),
         ],
       ),

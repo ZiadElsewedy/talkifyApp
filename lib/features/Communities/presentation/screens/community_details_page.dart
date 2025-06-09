@@ -169,6 +169,10 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
       ),
     );
     
+    // Ensure we have the latest member data 
+    final memberCubit = context.read<CommunityMemberCubit>();
+    memberCubit.getCommunityMembers(community.id);
+    
     print("DEBUG: About to call getChatRoomForCommunity with ID: ${community.id}");
     
     // Get the chat room for this community
@@ -179,34 +183,31 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
     
     // Listen for the result in a separate listener
     subscription = chatCubit.stream.listen((state) async {
-      // Check if still mounted before using context
       if (!mounted) {
-        print("DEBUG: Widget no longer mounted, cancelling subscription");
         subscription.cancel();
         return;
       }
       
-      print("DEBUG: Received chat state update: ${state.runtimeType}");
-      
       if (state is ChatRoomForCommunityLoaded) {
-        print("DEBUG: ChatRoomForCommunityLoaded state received. Chat room ID: ${state.chatRoom.id}");
+        print("DEBUG: ChatRoomForCommunityLoaded state received with chat room ID: ${state.chatRoom.id}");
         
-        // Close the loading dialog if it's showing
+        // Close loading dialog
         if (Navigator.canPop(context)) {
           Navigator.pop(context);
         }
         
-        // Navigate to chat room
+        // Navigate to the chat page
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ChatRoomPage(
-              chatRoom: state.chatRoom,
+            builder: (context) => CommunityChatPage(
+              communityId: community.id,
+              communityName: community.name,
             ),
           ),
         );
         
-        // Cancel subscription after navigation
+        // Now we can cancel the subscription
         subscription.cancel();
       } else if (state is ChatRoomForCommunityNotFound || state is ChatRoomForCommunityError) {
         print("DEBUG: Error/NotFound state received: ${state.runtimeType}");
@@ -288,32 +289,27 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
         print("DEBUG: ChatRoomCreating state received");
       } else if (state is ChatRoomCreated) {
         print("DEBUG: ChatRoomCreated state received. New chat room ID: ${state.chatRoom.id}");
-        // Try loading the chat room again
-        chatCubit.getChatRoomForCommunity(community.id);
-      }
-    }, onError: (error) {
-      // Check if still mounted before using context
-      if (!mounted) {
+        
+        // Close loading dialog
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+        
+        // Navigate directly to chat page with the new chat room
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CommunityChatPage(
+              communityId: community.id,
+              communityName: community.name,
+            ),
+          ),
+        );
+        
+        // Cancel subscription after navigation
         subscription.cancel();
-        return;
       }
-      
-      // Close the loading dialog if it's showing
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-      
-      // Show error
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $error')),
-      );
-      
-      // Cancel subscription after error
-      subscription.cancel();
     });
-    
-    // Add to subscriptions list for proper disposal
-    _subscriptions.add(subscription);
   }
   
   // Handle leaving a community
@@ -532,88 +528,107 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
   }
   
   void _showEditCommunityDialog() {
-    if (!(context.read<CommunityCubit>().state is CommunityDetailLoaded)) return;
+    if (context.read<CommunityCubit>().state is! CommunityDetailLoaded) return;
     
     final community = (context.read<CommunityCubit>().state as CommunityDetailLoaded).community;
+    
+    // Controllers
     final nameController = TextEditingController(text: community.name);
     final descriptionController = TextEditingController(text: community.description);
+    String selectedCategory = community.category;
     bool isPrivate = community.isPrivate;
     
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: const Text('Edit Community'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Community Name',
-                    ),
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Community'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Name',
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: descriptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                    ),
-                    maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      const Text('Private Community'),
-                      const Spacer(),
-                      Switch(
-                        value: isPrivate,
-                        onChanged: (value) {
-                          setState(() {
-                            isPrivate = value;
-                          });
-                        },
-                      ),
-                    ],
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Category',
+                    border: OutlineInputBorder(),
                   ),
-                ],
-              ),
+                  value: selectedCategory,
+                  items: [
+                    'General',
+                    'Technology',
+                    'Gaming',
+                    'Sports',
+                    'Art',
+                    'Music',
+                    'Food',
+                    'Travel',
+                    'Fashion',
+                    'Education',
+                    'Business',
+                    'Politics',
+                    'Science',
+                    'Health',
+                    'Other',
+                  ].map((String category) {
+                    return DropdownMenuItem<String>(
+                      value: category,
+                      child: Text(category),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    selectedCategory = newValue!;
+                  },
+                ),
+                const SizedBox(height: 16),
+                SwitchListTile(
+                  title: const Text('Private Community'),
+                  value: isPrivate,
+                  onChanged: (value) {
+                    setState(() {
+                      isPrivate = value;
+                    });
+                  },
+                ),
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  final updatedCommunity = Community(
-                    id: community.id,
-                    name: nameController.text,
-                    description: descriptionController.text,
-                    category: community.category,
-                    iconUrl: community.iconUrl,
-                    memberCount: community.memberCount,
-                    createdBy: community.createdBy,
-                    isPrivate: isPrivate,
-                    createdAt: community.createdAt,
-                  );
-                  
-                  context.read<CommunityCubit>().updateCommunity(updatedCommunity);
-                  Navigator.pop(context);
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Community updated')),
-                  );
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          );
-        },
-      ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _updateCommunity(
+                  nameController.text,
+                  descriptionController.text,
+                  selectedCategory,
+                  isPrivate,
+                );
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
     );
   }
   
@@ -738,35 +753,35 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
               children: [
                 Positioned.fill(
                   child: FlexibleSpaceBar(
-                    title: Text(
-                      community.name,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.inversePrimary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    background: Container(
+              title: Text(
+                community.name,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.inversePrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              background: Container(
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
+                color: Theme.of(context).colorScheme.primary,
                         image: community.iconUrl.isNotEmpty
                             ? DecorationImage(
                                 image: NetworkImage(community.iconUrl),
-                                fit: BoxFit.cover,
+                        fit: BoxFit.cover,
                               )
                             : null,
                       ),
                       child: community.iconUrl.isEmpty
                           ? Center(
-                              child: Icon(
-                                Icons.people,
-                                color: Theme.of(context).colorScheme.surface,
-                                size: 60,
-                              ),
-                            )
+                            child: Icon(
+                              Icons.people,
+                              color: Theme.of(context).colorScheme.surface,
+                              size: 60,
+                            ),
+                      )
                           : null,
-                    ),
-                  ),
-                ),
+                        ),
+                      ),
+              ),
                 // Edit photo button for admin
                 if (_isUserAdmin)
                   Positioned(
@@ -986,101 +1001,59 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
     final community = (context.read<CommunityCubit>().state as CommunityDetailLoaded).community;
     
     return ListView(
-      padding: const EdgeInsets.all(16.0),
-      children: [
-        // About Section
-        Card(
-          color: Theme.of(context).colorScheme.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
-            side: BorderSide(
-              color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.2),
-              width: 1,
-            ),
-          ),
-          child: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'About this Community',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.inversePrimary,
+            children: [
+        // About Section
+              Card(
+                color: Theme.of(context).colorScheme.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0),
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.2),
+                    width: 1,
                   ),
                 ),
-                const SizedBox(height: 16.0),
-                _buildInfoItem(
-                  context,
-                  Icons.calendar_today,
-                  'Created',
-                  'on ${_formatDate(community.createdAt)}',
-                ),
-                _buildInfoItem(
-                  context,
-                  Icons.category,
-                  'Category',
-                  community.category,
-                ),
-                _buildInfoItem(
-                  context,
-                  Icons.visibility,
-                  'Visibility',
-                  community.isPrivate ? 'Private community' : 'Public community',
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16.0),
-        
-        // Rules Section
-        Card(
-          color: Theme.of(context).colorScheme.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
-            side: BorderSide(
-              color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.2),
-              width: 1,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Rules',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.inversePrimary,
-                      ),
-                    ),
-                    if (_isUserAdmin)
-                      IconButton(
-                        icon: Icon(
-                          Icons.edit,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 20,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'About this Community',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.inversePrimary,
                         ),
-                        onPressed: () => _showEditRulesDialog(context, community),
-                        tooltip: 'Edit Rules',
                       ),
-                  ],
+                      const SizedBox(height: 16.0),
+                _buildInfoItem(
+                        context,
+                        Icons.calendar_today,
+                        'Created',
+                        'on ${_formatDate(community.createdAt)}',
+                      ),
+                _buildInfoItem(
+                        context,
+                        Icons.category,
+                        'Category',
+                        community.category,
+                      ),
+                _buildInfoItem(
+                        context,
+                  Icons.visibility,
+                        'Visibility',
+                        community.isPrivate ? 'Private community' : 'Public community',
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16.0),
-                ...community.rules.map((rule) => _buildRuleItem(context, rule)).toList(),
-              ],
-            ),
-          ),
-        ),
-      ],
+              ),
+              const SizedBox(height: 16.0),
+        
+              // Rules Section - Using the new method
+              _buildRulesContent(context, community),
+            ],
     );
   }
   
@@ -1159,6 +1132,7 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
                   description: currentCommunity.description,
                   category: currentCommunity.category,
                   iconUrl: currentCommunity.iconUrl,
+                  rulesPictureUrl: currentCommunity.rulesPictureUrl,
                   memberCount: currentCommunity.memberCount,
                   createdBy: currentCommunity.createdBy,
                   isPrivate: currentCommunity.isPrivate,
@@ -1226,6 +1200,8 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
   
   // Separate widget for Members tab
   Widget _buildMembersTab() {
+    final Map<String, CommunityMember> uniqueMembers = {};
+    
     return BlocConsumer<CommunityMemberCubit, CommunityMemberState>(
       listener: (context, state) {
         if (state is CommunityMembersLoaded) {
@@ -1242,11 +1218,13 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
         } else if (state is CommunityMembersLoaded) {
           final members = state.members;
           
-          // Remove duplicate members by userId
-          final uniqueMembers = <String, CommunityMember>{};
-          for (final member in members) {
+          // Debug: print members
+          print("Found ${members.length} members");
+          for (var member in members) {
+            print("Member: ${member.userName} (${member.userId}), Avatar: ${member.userAvatar}");
             uniqueMembers[member.userId] = member;
           }
+          
           final uniqueMembersList = uniqueMembers.values.toList();
           
           if (uniqueMembersList.isEmpty) {
@@ -1260,16 +1238,39 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
             );
           }
           
-          return ListView.builder(
-            padding: const EdgeInsets.all(16.0),
-            itemCount: uniqueMembersList.length,
-            itemBuilder: (context, index) {
-              final member = uniqueMembersList[index];
-              return GestureDetector(
-                onTap: _isUserAdmin ? () => _showManageMemberOptions(member) : null,
-                child: _buildMemberItem(context, member),
-              );
+          // Sort members: admins first, then moderators, then regular members
+          uniqueMembersList.sort((a, b) {
+            if (a.role == MemberRole.admin && b.role != MemberRole.admin) {
+              return -1;
+            }
+            if (a.role != MemberRole.admin && b.role == MemberRole.admin) {
+              return 1;
+            }
+            if (a.role == MemberRole.moderator && b.role == MemberRole.member) {
+              return -1;
+            }
+            if (a.role == MemberRole.member && b.role == MemberRole.moderator) {
+              return 1;
+            }
+            return a.userName.compareTo(b.userName);
+          });
+          
+          // Ensure all members are displayed
+          return RefreshIndicator(
+            onRefresh: () async {
+              context.read<CommunityMemberCubit>().getCommunityMembers(widget.communityId);
             },
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16.0),
+              itemCount: uniqueMembersList.length,
+              itemBuilder: (context, index) {
+                final member = uniqueMembersList[index];
+                return GestureDetector(
+                  onTap: _isUserAdmin ? () => _showManageMemberOptions(member) : null,
+                  child: _buildMemberItem(context, member),
+                );
+              },
+            ),
           );
         } else if (state is CommunityMemberError) {
           return Center(
@@ -1281,6 +1282,14 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
             ),
           );
         }
+        
+        // Ensure members are loaded when the tab is shown
+        if (mounted) {
+          Future.microtask(() => 
+            context.read<CommunityMemberCubit>().getCommunityMembers(widget.communityId)
+          );
+        }
+        
         return Center(
           child: Text(
             'Loading members...',
@@ -1297,32 +1306,32 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 20,
-            color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-          ),
-          const SizedBox(width: 16.0),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.inversePrimary,
-                ),
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
+        ),
+        const SizedBox(width: 16.0),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.inversePrimary,
               ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-                ),
+            ),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
+      ],
       ),
     );
   }
@@ -1355,7 +1364,7 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
   Widget _buildMemberItem(BuildContext context, CommunityMember member) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
-      color: Theme.of(context).colorScheme.surface,
+                        color: Theme.of(context).colorScheme.surface,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
@@ -1377,14 +1386,14 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
                   style: const TextStyle(color: Colors.white),
                 )
               : null,
-        ),
-        title: Text(
-          member.userName,
-          style: TextStyle(
+      ),
+      title: Text(
+        member.userName,
+        style: TextStyle(
             fontWeight: FontWeight.w500,
-            color: Theme.of(context).colorScheme.inversePrimary,
-          ),
+          color: Theme.of(context).colorScheme.inversePrimary,
         ),
+      ),
         subtitle: Row(
           children: [
             Container(
@@ -1394,20 +1403,20 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                _getRoleText(member.role),
-                style: TextStyle(
+        _getRoleText(member.role),
+        style: TextStyle(
                   fontSize: 12,
                   color: _getRoleColor(member.role),
-                ),
-              ),
+        ),
+      ),
             ),
             const SizedBox(width: 8),
             Text(
-              'Joined ${_formatDate(member.joinedAt)}',
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-              ),
+        'Joined ${_formatDate(member.joinedAt)}',
+        style: TextStyle(
+          fontSize: 12,
+          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
+        ),
             ),
           ],
         ),
@@ -1601,6 +1610,7 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
         description: community.description,
         category: community.category,
         iconUrl: imageUrl ?? community.iconUrl, // Use existing URL if upload failed
+        rulesPictureUrl: community.rulesPictureUrl,
         memberCount: community.memberCount,
         createdBy: community.createdBy,
         isPrivate: community.isPrivate,
@@ -1645,6 +1655,204 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
           _isImageLoading = false;
         });
       }
+    }
+  }
+
+  // Add a new method to change the rules picture
+  Future<void> _changeRulesPicture() async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    
+    if (pickedFile == null) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      final File imageFile = File(pickedFile.path);
+      final storage = FirebaseStorageRepo();
+      final path = 'communities/${widget.communityId}_rules_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      
+      final url = await storage.uploadFile(imageFile.path, path) ?? '';
+      
+      if (url.isNotEmpty && context.read<CommunityCubit>().state is CommunityDetailLoaded) {
+        final community = (context.read<CommunityCubit>().state as CommunityDetailLoaded).community;
+        final updatedCommunity = CommunityModel(
+          id: community.id,
+          name: community.name,
+          description: community.description,
+          category: community.category,
+          iconUrl: community.iconUrl,
+          rulesPictureUrl: url,
+          memberCount: community.memberCount,
+          createdBy: community.createdBy,
+          isPrivate: community.isPrivate,
+          createdAt: community.createdAt,
+          rules: community.rules,
+        );
+        
+        context.read<CommunityCubit>().updateCommunity(updatedCommunity);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Rules picture updated')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update rules picture: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Update the _buildRulesContent method to include rules picture
+  Widget _buildRulesContent(BuildContext context, Community community) {
+    return Card(
+      margin: EdgeInsets.zero,
+      color: Theme.of(context).colorScheme.surface,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Rules',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.inversePrimary,
+                  ),
+                ),
+                if (_isUserAdmin)
+                  IconButton(
+                    icon: Icon(
+                      Icons.edit,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    ),
+                    onPressed: () => _showEditRulesDialog(context, community),
+                    tooltip: 'Edit Rules',
+                  ),
+              ],
+            ),
+            
+            // Add Rules Picture if it exists
+            if (community.rulesPictureUrl.isNotEmpty)
+              Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        community.rulesPictureUrl,
+                        height: 150,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 150,
+                            width: double.infinity,
+                            color: Colors.grey.withOpacity(0.3),
+                            child: const Center(
+                              child: Text('Image not available'),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  // Add edit button for admin to change rules picture
+                  if (_isUserAdmin)
+                    Positioned(
+                      right: 8,
+                      bottom: 20,
+                      child: FloatingActionButton.small(
+                        onPressed: _changeRulesPicture,
+                        backgroundColor: Colors.black54,
+                        child: Icon(Icons.camera_alt),
+                      ),
+                    ),
+                ],
+              )
+            else if (_isUserAdmin)
+              // Show add rules picture button for admin
+              InkWell(
+                onTap: _changeRulesPicture,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 12.0),
+                  width: double.infinity,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.withOpacity(0.5)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_photo_alternate,
+                        size: 40,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Add Rules Picture',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.inversePrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            
+            const SizedBox(height: 16.0),
+            ...community.rules.map((rule) => _buildRuleItem(context, rule)).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Update the _updateCommunity method to include rulesPictureUrl
+  void _updateCommunity(
+    String name,
+    String description,
+    String category,
+    bool isPrivate,
+  ) async {
+    if (context.read<CommunityCubit>().state is CommunityDetailLoaded) {
+      final community = (context.read<CommunityCubit>().state as CommunityDetailLoaded).community;
+      
+      final updatedCommunity = CommunityModel(
+        id: community.id,
+        name: name.trim(),
+        description: description.trim(),
+        category: category,
+        iconUrl: community.iconUrl,
+        rulesPictureUrl: community.rulesPictureUrl,
+        memberCount: community.memberCount,
+        createdBy: community.createdBy,
+        isPrivate: isPrivate,
+        createdAt: community.createdAt,
+        rules: community.rules,
+      );
+      
+      context.read<CommunityCubit>().updateCommunity(updatedCommunity);
     }
   }
 }

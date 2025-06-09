@@ -134,10 +134,12 @@ class CommunityRepositoryImpl implements CommunityRepository {
         description: community.description,
         category: community.category,
         iconUrl: community.iconUrl,
+        rulesPictureUrl: community.rulesPictureUrl,
         memberCount: community.memberCount,
         createdBy: community.createdBy,
         isPrivate: community.isPrivate,
         createdAt: community.createdAt,
+        rules: community.rules,
       );
     }
     
@@ -145,6 +147,8 @@ class CommunityRepositoryImpl implements CommunityRepository {
     
     // Remove id from the map as it's used as the document ID
     communityMap.remove('id');
+    
+    print("REPOSITORY: Updating community ${community.id} with data: $communityMap");
     
     await _firestore
         .collection('communities')
@@ -160,18 +164,76 @@ class CommunityRepositoryImpl implements CommunityRepository {
   // Member operations
   @override
   Future<List<CommunityMember>> getCommunityMembers(String communityId) async {
-    final querySnapshot = await _firestore
-        .collection('communities')
-        .doc(communityId)
-        .collection('members')
-        .get();
-    
-    return querySnapshot.docs
-        .map((doc) => CommunityMemberModel.fromJson({
+    try {
+      final querySnapshot = await _firestore
+          .collection('communities')
+          .doc(communityId)
+          .collection('members')
+          .get();
+      
+      print("REPOSITORY: Found ${querySnapshot.docs.length} members in community $communityId");
+      
+      final List<CommunityMember> members = [];
+      
+      // Create a list of futures to fetch user data for members
+      for (var doc in querySnapshot.docs) {
+        final memberData = doc.data();
+        final userId = memberData['userId'] as String;
+        
+        // Ensure we have user data
+        if (userId != null && userId.isNotEmpty) {
+          try {
+            // Get latest user data from users collection
+            final userDoc = await _firestore.collection('users').doc(userId).get();
+            
+            if (userDoc.exists) {
+              final userData = userDoc.data()!;
+              
+              // Create member with updated user data
+              members.add(CommunityMemberModel.fromJson({
+                'id': doc.id,
+                'communityId': memberData['communityId'] ?? communityId,
+                'userId': userId,
+                // Use latest user data if available, fall back to stored data
+                'userName': userData['name'] ?? memberData['userName'] ?? 'Unknown User',
+                'userAvatar': userData['profilePictureUrl'] ?? memberData['userAvatar'] ?? '',
+                'role': memberData['role'] ?? 'member',
+                'joinedAt': memberData['joinedAt'] ?? DateTime.now().toIso8601String(),
+              }));
+              
+              print("REPOSITORY: Added member ${userData['name']} (${userId}) with avatar: ${userData['profilePictureUrl'] ?? 'none'}");
+            } else {
+              // If user doc doesn't exist, use the stored data
+              members.add(CommunityMemberModel.fromJson({
+                'id': doc.id,
+                ...doc.data(),
+              }));
+              print("REPOSITORY: User document not found for $userId, using stored member data");
+            }
+          } catch (e) {
+            print("REPOSITORY: Error fetching user data for member $userId: $e");
+            // If there's an error, still add the member with available data
+            members.add(CommunityMemberModel.fromJson({
               'id': doc.id,
               ...doc.data(),
-            }))
-        .toList();
+            }));
+          }
+        } else {
+          // If userId is missing/invalid, use whatever data we have
+          members.add(CommunityMemberModel.fromJson({
+            'id': doc.id,
+            ...doc.data(),
+          }));
+          print("REPOSITORY: Invalid userId in member document ${doc.id}");
+        }
+      }
+      
+      print("REPOSITORY: Returning ${members.length} members");
+      return members;
+    } catch (e) {
+      print("REPOSITORY: Error in getCommunityMembers: $e");
+      rethrow;
+    }
   }
 
   @override
@@ -190,7 +252,7 @@ class CommunityRepositoryImpl implements CommunityRepository {
       communityId: communityId,
       userId: userId,
       userName: userData['name'] ?? 'Anonymous',
-      userAvatar: userData['avatar'] ?? '',
+      userAvatar: userData['profilePictureUrl'] ?? '',
       role: MemberRole.member,
       joinedAt: DateTime.now(),
     );
@@ -265,20 +327,28 @@ class CommunityRepositoryImpl implements CommunityRepository {
         .doc(communityId)
         .collection('members')
         .where('userId', isEqualTo: userId)
-        .limit(1)
         .get();
     
     if (querySnapshot.docs.isEmpty) {
-      throw Exception('User is not a member of this community');
+      throw Exception('Member not found');
     }
     
-    // Update the role
-    await _firestore
-        .collection('communities')
-        .doc(communityId)
-        .collection('members')
-        .doc(querySnapshot.docs.first.id)
-        .update({'role': role.toString().split('.').last});
+    final memberDoc = querySnapshot.docs.first;
+    
+    // Get the latest user data to ensure profile pic is updated
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    String userAvatar = '';
+    
+    if (userDoc.exists) {
+      final userData = userDoc.data()!;
+      userAvatar = userData['profilePictureUrl'] ?? '';
+    }
+    
+    // Update the member role and profile picture
+    await memberDoc.reference.update({
+      'role': role.toString().split('.').last,
+      'userAvatar': userAvatar,
+    });
   }
 
   // Message operations

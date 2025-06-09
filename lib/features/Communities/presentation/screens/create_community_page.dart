@@ -107,6 +107,7 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
         description: _descriptionController.text.trim(),
         category: _selectedCategory,
         iconUrl: iconUrl,
+        rulesPictureUrl: '',
         memberCount: 1,
         createdBy: userId,
         isPrivate: _isPrivate,

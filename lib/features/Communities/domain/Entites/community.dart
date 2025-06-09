@@ -6,6 +6,7 @@ class Community {
   final String description;
   final String category;
   final String iconUrl;
+  final String rulesPictureUrl;
   final int memberCount;
   final String createdBy;
   final bool isPrivate;
@@ -18,6 +19,7 @@ class Community {
     required this.description,
     required this.category,
     required this.iconUrl,
+    this.rulesPictureUrl = '',
     required this.memberCount,
     required this.createdBy,
     required this.isPrivate,

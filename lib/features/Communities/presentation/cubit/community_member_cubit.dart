@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/Entites/community_member.dart';
 import '../../domain/repo/community_repository.dart';
 import 'community_member_state.dart';
+import 'dart:developer' as developer;
 
 class CommunityMemberCubit extends Cubit<CommunityMemberState> {
   final CommunityRepository _repository;
@@ -13,9 +14,21 @@ class CommunityMemberCubit extends Cubit<CommunityMemberState> {
   Future<void> getCommunityMembers(String communityId) async {
     emit(CommunityMembersLoading());
     try {
+      developer.log('Fetching members for community: $communityId', name: 'CommunityMemberCubit');
+      
       final members = await _repository.getCommunityMembers(communityId);
+      
+      developer.log('Fetched ${members.length} members for community: $communityId', name: 'CommunityMemberCubit');
+      
+      // Log details of each member for debugging
+      for (var member in members) {
+        developer.log('Member: ${member.userName} (${member.userId}), Role: ${member.role}, Avatar: ${member.userAvatar.isNotEmpty ? 'Has avatar' : 'No avatar'}', 
+          name: 'CommunityMemberCubit');
+      }
+      
       emit(CommunityMembersLoaded(members));
     } catch (e) {
+      developer.log('Error fetching members: $e', name: 'CommunityMemberCubit', error: e);
       emit(CommunityMemberError(e.toString()));
     }
   }
@@ -39,37 +52,22 @@ class CommunityMemberCubit extends Cubit<CommunityMemberState> {
       // Reload the member list
       getCommunityMembers(communityId);
     } catch (e) {
+      developer.log('Error joining community: $e', name: 'CommunityMemberCubit', error: e);
       emit(CommunityMemberError(e.toString()));
     }
   }
 
   Future<void> leaveCommunity(String communityId, String userId) async {
     emit(LeavingCommunity());
-    
     try {
-      // Optimistic update - emit success immediately
+      await _repository.leaveCommunity(communityId, userId);
       emit(LeftCommunitySuccessfully());
       
-      // Then perform the actual operation
-      await _repository.leaveCommunity(communityId, userId);
-      
-      // Reload the member list in the background
-      _repository.getCommunityMembers(communityId).then((members) {
-        emit(CommunityMembersLoaded(members));
-      }).catchError((_) {
-        // Ignore errors from background refresh
-      });
+      // Reload the member list
+      getCommunityMembers(communityId);
     } catch (e) {
-      // If there's an error, emit the error state
+      developer.log('Error leaving community: $e', name: 'CommunityMemberCubit', error: e);
       emit(CommunityMemberError(e.toString()));
-      
-      // Then reload the member list to ensure UI is in sync
-      try {
-        final members = await _repository.getCommunityMembers(communityId);
-        emit(CommunityMembersLoaded(members));
-      } catch (_) {
-        // If this also fails, at least we showed the error
-      }
     }
   }
 
@@ -82,6 +80,7 @@ class CommunityMemberCubit extends Cubit<CommunityMemberState> {
       // Reload the member list
       getCommunityMembers(communityId);
     } catch (e) {
+      developer.log('Error updating member role: $e', name: 'CommunityMemberCubit', error: e);
       emit(CommunityMemberError(e.toString()));
     }
   }
