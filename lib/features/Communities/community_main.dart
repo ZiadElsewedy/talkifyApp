@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 import 'data/repositories/community_repository_impl.dart';
@@ -6,6 +7,8 @@ import 'domain/repo/community_repository.dart';
 import 'presentation/cubit/community_cubit.dart';
 import 'presentation/cubit/community_member_cubit.dart';
 import 'presentation/cubit/community_message_cubit.dart';
+import 'presentation/screens/community_home_page.dart'; // Import the community home page
+import 'presentation/screens/community_events_page.dart'; // Import the community events page
 
 /// The main entry point for the Community feature
 /// This can be called from other parts of the app to navigate to the communities page
@@ -45,81 +48,53 @@ class CommunityMain extends StatelessWidget {
 }
 
 /// The main screen for the Communities feature
-class CommunityScreen extends StatelessWidget {
+class CommunityScreen extends StatefulWidget {
   const CommunityScreen({Key? key}) : super(key: key);
 
   @override
+  State<CommunityScreen> createState() => _CommunityScreenState();
+}
+
+class _CommunityScreenState extends State<CommunityScreen> {
+  bool _isLoading = true;
+  
+  @override
+  void initState() {
+    super.initState();
+    // Use addPostFrameCallback to avoid "Build scheduled during frame" error
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      // Load communities or perform any initialization
+      _loadCommunities();
+    });
+  }
+  
+  void _loadCommunities() {
+    // Load communities from the cubit
+    context.read<CommunityCubit>().getAllCommunities();
+    
+    // Wait for a moment to simulate loading
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
+  }
+  
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        elevation: 0,
-        title: Text(
-          'Communities',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.inversePrimary,
-            fontWeight: FontWeight.bold,
+    // Simply return the CommunityHomePage directly instead of wrapping it in a Scaffold
+    // This prevents duplicate AppBars from showing
+    return _isLoading 
+      ? Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          body: Center(
+            child: CircularProgressIndicator(
+              color: Theme.of(context).colorScheme.inversePrimary,
+            ),
           ),
-        ),
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: Theme.of(context).colorScheme.inversePrimary,
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.people_alt_outlined,
-              size: 100,
-              color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.5),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Communities Coming Soon',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.inversePrimary,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: Text(
-                'Join interest-based communities to chat, post, and engage with like-minded people.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-                  fontSize: 16,
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-                foregroundColor: Theme.of(context).colorScheme.surface,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('Back to Home'),
-            ),
-          ],
-        ),
-      ),
-    );
+        )
+      : const CommunityHomePage();
   }
 } 

@@ -2,10 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/Entites/community.dart';
 import '../../domain/Entites/community_message.dart';
 import '../../domain/Entites/community_member.dart';
+import '../../domain/Entites/community_event.dart';
 import '../../domain/repo/community_repository.dart';
 import '../models/community_model.dart';
 import '../models/community_message_model.dart';
 import '../models/community_member_model.dart';
+import '../models/community_event_model.dart';
 
 class CommunityRepositoryImpl implements CommunityRepository {
   final FirebaseFirestore _firestore;
@@ -362,5 +364,172 @@ class CommunityRepositoryImpl implements CommunityRepository {
               ...doc.data(),
             }))
         .toList();
+  }
+
+  // Event operations
+  @override
+  Future<List<CommunityEvent>> getCommunityEvents(String communityId) async {
+    final querySnapshot = await _firestore
+        .collection('communities')
+        .doc(communityId)
+        .collection('events')
+        .orderBy('startDate', descending: false)
+        .where('startDate', isGreaterThanOrEqualTo: DateTime.now())
+        .get();
+    
+    return querySnapshot.docs
+        .map((doc) => CommunityEventModel.fromJson({
+              'id': doc.id,
+              ...doc.data(),
+            }))
+        .toList();
+  }
+
+  @override
+  Future<CommunityEvent> createEvent(CommunityEvent event) async {
+    final eventMap = (event as CommunityEventModel).toJson();
+    
+    // Remove id as Firestore will generate one
+    eventMap.remove('id');
+    
+    final docRef = await _firestore
+        .collection('communities')
+        .doc(event.communityId)
+        .collection('events')
+        .add(eventMap);
+    
+    return CommunityEventModel.fromJson({
+      'id': docRef.id,
+      ...eventMap,
+    });
+  }
+
+  @override
+  Future<void> updateEvent(CommunityEvent event) async {
+    final eventMap = (event as CommunityEventModel).toJson();
+    
+    // Remove id from the map as it's used as the document ID
+    eventMap.remove('id');
+    
+    await _firestore
+        .collection('communities')
+        .doc(event.communityId)
+        .collection('events')
+        .doc(event.id)
+        .update(eventMap);
+  }
+
+  @override
+  Future<void> deleteEvent(String eventId) async {
+    // Need to find the community ID first
+    final querySnapshot = await _firestore
+        .collectionGroup('events')
+        .where(FieldPath.documentId, isEqualTo: eventId)
+        .limit(1)
+        .get();
+    
+    if (querySnapshot.docs.isEmpty) {
+      throw Exception('Event not found');
+    }
+    
+    final eventPath = querySnapshot.docs.first.reference.path;
+    final pathParts = eventPath.split('/');
+    
+    if (pathParts.length < 4) {
+      throw Exception('Invalid event path');
+    }
+    
+    final communityId = pathParts[pathParts.length - 3];
+    
+    await _firestore
+        .collection('communities')
+        .doc(communityId)
+        .collection('events')
+        .doc(eventId)
+        .delete();
+  }
+
+  @override
+  Future<void> joinEvent(String eventId, String userId) async {
+    // Need to find the community ID first
+    final querySnapshot = await _firestore
+        .collectionGroup('events')
+        .where(FieldPath.documentId, isEqualTo: eventId)
+        .limit(1)
+        .get();
+    
+    if (querySnapshot.docs.isEmpty) {
+      throw Exception('Event not found');
+    }
+    
+    final eventDoc = querySnapshot.docs.first;
+    final eventPath = eventDoc.reference.path;
+    final pathParts = eventPath.split('/');
+    
+    if (pathParts.length < 4) {
+      throw Exception('Invalid event path');
+    }
+    
+    final communityId = pathParts[pathParts.length - 3];
+    
+    // Get current attendees
+    final event = CommunityEventModel.fromJson({
+      'id': eventDoc.id,
+      ...eventDoc.data(),
+    });
+    
+    // Add user to attendees if not already in the list
+    if (!event.attendees.contains(userId)) {
+      List<String> updatedAttendees = List.from(event.attendees)..add(userId);
+      
+      await _firestore
+          .collection('communities')
+          .doc(communityId)
+          .collection('events')
+          .doc(eventId)
+          .update({'attendees': updatedAttendees});
+    }
+  }
+
+  @override
+  Future<void> leaveEvent(String eventId, String userId) async {
+    // Need to find the community ID first
+    final querySnapshot = await _firestore
+        .collectionGroup('events')
+        .where(FieldPath.documentId, isEqualTo: eventId)
+        .limit(1)
+        .get();
+    
+    if (querySnapshot.docs.isEmpty) {
+      throw Exception('Event not found');
+    }
+    
+    final eventDoc = querySnapshot.docs.first;
+    final eventPath = eventDoc.reference.path;
+    final pathParts = eventPath.split('/');
+    
+    if (pathParts.length < 4) {
+      throw Exception('Invalid event path');
+    }
+    
+    final communityId = pathParts[pathParts.length - 3];
+    
+    // Get current attendees
+    final event = CommunityEventModel.fromJson({
+      'id': eventDoc.id,
+      ...eventDoc.data(),
+    });
+    
+    // Remove user from attendees if in the list
+    if (event.attendees.contains(userId)) {
+      List<String> updatedAttendees = List.from(event.attendees)..remove(userId);
+      
+      await _firestore
+          .collection('communities')
+          .doc(communityId)
+          .collection('events')
+          .doc(eventId)
+          .update({'attendees': updatedAttendees});
+    }
   }
 } 

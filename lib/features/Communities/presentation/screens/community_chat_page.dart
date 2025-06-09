@@ -13,6 +13,7 @@ import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Chat/Utils/message_type_helper.dart';
 import 'package:talkifyapp/features/Communities/data/repositories/community_repository_impl.dart';
 import 'community_info_page.dart';
+import 'community_events_page.dart';
 
 class CommunityChatPage extends StatefulWidget {
   final String communityId;
@@ -338,6 +339,35 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
+          // Make the Events button more prominent with high visibility
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: TextButton.icon(
+              icon: const Icon(Icons.event, color: Colors.white),
+              label: const Text(
+                'Events',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CommunityEventsPage(
+                      communityId: widget.communityId,
+                      communityName: widget.communityName ?? 'Community Chat',
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
           IconButton(
             icon: Icon(
               Icons.info_outline,
@@ -358,6 +388,38 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
                 );
               }
             },
+          ),
+        ],
+      ),
+      // Add multiple floating action buttons for different actions
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Events button
+          FloatingActionButton.extended(
+            heroTag: 'eventsFAB',
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            icon: const Icon(Icons.event, color: Colors.white),
+            label: const Text('Create Event', style: TextStyle(color: Colors.white)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CommunityEventsPage(
+                    communityId: widget.communityId,
+                    communityName: widget.communityName ?? 'Community Chat',
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          // Media button
+          FloatingActionButton(
+            heroTag: 'mediaFAB',
+            backgroundColor: Theme.of(context).colorScheme.secondary,
+            onPressed: _showAttachmentOptions,
+            child: const Icon(Icons.add, color: Colors.white),
           ),
         ],
       ),

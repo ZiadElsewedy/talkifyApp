@@ -1,6 +1,7 @@
 import '../Entites/community.dart';
 import '../Entites/community_message.dart';
 import '../Entites/community_member.dart';
+import '../Entites/community_event.dart';
 
 abstract class CommunityRepository {
   // Community operations
@@ -23,4 +24,12 @@ abstract class CommunityRepository {
   Future<CommunityMessage> sendMessage(CommunityMessage message);
   Future<void> pinMessage(String messageId, bool isPinned);
   Future<List<CommunityMessage>> getPinnedMessages(String communityId);
+  
+  // Event operations
+  Future<List<CommunityEvent>> getCommunityEvents(String communityId);
+  Future<CommunityEvent> createEvent(CommunityEvent event);
+  Future<void> updateEvent(CommunityEvent event);
+  Future<void> deleteEvent(String eventId);
+  Future<void> joinEvent(String eventId, String userId);
+  Future<void> leaveEvent(String eventId, String userId);
 } 

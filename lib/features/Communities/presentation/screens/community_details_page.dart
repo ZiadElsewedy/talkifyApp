@@ -9,6 +9,7 @@ import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_states.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/chat_room_page.dart';
 import 'package:talkifyapp/features/Communities/domain/Entites/community.dart';
 import 'package:talkifyapp/features/Communities/domain/Entites/community_member.dart';
+import 'package:talkifyapp/features/Communities/data/models/community_model.dart';
 import 'package:talkifyapp/features/Communities/presentation/cubit/community_cubit.dart';
 import 'package:talkifyapp/features/Communities/presentation/cubit/community_member_cubit.dart';
 import 'package:talkifyapp/features/Communities/presentation/cubit/community_member_state.dart';
@@ -17,8 +18,9 @@ import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Communities/data/repositories/community_repository_impl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:talkifyapp/features/Storage/Data/Filebase_Storage_repo.dart';
+import 'package:talkifyapp/features/Storage/Data/Filebase_Storage_repo.dart'; // Contains FirebaseStorageRepo class
 import 'community_chat_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class CommunityDetailsPage extends StatefulWidget {
   final String communityId;
@@ -38,6 +40,7 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
   bool _isUserMember = false;
   String? _currentUserId;
   bool _isLoading = false;
+  bool _isImageLoading = false;
   
   // Stream subscriptions
   List<StreamSubscription> _subscriptions = [];
@@ -791,9 +794,9 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
             actions: [
               if (_isUserAdmin)
                 IconButton(
-                  icon: Icon(
+                  icon: const Icon(
                     Icons.edit,
-                    color: Theme.of(context).colorScheme.inversePrimary,
+                    color: Colors.white,
                   ),
                   onPressed: _showEditCommunityDialog,
                 ),
@@ -828,18 +831,21 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
                     children: [
                       _buildInfoItem(
                         context,
+                        Icons.calendar_today,
+                        'Created',
+                        'on ${_formatDate(community.createdAt)}',
+                      ),
+                      _buildInfoItem(
+                        context,
                         Icons.category,
+                        'Category',
                         community.category,
                       ),
                       _buildInfoItem(
                         context,
-                        Icons.people,
-                        '${community.memberCount} members',
-                      ),
-                      _buildInfoItem(
-                        context,
-                        community.isPrivate ? Icons.lock : Icons.public,
-                        community.isPrivate ? 'Private' : 'Public',
+                        Icons.visibility,
+                        'Visibility',
+                        community.isPrivate ? 'Private community' : 'Public community',
                       ),
                     ],
                   ),
@@ -872,7 +878,7 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
         controller: _tabController,
         children: [
           // About tab
-          _buildAboutTab(community),
+          _buildAboutTab(context),
           
           // Members tab
           _buildMembersTab(),
@@ -970,10 +976,19 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
   }
   
   // Separate widget for About tab
-  Widget _buildAboutTab(Community community) {
+  Widget _buildAboutTab(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    if (context.read<CommunityCubit>().state is! CommunityDetailLoaded) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
+    final community = (context.read<CommunityCubit>().state as CommunityDetailLoaded).community;
+    
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
+        // About Section
         Card(
           color: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
@@ -997,23 +1012,21 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
                   ),
                 ),
                 const SizedBox(height: 16.0),
-                _buildAboutItem(
+                _buildInfoItem(
                   context,
                   Icons.calendar_today,
                   'Created',
                   'on ${_formatDate(community.createdAt)}',
                 ),
-                const SizedBox(height: 12.0),
-                _buildAboutItem(
+                _buildInfoItem(
                   context,
                   Icons.category,
                   'Category',
                   community.category,
                 ),
-                const SizedBox(height: 12.0),
-                _buildAboutItem(
+                _buildInfoItem(
                   context,
-                  community.isPrivate ? Icons.lock : Icons.public,
+                  Icons.visibility,
                   'Visibility',
                   community.isPrivate ? 'Private community' : 'Public community',
                 ),
@@ -1022,6 +1035,8 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
           ),
         ),
         const SizedBox(height: 16.0),
+        
+        // Rules Section
         Card(
           color: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
@@ -1036,25 +1051,176 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Rules',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.inversePrimary,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Rules',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.inversePrimary,
+                      ),
+                    ),
+                    if (_isUserAdmin)
+                      IconButton(
+                        icon: Icon(
+                          Icons.edit,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 20,
+                        ),
+                        onPressed: () => _showEditRulesDialog(context, community),
+                        tooltip: 'Edit Rules',
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 16.0),
-                _buildRuleItem(context, '1. Be respectful to others'),
-                _buildRuleItem(context, '2. No spam or self-promotion'),
-                _buildRuleItem(context, '3. Stay on topic'),
-                _buildRuleItem(context, '4. No hate speech or harassment'),
-                _buildRuleItem(context, '5. Follow the community guidelines'),
+                ...community.rules.map((rule) => _buildRuleItem(context, rule)).toList(),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+  
+  // Add this method to show edit rules dialog
+  void _showEditRulesDialog(BuildContext context, Community community) {
+    final List<TextEditingController> controllers = community.rules.map((rule) => 
+      TextEditingController(text: rule)
+    ).toList();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Community Rules'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: controllers.length,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: controllers[index],
+                        decoration: InputDecoration(
+                          labelText: 'Rule ${index + 1}',
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () {
+                        if (controllers.length > 1) {
+                          setState(() {
+                            controllers.removeAt(index);
+                          });
+                          Navigator.of(context).pop();
+                          _showEditRulesDialog(context, community);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              controllers.add(TextEditingController(text: 'New rule'));
+              Navigator.of(context).pop();
+              _showEditRulesDialog(context, community);
+            },
+            child: const Text('Add Rule'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final List<String> newRules = controllers.map((c) => c.text.trim()).toList();
+              
+              // Update community with new rules
+              if (context.read<CommunityCubit>().state is CommunityDetailLoaded) {
+                final currentCommunity = (context.read<CommunityCubit>().state as CommunityDetailLoaded).community;
+                
+                // Create updated community model
+                final CommunityModel updatedCommunity = CommunityModel(
+                  id: currentCommunity.id,
+                  name: currentCommunity.name,
+                  description: currentCommunity.description,
+                  category: currentCommunity.category,
+                  iconUrl: currentCommunity.iconUrl,
+                  memberCount: currentCommunity.memberCount,
+                  createdBy: currentCommunity.createdBy,
+                  isPrivate: currentCommunity.isPrivate,
+                  createdAt: currentCommunity.createdAt,
+                  rules: newRules,
+                );
+                
+                try {
+                  // Show loading dialog
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const AlertDialog(
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 16),
+                          Text('Updating community rules...'),
+                        ],
+                      ),
+                    ),
+                  );
+                  
+                  // Update community
+                  await context.read<CommunityCubit>().updateCommunity(updatedCommunity);
+                  
+                  // Close loading dialog
+                  if (mounted && Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                  
+                  // Close edit dialog
+                  if (mounted && Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                  
+                  // Show success message
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Community rules updated successfully')),
+                    );
+                  }
+                } catch (e) {
+                  // Close loading dialog
+                  if (mounted && Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                  
+                  // Show error message
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to update rules: $e')),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
   
@@ -1127,53 +1293,37 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
     );
   }
 
-  Widget _buildInfoItem(BuildContext context, IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 16,
-          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-        ),
-        const SizedBox(width: 4.0),
-        Text(
-          text,
-          style: TextStyle(
+  Widget _buildInfoItem(BuildContext context, IconData icon, String title, String subtitle) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 20,
             color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAboutItem(BuildContext context, IconData icon, String title, String subtitle) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 20,
-          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-        ),
-        const SizedBox(width: 16.0),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.inversePrimary,
+          const SizedBox(width: 16.0),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.inversePrimary,
+                ),
               ),
-            ),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -1294,6 +1444,207 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
       case MemberRole.member:
       default:
         return Colors.grey;
+    }
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    if (context.read<CommunityCubit>().state is! CommunityDetailLoaded) {
+      return Container(
+        height: 200,
+        color: Theme.of(context).colorScheme.primary,
+        child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
+    
+    final community = (context.read<CommunityCubit>().state as CommunityDetailLoaded).community;
+    
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      children: [
+        // Background image
+        Container(
+          height: 200,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary,
+            image: _isImageLoading ? null : DecorationImage(
+              image: CachedNetworkImageProvider(community.iconUrl),
+              fit: BoxFit.cover,
+              colorFilter: ColorFilter.mode(
+                Colors.black.withOpacity(0.5),
+                BlendMode.darken,
+              ),
+            ),
+          ),
+          // Show loading indicator while image loads
+          child: _isImageLoading
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
+              : null,
+        ),
+        
+        // Community name and edit button
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      community.name,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(
+                            offset: Offset(1, 1),
+                            blurRadius: 3,
+                            color: Colors.black45,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      community.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(
+                            offset: Offset(1, 1),
+                            blurRadius: 2,
+                            color: Colors.black45,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_isUserAdmin)
+                IconButton(
+                  icon: const Icon(
+                    Icons.edit,
+                    color: Colors.white,
+                  ),
+                  onPressed: _showEditCommunityDialog,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Future<void> _updateCommunityImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (image == null) return;
+    
+    setState(() {
+      _isImageLoading = true;
+    });
+    
+    if (context.read<CommunityCubit>().state is! CommunityDetailLoaded) return;
+    
+    try {
+      final community = (context.read<CommunityCubit>().state as CommunityDetailLoaded).community;
+      
+      // Upload image to storage
+      final storage = FirebaseStorageRepo();
+      final imagePath = 'communities/${community.id}/profile.jpg';
+      final File imageFile = File(image.path);
+      
+      // Show progress dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              StreamBuilder<double>(
+                stream: storage.uploadProgressStream,
+                builder: (context, snapshot) {
+                  final progress = snapshot.data ?? 0.0;
+                  return Column(
+                    children: [
+                      Text('Uploading image: ${(progress * 100).toStringAsFixed(1)}%'),
+                      const SizedBox(height: 8),
+                      LinearProgressIndicator(value: progress),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+      
+      // Upload the image
+      final imageUrl = await storage.uploadFile(imageFile.path, imagePath);
+      
+      // Create updated community model
+      final updatedCommunity = CommunityModel(
+        id: community.id,
+        name: community.name,
+        description: community.description,
+        category: community.category,
+        iconUrl: imageUrl ?? community.iconUrl, // Use existing URL if upload failed
+        memberCount: community.memberCount,
+        createdBy: community.createdBy,
+        isPrivate: community.isPrivate,
+        createdAt: community.createdAt,
+        rules: community.rules,
+      );
+      
+      // Update community in database
+      await context.read<CommunityCubit>().updateCommunity(updatedCommunity);
+      
+      // Close progress dialog
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Community image updated successfully')),
+        );
+      }
+      
+      // Reload community
+      if (mounted) {
+        context.read<CommunityCubit>().getCommunityById(community.id);
+      }
+    } catch (e) {
+      // Close progress dialog
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update community image: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isImageLoading = false;
+        });
+      }
     }
   }
 }

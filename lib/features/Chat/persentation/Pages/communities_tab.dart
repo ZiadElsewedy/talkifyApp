@@ -28,9 +28,9 @@ class CommunitiesTab extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (context) => CommunityCubit(
-            repository: CommunityRepositoryImpl(),
-          )..getAllCommunities(),
+      create: (context) => CommunityCubit(
+        repository: CommunityRepositoryImpl(),
+      )..getAllCommunities(),
         ),
         BlocProvider(
           create: (context) => CommunityMemberCubit(
@@ -363,7 +363,7 @@ class _CommunitiesTabContentState extends State<_CommunitiesTabContent> {
                         color: Theme.of(context).colorScheme.primary,
                       ),
                       onPressed: () => _navigateToCommunityChat(community),
-                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16.0),
@@ -478,7 +478,7 @@ class _CommunitiesTabContentState extends State<_CommunitiesTabContent> {
                         ),
                     ],
                   ),
-                ),
+              ),
             ],
           ),
         ),
@@ -739,7 +739,7 @@ class _CommunitiesTabContentState extends State<_CommunitiesTabContent> {
       ),
     );
   }
-
+  
   Widget _buildEmptyCommunities(BuildContext context, bool isDarkMode) {
     return Center(
       child: Column(
@@ -748,7 +748,7 @@ class _CommunitiesTabContentState extends State<_CommunitiesTabContent> {
           Icon(
             Icons.groups,
             size: 70,
-            color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+              color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
           ),
           const SizedBox(height: 16),
           Text(
@@ -762,7 +762,7 @@ class _CommunitiesTabContentState extends State<_CommunitiesTabContent> {
           const SizedBox(height: 8),
           Text(
             'Create or join a community to get started',
-            style: TextStyle(
+              style: TextStyle(
               color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
             ),
             textAlign: TextAlign.center,

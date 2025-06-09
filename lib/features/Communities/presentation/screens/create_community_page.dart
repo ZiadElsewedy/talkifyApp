@@ -227,14 +227,14 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
                                   ),
                                 )
                               : IconButton(
-                                  padding: EdgeInsets.zero,
-                                  icon: Icon(
-                                    Icons.camera_alt,
-                                    color: Theme.of(context).colorScheme.surface,
-                                    size: 20,
-                                  ),
+                              padding: EdgeInsets.zero,
+                              icon: Icon(
+                                Icons.camera_alt,
+                                color: Theme.of(context).colorScheme.surface,
+                                size: 20,
+                              ),
                                   onPressed: _pickImage,
-                                ),
+                            ),
                           ),
                         ),
                       ],

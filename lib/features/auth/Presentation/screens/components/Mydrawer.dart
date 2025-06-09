@@ -150,7 +150,7 @@ class _MyDrawerState extends State<MyDrawer> {
                       title: 'C H A T S',
                       onTap: () {
                         Navigator.of(context).pop();
-                        Navigator.of(context).pushReplacement(
+                        Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (context) => const ChatListPage(),
                           ),
@@ -173,6 +173,7 @@ class _MyDrawerState extends State<MyDrawer> {
                       icon: Icons.search,
                       title: 'S E A R C H',
                       onTap: () {
+                        Navigator.of(context).pop();
                         Navigator.of(context).push(
                           MaterialPageRoute(builder: (context) => SearchPage()),
                         ).then((_) {
@@ -196,6 +197,7 @@ class _MyDrawerState extends State<MyDrawer> {
                       icon: Icons.info_outline,
                       title: 'A B O U T',
                       onTap: () {
+                        Navigator.of(context).pop();
                         Navigator.push(
                           context,
                           MaterialPageRoute(
