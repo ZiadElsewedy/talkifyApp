@@ -5,6 +5,7 @@ import '../cubit/community_cubit.dart';
 import '../cubit/community_state.dart';
 import 'community_details_page.dart';
 import 'create_community_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class CommunityHomePage extends StatefulWidget {
   const CommunityHomePage({Key? key}) : super(key: key);
@@ -171,13 +172,16 @@ class _CommunityHomePageState extends State<CommunityHomePage> with SingleTicker
   }
 
   Widget _buildCommunityCard(BuildContext context, Community community) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 16.0),
-      color: Theme.of(context).colorScheme.surface,
+      elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(16.0),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.2),
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
           width: 1,
         ),
       ),
@@ -190,7 +194,7 @@ class _CommunityHomePageState extends State<CommunityHomePage> with SingleTicker
             ),
           );
         },
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(16.0),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -203,112 +207,82 @@ class _CommunityHomePageState extends State<CommunityHomePage> with SingleTicker
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(8.0),
+                      color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: community.iconUrl.isNotEmpty
                         ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8.0),
-                            child: Image.network(
-                              community.iconUrl,
+                            borderRadius: BorderRadius.circular(12),
+                            child: CachedNetworkImage(
+                              imageUrl: community.iconUrl,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Center(
-                                  child: Icon(
-                                    Icons.people,
-                                    color: Theme.of(context).colorScheme.surface,
-                                    size: 30,
-                                  ),
-                                );
-                              },
+                              placeholder: (context, url) => Center(
+                                child: CircularProgressIndicator(
+                                  color: theme.colorScheme.primary,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Icon(
+                                Icons.group,
+                                color: theme.colorScheme.primary,
+                                size: 30,
+                              ),
                             ),
                           )
-                        : Center(
-                            child: Icon(
-                              Icons.people,
-                              color: Theme.of(context).colorScheme.surface,
-                              size: 30,
-                            ),
+                        : Icon(
+                            Icons.group,
+                            color: theme.colorScheme.primary,
+                            size: 30,
                           ),
                   ),
-                  const SizedBox(width: 16.0),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           community.name,
-                          style: TextStyle(
-                            fontSize: 18,
+                          style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.inversePrimary,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4.0),
+                        const SizedBox(height: 4),
                         Text(
                           community.description,
+                          style: theme.textTheme.bodyMedium,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.people,
+                              size: 16,
+                              color: theme.colorScheme.secondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${community.memberCount} members',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                            const SizedBox(width: 16),
+                            Icon(
+                              community.isPrivate ? Icons.lock : Icons.public,
+                              size: 16,
+                              color: theme.colorScheme.secondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              community.isPrivate ? 'Private' : 'Public',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.category,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-                      ),
-                      const SizedBox(width: 4.0),
-                      Text(
-                        community.category,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.people,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-                      ),
-                      const SizedBox(width: 4.0),
-                      Text(
-                        '${community.memberCount} members',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Icon(
-                        community.isPrivate ? Icons.lock : Icons.public,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-                      ),
-                      const SizedBox(width: 4.0),
-                      Text(
-                        community.isPrivate ? 'Private' : 'Public',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),

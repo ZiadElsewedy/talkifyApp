@@ -120,26 +120,19 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         title: Text(
           'Create Community',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.inversePrimary,
+          style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),
-        ),
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: Theme.of(context).colorScheme.inversePrimary,
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-          },
         ),
       ),
       body: BlocConsumer<CommunityCubit, CommunityState>(
@@ -147,26 +140,16 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
           if (state is CommunityCreatedSuccessfully) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                  'Community created successfully!',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.surface,
-                  ),
-                ),
-                backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+                content: Text('Community created successfully!'),
+                backgroundColor: theme.colorScheme.primary,
               ),
             );
             Navigator.pop(context);
           } else if (state is CommunityError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                  'Error: ${state.message}',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.surface,
-                  ),
-                ),
-                backgroundColor: Colors.red,
+                content: Text('Error: ${state.message}'),
+                backgroundColor: theme.colorScheme.error,
               ),
             );
           }
@@ -184,104 +167,97 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
                     child: Stack(
                       children: [
                         Container(
-                          width: 100,
-                          height: 100,
+                          width: 120,
+                          height: 120,
                           decoration: BoxDecoration(
-                            color: _selectedImage == null ? Theme.of(context).colorScheme.primary : null,
+                            color: _selectedImage == null 
+                                ? isDark ? Colors.grey.shade800 : Colors.grey.shade200 
+                                : null,
                             shape: BoxShape.circle,
-                            image: _selectedImage != null ? DecorationImage(
-                              image: FileImage(_selectedImage!),
-                              fit: BoxFit.cover,
-                            ) : null,
-                          ),
-                          child: _selectedImage == null ? Center(
-                            child: Icon(
-                              Icons.people,
-                              color: Theme.of(context).colorScheme.surface,
-                              size: 50,
+                            image: _selectedImage != null 
+                                ? DecorationImage(
+                                    image: FileImage(_selectedImage!),
+                                    fit: BoxFit.cover,
+                                  ) 
+                                : null,
+                            border: Border.all(
+                              color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                              width: 1,
                             ),
-                          ) : null,
+                          ),
+                          child: _selectedImage == null 
+                              ? Center(
+                                  child: Icon(
+                                    Icons.people,
+                                    color: theme.colorScheme.primary,
+                                    size: 60,
+                                  ),
+                                ) 
+                              : null,
                         ),
                         Positioned(
                           bottom: 0,
                           right: 0,
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.inversePrimary,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Theme.of(context).scaffoldBackgroundColor,
-                                width: 2,
+                          child: InkWell(
+                            onTap: _pickImage,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary,
+                                shape: BoxShape.circle,
                               ),
-                            ),
-                            child: _isUploading 
-                              ? Center(
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Theme.of(context).colorScheme.surface,
-                                    ),
-                                  ),
-                                )
-                              : IconButton(
-                              padding: EdgeInsets.zero,
-                              icon: Icon(
+                              child: Icon(
                                 Icons.camera_alt,
-                                color: Theme.of(context).colorScheme.surface,
+                                color: theme.colorScheme.onPrimary,
                                 size: 20,
                               ),
-                                  onPressed: _pickImage,
                             ),
                           ),
                         ),
+                        if (_isUploading)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: theme.colorScheme.onPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 24.0),
 
-                  // Community name
+                  // Community Name
                   Text(
                     'Community Name',
-                    style: TextStyle(
+                    style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Theme.of(context).colorScheme.inversePrimary,
                     ),
                   ),
                   const SizedBox(height: 8.0),
                   TextFormField(
                     controller: _nameController,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.inversePrimary,
-                    ),
+                    style: theme.textTheme.bodyMedium,
                     decoration: InputDecoration(
                       hintText: 'Enter community name',
                       hintStyle: TextStyle(
-                        color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
                       ),
                       filled: true,
-                      fillColor: Theme.of(context).colorScheme.surface,
+                      fillColor: isDark ? Color(0xFF2C2C2C) : Colors.grey.shade100,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.2),
-                        ),
+                        borderRadius: BorderRadius.circular(12.0),
+                        borderSide: BorderSide.none,
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.2),
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.inversePrimary,
-                        ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
                       ),
                     ),
                     validator: (value) {
@@ -291,48 +267,34 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16.0),
+                  const SizedBox(height: 20.0),
 
                   // Description
                   Text(
                     'Description',
-                    style: TextStyle(
+                    style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Theme.of(context).colorScheme.inversePrimary,
                     ),
                   ),
                   const SizedBox(height: 8.0),
                   TextFormField(
                     controller: _descriptionController,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.inversePrimary,
-                    ),
+                    style: theme.textTheme.bodyMedium,
                     maxLines: 3,
                     decoration: InputDecoration(
                       hintText: 'Describe your community',
                       hintStyle: TextStyle(
-                        color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
                       ),
                       filled: true,
-                      fillColor: Theme.of(context).colorScheme.surface,
+                      fillColor: isDark ? Color(0xFF2C2C2C) : Colors.grey.shade100,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.2),
-                        ),
+                        borderRadius: BorderRadius.circular(12.0),
+                        borderSide: BorderSide.none,
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.2),
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.inversePrimary,
-                        ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
                       ),
                     ),
                     validator: (value) {
@@ -342,116 +304,92 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16.0),
+                  const SizedBox(height: 20.0),
 
                   // Category
                   Text(
                     'Category',
-                    style: TextStyle(
+                    style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Theme.of(context).colorScheme.inversePrimary,
                     ),
                   ),
                   const SizedBox(height: 8.0),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.2),
-                      ),
+                      color: isDark ? Color(0xFF2C2C2C) : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12.0),
                     ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: _selectedCategory,
                         isExpanded: true,
-                        icon: Icon(
-                          Icons.arrow_drop_down,
-                          color: Theme.of(context).colorScheme.inversePrimary,
-                        ),
-                        dropdownColor: Theme.of(context).colorScheme.surface,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.inversePrimary,
-                        ),
+                        value: _selectedCategory,
+                        dropdownColor: isDark ? Colors.grey.shade800 : Colors.white,
+                        style: theme.textTheme.bodyMedium,
                         items: _categories.map((String category) {
                           return DropdownMenuItem<String>(
                             value: category,
                             child: Text(category),
                           );
                         }).toList(),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
+                        onChanged: (value) {
+                          if (value != null) {
                             setState(() {
-                              _selectedCategory = newValue;
+                              _selectedCategory = value;
                             });
                           }
                         },
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16.0),
+                  const SizedBox(height: 20.0),
 
-                  // Privacy
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Private Community',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Theme.of(context).colorScheme.inversePrimary,
-                          ),
-                        ),
+                  // Privacy settings
+                  SwitchListTile(
+                    title: Text(
+                      'Private Community',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                      Switch(
-                        value: _isPrivate,
-                        activeColor: Theme.of(context).colorScheme.inversePrimary,
-                        inactiveTrackColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                        onChanged: (value) {
-                          setState(() {
-                            _isPrivate = value;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                  Text(
-                    _isPrivate
-                        ? 'Only approved users can join and view content'
-                        : 'Anyone can join and view content',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
                     ),
+                    subtitle: Text(
+                      'Private communities require approval to join',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    value: _isPrivate,
+                    activeColor: theme.colorScheme.primary,
+                    contentPadding: EdgeInsets.zero,
+                    onChanged: (value) {
+                      setState(() {
+                        _isPrivate = value;
+                      });
+                    },
                   ),
-                  const SizedBox(height: 24.0),
+                  const SizedBox(height: 32.0),
 
                   // Create button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-                        foregroundColor: Theme.of(context).colorScheme.surface,
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
+                          borderRadius: BorderRadius.circular(12.0),
                         ),
                       ),
                       onPressed: state is CommunityCreating ? null : _createCommunity,
                       child: state is CommunityCreating
                           ? SizedBox(
-                              height: 20,
-                              width: 20,
+                              height: 24,
+                              width: 24,
                               child: CircularProgressIndicator(
-                                color: Theme.of(context).colorScheme.surface,
+                                color: theme.colorScheme.onPrimary,
                                 strokeWidth: 2.0,
                               ),
                             )
-                          : const Text('Create Community'),
+                          : const Text('CREATE COMMUNITY'),
                     ),
                   ),
                 ],

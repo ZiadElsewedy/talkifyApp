@@ -101,15 +101,15 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
         );
       } else {
         print("DEBUG: Found ${members.length} community members");
-        
+      
         // Create maps of participant IDs, names, and avatars
         final List<String> participantIds = [];
-        final Map<String, String> participantNames = {};
-        final Map<String, String> participantAvatars = {};
+      final Map<String, String> participantNames = {};
+      final Map<String, String> participantAvatars = {};
         final Map<String, int> unreadCount = {};
-        
+      
         // Add all community members
-        for (final member in members) {
+      for (final member in members) {
           participantIds.add(member.userId);
           participantNames[member.userId] = member.userName;
           participantAvatars[member.userId] = member.userAvatar;
@@ -129,26 +129,26 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
         }
         
         // Create group chat room with all community members
-        context.read<ChatCubit>().createGroupChatRoom(
-          participants: participantIds,
-          participantNames: participantNames,
-          participantAvatars: participantAvatars,
-          unreadCount: unreadCount,
-          groupName: widget.communityName ?? 'Community Chat',
-          communityId: widget.communityId,
-        );
-      }
-    } catch (e) {
-      print("DEBUG: Error finding members: $e");
-      // Fallback to creating chat with just current user
       context.read<ChatCubit>().createGroupChatRoom(
-        participants: [currentUser.id],
-        participantNames: {currentUser.id: currentUser.name},
-        participantAvatars: {currentUser.id: currentUser.profilePictureUrl},
-        unreadCount: {currentUser.id: 0},
+          participants: participantIds,
+        participantNames: participantNames,
+        participantAvatars: participantAvatars,
+          unreadCount: unreadCount,
         groupName: widget.communityName ?? 'Community Chat',
         communityId: widget.communityId,
       );
+      }
+    } catch (e) {
+      print("DEBUG: Error finding members: $e");
+        // Fallback to creating chat with just current user
+        context.read<ChatCubit>().createGroupChatRoom(
+          participants: [currentUser.id],
+          participantNames: {currentUser.id: currentUser.name},
+          participantAvatars: {currentUser.id: currentUser.profilePictureUrl},
+          unreadCount: {currentUser.id: 0},
+          groupName: widget.communityName ?? 'Community Chat',
+          communityId: widget.communityId,
+        );
     }
   }
   
@@ -284,9 +284,9 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
       builder: (context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
               Text(
                 'Share Media',
                 style: TextStyle(
@@ -296,9 +296,9 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
                   _buildAttachmentOption(
                     icon: Icons.camera_alt,
                     label: 'Camera',
@@ -309,39 +309,39 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
                     },
                     isDarkMode: isDarkMode,
                   ),
-                  _buildAttachmentOption(
-                    icon: Icons.photo,
+                _buildAttachmentOption(
+                  icon: Icons.photo,
                     label: 'Gallery',
                     color: Colors.green,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _pickAndSendImage();
-                    },
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickAndSendImage();
+                  },
                     isDarkMode: isDarkMode,
-                  ),
-                  _buildAttachmentOption(
-                    icon: Icons.videocam,
-                    label: 'Video',
+                ),
+                _buildAttachmentOption(
+                  icon: Icons.videocam,
+                  label: 'Video',
                     color: Colors.red,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _pickAndSendVideo();
-                    },
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickAndSendVideo();
+                  },
                     isDarkMode: isDarkMode,
-                  ),
-                  _buildAttachmentOption(
+                ),
+                _buildAttachmentOption(
                     icon: Icons.insert_drive_file,
                     label: 'File',
                     color: Colors.orange,
-                    onTap: () {
-                      Navigator.pop(context);
+                  onTap: () {
+                    Navigator.pop(context);
                       _pickAndSendFile();
-                    },
+                  },
                     isDarkMode: isDarkMode,
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
+          ],
           ),
         ),
       ),
@@ -389,32 +389,20 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
   
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: isDarkMode ? Colors.black : Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: isDarkMode ? Colors.black : Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        title: Text(
-          widget.communityName ?? 'Community Chat',
-          style: TextStyle(
-            color: isDarkMode ? Colors.white : Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: isDarkMode ? Colors.white : Colors.black,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
+        title: _buildChatRoomTitle(context),
         actions: [
           IconButton(
             icon: Icon(
               Icons.event,
-              color: isDarkMode ? Colors.white : Colors.black,
+              color: theme.colorScheme.onSurface,
             ),
             onPressed: () {
               Navigator.push(
@@ -431,10 +419,9 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
           IconButton(
             icon: Icon(
               Icons.info_outline,
-              color: isDarkMode ? Colors.white : Colors.black,
+              color: theme.colorScheme.onSurface,
             ),
             onPressed: () {
-              // Navigate to Community Info page
               if (_chatRoom != null) {
                 Navigator.push(
                   context,
@@ -458,132 +445,168 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
               _chatRoom = state.chatRoom;
               _isLoading = false;
             });
-            
-            // Load messages
+            // Get messages for this chat room
             context.read<ChatCubit>().loadMessages(_chatRoom!.id);
           } else if (state is ChatRoomForCommunityNotFound) {
-            // Create a new community chat
-            final currentUser = context.read<AuthCubit>().GetCurrentUser();
-            if (currentUser == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('User not logged in. Please log in to chat.'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-              return;
-            }
-            
-            // Show creating chat room indicator
-            setState(() {
-              _isLoading = true;
-            });
-            
-            print('Creating community chat room for community: ${widget.communityId}');
-            
-            // Get community members to add to the chat room
+            // Create new chat room
             _findOrCreateChatRoom();
-          } else if (state is ChatRoomCreating) {
-            setState(() {
-              _isLoading = true;
-            });
-          } else if (state is ChatRoomCreationError) {
-            setState(() {
-              _isLoading = false;
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Failed to create chat room: ${state.message}'),
-                backgroundColor: Colors.red,
-              ),
-            );
           } else if (state is ChatRoomCreated) {
-            print("DEBUG: ChatRoomCreated state received with ID: ${state.chatRoom.id}");
             setState(() {
               _chatRoom = state.chatRoom;
               _isLoading = false;
             });
-            
-            // Load messages for the new chat room
+            // Get messages for this new chat room
             context.read<ChatCubit>().loadMessages(_chatRoom!.id);
-            
-            // Show success message
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Community chat room created successfully!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            
-            // Make sure community is added to the chat
-            if (_chatRoom!.communityId == null) {
-              print("DEBUG: WARNING - Chat room was created but communityId is null!");
-              // Try to fix it by updating the chat room
-              try {
-                _chatRoom = _chatRoom!.copyWith(communityId: widget.communityId);
-                print("DEBUG: Updated chat room with communityId: ${_chatRoom!.communityId}");
-              } catch (e) {
-                print("DEBUG: Error updating chat room: $e");
-              }
-            }
           } else if (state is MessagesLoaded) {
             setState(() {
               _messages = state.messages;
+              _isLoading = false;
             });
-            
-            // Scroll to bottom after messages load
+            // Scroll to bottom after messages are loaded
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _scrollToBottom();
             });
-          } else if (state is UploadingMedia) {
-            // Show progress indicator for media uploads
-          } else if (state is MediaUploadError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+          } else if (state is MessageSent) {
+            // Scroll to bottom after sending a message
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _scrollToBottom();
+            });
           }
         },
         builder: (context, state) {
           if (_isLoading) {
-            return const Center(
-              child: chat_indicator.PercentCircleIndicator(),
+            return Center(
+              child: CircularProgressIndicator(
+                color: theme.colorScheme.primary,
+              ),
             );
           }
           
           if (_chatRoom == null) {
-            return const Center(
-              child: Text('Error loading community chat'),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: theme.colorScheme.error,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Could not load chat room',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      _findOrCreateChatRoom();
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
             );
-          }
-          
-          // Show uploading indicator if needed
-          Widget? uploadingMediaWidget;
-          if (state is UploadingMedia) {
-            // You could implement a custom widget for showing upload progress
           }
           
           return Column(
             children: [
+              // Messages
               Expanded(
                 child: _messages.isEmpty
-                    ? _buildEmptyChat(isDarkMode)
-                    : Stack(
-                        children: [
-                          _buildMessageList(isDarkMode),
-                          if (uploadingMediaWidget != null)
-                            Positioned(
-                              bottom: 0,
-                              left: 0,
-                              right: 0,
-                              child: uploadingMediaWidget,
+                    ? Center(
+                        child: Text(
+                          'No messages yet. Be the first to say hello!',
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        itemCount: _messages.length,
+                        itemBuilder: (context, index) {
+                          final message = _messages[index];
+                          final currentUser = context.read<AuthCubit>().GetCurrentUser();
+                          final bool isMe = currentUser?.id == message.senderId;
+                          
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: MessageBubble(
+                              message: message,
+                              isFromCurrentUser: isMe,
                             ),
-                        ],
+                          );
+                        },
                       ),
               ),
-              _buildMessageInput(isDarkMode),
+              
+              // Message input area
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                decoration: BoxDecoration(
+                  color: theme.cardColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 5,
+                      offset: const Offset(0, -3),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Attachment button
+                      IconButton(
+                        icon: Icon(
+                          Icons.add_circle_outline,
+                          color: theme.colorScheme.primary,
+                        ),
+                        onPressed: () => _showAttachmentOptions(isDark),
+                      ),
+                      
+                      // Text field
+                      Expanded(
+                        child: Container(
+                          constraints: const BoxConstraints(maxHeight: 120),
+                          decoration: BoxDecoration(
+                            color: isDark ? Color(0xFF2C2C2C) : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(24.0),
+                          ),
+                          child: TextField(
+                            controller: _messageController,
+                            textCapitalization: TextCapitalization.sentences,
+                            maxLines: null,
+                            style: theme.textTheme.bodyMedium,
+                            decoration: InputDecoration(
+                              hintText: 'Type a message...',
+                              hintStyle: TextStyle(
+                                color: theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                                vertical: 10.0,
+                              ),
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      // Send button
+                      IconButton(
+                        icon: Icon(
+                          Icons.send_rounded,
+                          color: theme.colorScheme.primary,
+                        ),
+                        onPressed: _sendMessage,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           );
         },
@@ -591,105 +614,87 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
     );
   }
   
-  Widget _buildEmptyChat(bool isDarkMode) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildChatRoomTitle(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    if (_chatRoom != null) {
+      final String name = widget.communityName ?? 'Community Chat';
+      
+      return Row(
         children: [
-          Icon(
-            Icons.chat_bubble_outline,
-            size: 80,
-            color: isDarkMode ? Colors.white54 : Colors.black38,
+          // Community icon
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Icon(
+                Icons.group,
+                color: theme.colorScheme.primary,
+                size: 20,
+              ),
+            ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'No messages yet',
-            style: TextStyle(
-              fontSize: 16,
-              color: isDarkMode ? Colors.white54 : Colors.black38,
+          const SizedBox(width: 12),
+          // Community name
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  name,
+                  style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
-          ),
-          const SizedBox(height: 8),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
           Text(
-            'Be the first to send a message!',
-            style: TextStyle(
-              fontSize: 14,
-              color: isDarkMode ? Colors.white38 : Colors.black26,
+                  '${_chatRoom!.participants.length} members',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
             ),
           ),
         ],
-      ),
     );
-  }
-  
-  Widget _buildMessageList(bool isDarkMode) {
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-      itemCount: _messages.length,
-      itemBuilder: (context, index) {
-        final message = _messages[index];
-        final currentUser = context.read<AuthCubit>().GetCurrentUser();
-        final isMe = currentUser != null && message.senderId == currentUser.id;
-        
-        return MessageBubble(
-          message: message,
-          isFromCurrentUser: isMe,
-        );
-      },
-    );
-  }
-  
-  Widget _buildMessageInput(bool isDarkMode) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      color: isDarkMode ? Colors.black : Colors.white,
-      child: Row(
+    } else {
+      return Row(
         children: [
-          IconButton(
-            icon: Icon(
-              Icons.add_circle_outline,
-              color: Theme.of(context).colorScheme.inversePrimary,
+          // Community icon
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.2),
+              shape: BoxShape.circle,
             ),
-            onPressed: () => _showAttachmentOptions(isDarkMode),
+            child: Center(
+              child: Icon(
+                Icons.group,
+                color: theme.colorScheme.primary,
+                size: 20,
+              ),
+            ),
           ),
+          const SizedBox(width: 12),
+          // Community name
           Expanded(
-            child: TextField(
-              controller: _messageController,
-              decoration: InputDecoration(
-                hintText: 'Type a message...',
-                hintStyle: TextStyle(
-                  color: isDarkMode ? Colors.white54 : Colors.black38,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: isDarkMode ? Colors.grey[900] : Colors.grey[200],
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
+            child: Text(
+              widget.communityName ?? 'Community Chat',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
-              style: TextStyle(
-                color: isDarkMode ? Colors.white : Colors.black,
-              ),
-              maxLines: null,
-              textInputAction: TextInputAction.send,
-              onSubmitted: (_) => _sendMessage(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.send,
-              color: Theme.of(context).colorScheme.inversePrimary,
-            ),
-            onPressed: _sendMessage,
           ),
         ],
-      ),
     );
+    }
   }
 } 

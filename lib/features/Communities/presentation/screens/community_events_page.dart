@@ -510,20 +510,33 @@ class _CommunityEventsPageState extends State<CommunityEventsPage> {
   
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('${widget.communityName} Events'),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        elevation: 0,
+        title: Text(
+          'Events: ${widget.communityName}',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: Icon(
+              Icons.refresh,
+              color: theme.colorScheme.onSurface,
+            ),
             onPressed: _loadEvents,
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+      body: _isLoading 
+          ? Center(child: CircularProgressIndicator(color: theme.colorScheme.primary))
           : _events.isEmpty
               ? Center(
                   child: Column(
@@ -531,24 +544,18 @@ class _CommunityEventsPageState extends State<CommunityEventsPage> {
                     children: [
                       Icon(
                         Icons.event_busy,
-                        size: 80,
-                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                        size: 64,
+                        color: theme.colorScheme.primary.withOpacity(0.5),
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'No upcoming events',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isDarkMode ? Colors.white : Colors.grey[800],
-                        ),
+                        'No events scheduled',
+                        style: theme.textTheme.titleMedium,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Create a new event to get started',
-                        style: TextStyle(
-                          color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                        ),
+                        'Create an event for this community',
+                        style: theme.textTheme.bodyMedium,
                       ),
                     ],
                   ),
@@ -558,159 +565,284 @@ class _CommunityEventsPageState extends State<CommunityEventsPage> {
                   itemCount: _events.length,
                   itemBuilder: (context, index) {
                     final event = _events[index];
-                    final isAttending = event.attendees.contains(_currentUserId);
-                    final isCreator = _currentUserId == event.createdBy;
+                    final bool isJoined = event.attendees.contains(_currentUserId);
+                    final bool isCreator = event.createdBy == _currentUserId;
                     
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    event.title,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                if (event.isOnline)
-                                  const Chip(
-                                    label: Text('Online'),
-                                    backgroundColor: Colors.green,
-                                    labelStyle: TextStyle(color: Colors.white),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              event.description,
-                              style: TextStyle(
-                                color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                const Icon(Icons.calendar_today, size: 16),
-                                const SizedBox(width: 8),
-                                Text(
-                                  DateFormat('MMM dd, yyyy').format(event.startDate),
-                                  style: TextStyle(
-                                    color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                const Icon(Icons.access_time, size: 16),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${DateFormat('HH:mm').format(event.startDate)} - ${DateFormat('HH:mm').format(event.endDate)}',
-                                  style: TextStyle(
-                                    color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (!event.isOnline && event.location.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  const Icon(Icons.location_on, size: 16),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      event.location,
-                                      style: TextStyle(
-                                        color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                            if (event.isOnline && event.meetingLink.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  const Icon(Icons.link, size: 16),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      event.meetingLink,
-                                      style: TextStyle(
-                                        color: Theme.of(context).colorScheme.primary,
-                                        decoration: TextDecoration.underline,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.people, size: 16),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '${event.attendees.length} attending',
-                                      style: TextStyle(
-                                        color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    if (isCreator) ...[
-                                      ElevatedButton.icon(
-                                        icon: const Icon(Icons.delete),
-                                        label: const Text('Remove'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.red,
-                                          foregroundColor: Colors.white,
-                                        ),
-                                        onPressed: () => _deleteEvent(event),
-                                      ),
-                                      const SizedBox(width: 8),
-                                    ],
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: isAttending 
-                                            ? Colors.red 
-                                            : Theme.of(context).colorScheme.primary,
-                                        foregroundColor: Colors.white,
-                                      ),
-                                      onPressed: () => _toggleAttendance(event),
-                                      child: Text(isAttending ? 'Leave' : 'Join'),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+                    return _buildEventCard(
+                      context,
+                      event,
+                      isJoined,
+                      isCreator,
                     );
                   },
                 ),
       floatingActionButton: FloatingActionButton(
-        heroTag: 'createEventFAB',
-        onPressed: _showCreateEventDialog,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
         child: const Icon(Icons.add),
+        onPressed: _showCreateEventDialog,
       ),
     );
+  }
+  
+  Widget _buildEventCard(
+    BuildContext context,
+    CommunityEvent event,
+    bool isJoined,
+    bool isCreator,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Event header
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Event icon
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      event.isOnline ? Icons.videocam : Icons.event,
+                      color: theme.colorScheme.primary,
+                      size: 28,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                
+                // Event details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        event.title,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        event.description,
+                        style: theme.textTheme.bodyMedium,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Event details
+            _buildEventDetailRow(
+              context,
+              Icons.access_time,
+              '${DateFormat('E, MMM d, y').format(event.startDate)} · ${DateFormat('h:mm a').format(event.startDate)} - ${DateFormat('h:mm a').format(event.endDate)}',
+            ),
+            
+            const SizedBox(height: 8),
+            
+            if (event.isOnline)
+              _buildEventDetailRow(
+                context,
+                Icons.videocam,
+                'Online Meeting',
+                subtitle: event.meetingLink.isNotEmpty
+                    ? 'Meeting link available'
+                    : 'No meeting link provided',
+              )
+            else
+              _buildEventDetailRow(
+                context,
+                Icons.location_on,
+                event.location.isNotEmpty
+                    ? event.location
+                    : 'Location not specified',
+              ),
+            
+            const SizedBox(height: 8),
+            
+            _buildEventDetailRow(
+              context,
+              Icons.people,
+              '${event.attendees.length} participants',
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Action buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (isCreator) ...[
+                  // Delete button
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.error,
+                      side: BorderSide(color: theme.colorScheme.error),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: const Icon(Icons.delete),
+                    label: const Text('Delete'),
+                    onPressed: () => _confirmDeleteEvent(event),
+                  ),
+                ] else ...[
+                  // Join/Leave button
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isJoined
+                          ? isDark ? Colors.grey.shade800 : Colors.grey.shade200
+                          : theme.colorScheme.primary,
+                      foregroundColor: isJoined
+                          ? theme.colorScheme.onSurface
+                          : theme.colorScheme.onPrimary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () => isJoined 
+                        ? _leaveEvent(event)
+                        : _joinEvent(event),
+                    child: Text(isJoined ? 'Leave' : 'Join'),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildEventDetailRow(
+    BuildContext context,
+    IconData icon,
+    String text, {
+    String? subtitle,
+  }) {
+    final theme = Theme.of(context);
+    
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          size: 18,
+          color: theme.colorScheme.primary,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                text,
+                style: theme.textTheme.bodyMedium,
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+  
+  void _confirmDeleteEvent(CommunityEvent event) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Event'),
+        content: const Text('Are you sure you want to delete this event?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteEvent(event);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _joinEvent(CommunityEvent event) async {
+    if (_currentUserId == null) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      await _repository.joinEvent(event.id, _currentUserId!);
+      _loadEvents(); // Reload events after joining
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to join event: $e')),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+  
+  void _leaveEvent(CommunityEvent event) async {
+    if (_currentUserId == null) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      await _repository.leaveEvent(event.id, _currentUserId!);
+      _loadEvents(); // Reload events after leaving
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to leave event: $e')),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 } 
