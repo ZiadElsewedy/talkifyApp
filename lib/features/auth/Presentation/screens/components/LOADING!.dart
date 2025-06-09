@@ -5,6 +5,11 @@ class ProfessionalCircularProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color primaryColor = isDarkMode ? Colors.white : Colors.black;
+    final Color backgroundColor = isDarkMode ? Colors.grey[800]! : Colors.grey[300]!;
+    final Color innerCircleColor = isDarkMode ? Colors.grey[900]! : Colors.black;
+    
     return SizedBox(
       width: 80,
       height: 80,
@@ -13,17 +18,17 @@ class ProfessionalCircularProgress extends StatelessWidget {
         children: [
           CircularProgressIndicator(
             strokeWidth: 8,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-            backgroundColor: Colors.grey.shade300,
+            valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+            backgroundColor: backgroundColor,
           ),
           Container(
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: Colors.black,
+              color: innerCircleColor,
               shape: BoxShape.circle,
             ),
-            child: const Center(
+            child: Center(
               child: SizedBox(
                 width: 20,
                 height: 20,

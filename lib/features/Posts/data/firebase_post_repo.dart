@@ -276,6 +276,13 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
         final hasLiked = likes.contains(userId);
         final postOwnerId = data['UserId'] as String;
         
+        // For debugging - Check if post is a video
+        final bool isVideo = data['isVideo'] as bool? ?? false;
+        final String imageUrl = data['imageurl'] as String? ?? '';
+        print('DEBUG - Toggle like on post: $postId');
+        print('DEBUG - Post is video: $isVideo');
+        print('DEBUG - Post image URL: $imageUrl');
+        
         // Update the likes list
         if (hasLiked) {
           // User is UNLIKING the post
@@ -319,7 +326,7 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
                   likerUserName: userName,
                   likerProfilePic: userProfilePic,
                 );
-                print('Created like notification for post: $postId');
+                print('Created like notification for post: $postId, is video: $isVideo');
               }
             }
           } catch (e) {

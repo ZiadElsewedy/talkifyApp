@@ -648,14 +648,14 @@ void addComment() async {
   @override
   Widget build(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final Color cardColor = isDarkMode ? Colors.grey[900]! : Colors.white;
-    final Color textColor = isDarkMode ? Colors.grey[200]! : Colors.black87;
+    final Color cardColor = isDarkMode ? Color(0xFF121212) : Colors.white;
+    final Color textColor = isDarkMode ? Colors.grey[100]! : Colors.black87;
     final Color subTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
-    final Color iconColor = isDarkMode ? Colors.grey[400]! : Colors.black54;
-    final Color dividerColor = isDarkMode ? Colors.grey[800]! : Colors.grey[300]!;
+    final Color iconColor = isDarkMode ? Colors.grey[300]! : Colors.black54;
+    final Color dividerColor = isDarkMode ? Colors.grey[850]! : Colors.grey[300]!;
     final Color likeColor = isDarkMode ? Colors.red[300]! : Colors.red[700]!;
-    final Color commentBg = isDarkMode ? Colors.grey[800]! : Colors.grey[100]!;
-    final Color shadowColor = isDarkMode ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05);
+    final Color commentBg = isDarkMode ? Color(0xFF1E1E1E) : Colors.grey[100]!;
+    final Color shadowColor = isDarkMode ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.05);
 
     // check if the post is owned by the current user
     return Container(
@@ -666,7 +666,7 @@ void addComment() async {
         boxShadow: [
           BoxShadow(
             color: shadowColor,
-            blurRadius: 20,
+            blurRadius: isDarkMode ? 12 : 20,
             offset: const Offset(0, 4),
             spreadRadius: 0,
           ),

@@ -158,7 +158,81 @@ class CommunityRepositoryImpl implements CommunityRepository {
 
   @override
   Future<void> deleteCommunity(String id) async {
-    await _firestore.collection('communities').doc(id).delete();
+    try {
+      final batch = _firestore.batch();
+      final communityRef = _firestore.collection('communities').doc(id);
+      
+      // First, get a reference to the chat room associated with this community
+      final chatRoomQuerySnapshot = await _firestore
+          .collection('chatRooms')
+          .where('communityId', isEqualTo: id)
+          .get();
+      
+      // If there's an associated chat room, delete it and its messages
+      for (var chatRoomDoc in chatRoomQuerySnapshot.docs) {
+        final chatRoomId = chatRoomDoc.id;
+        batch.delete(_firestore.collection('chatRooms').doc(chatRoomId));
+        
+        // We're not querying all messages here as that could be a lot of data
+        // Instead, we're just marking the chat room for deletion
+      }
+      
+      // Delete the community document
+      batch.delete(communityRef);
+      
+      // Execute the batch
+      await batch.commit();
+      
+      // After the main deletion is done, clean up associated collections asynchronously
+      // This will run in the background and won't block the UI
+      _cleanupCommunityData(id, chatRoomQuerySnapshot.docs.map((doc) => doc.id).toList());
+    } catch (e) {
+      print("Error deleting community: $e");
+      throw e;
+    }
+  }
+  
+  // Helper method to clean up associated data asynchronously
+  Future<void> _cleanupCommunityData(String communityId, List<String> chatRoomIds) async {
+    try {
+      // Delete members subcollection (limited to batches of 500)
+      final membersSnapshot = await _firestore
+          .collection('communities')
+          .doc(communityId)
+          .collection('members')
+          .limit(500)
+          .get();
+          
+      if (membersSnapshot.docs.isNotEmpty) {
+        final batch = _firestore.batch();
+        for (var doc in membersSnapshot.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+      }
+      
+      // Delete chat messages for each associated chat room
+      for (String chatRoomId in chatRoomIds) {
+        // Get messages in batches of 500
+        final messagesSnapshot = await _firestore
+            .collection('chatRooms')
+            .doc(chatRoomId)
+            .collection('messages')
+            .limit(500)
+            .get();
+            
+        if (messagesSnapshot.docs.isNotEmpty) {
+          final batch = _firestore.batch();
+          for (var doc in messagesSnapshot.docs) {
+            batch.delete(doc.reference);
+          }
+          await batch.commit();
+        }
+      }
+    } catch (e) {
+      // Log the error but don't throw - this is a background cleanup
+      print("Error in cleanup: $e");
+    }
   }
 
   // Member operations

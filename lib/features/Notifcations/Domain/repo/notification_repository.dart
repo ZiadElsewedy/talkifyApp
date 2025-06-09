@@ -35,4 +35,7 @@ abstract class NotificationRepository {
   
   /// Stream of notifications for a user
   Stream<List<Notification>> getNotificationsStream(String userId);
+  
+  /// Update a notification with post information (thumbnail URL and isVideo flag)
+  Future<void> updateNotificationPostInfo(String notificationId, String? postImageUrl, bool isVideoPost);
 } 

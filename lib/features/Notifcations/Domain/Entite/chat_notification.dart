@@ -30,6 +30,7 @@ class ChatNotification extends Notification {
     this.chatMetadata,
     bool isRead = false,
     String? postImageUrl,
+    bool isVideoPost = false,
   }) : super(
     id: id,
     recipientId: recipientId,
@@ -42,6 +43,7 @@ class ChatNotification extends Notification {
     timestamp: timestamp,
     isRead: isRead,
     postImageUrl: postImageUrl,
+    isVideoPost: isVideoPost,
   );
 
   @override
@@ -49,6 +51,7 @@ class ChatNotification extends Notification {
     bool? isRead,
     String? triggerUserProfilePic,
     String? postImageUrl,
+    bool? isVideoPost,
   }) {
     return ChatNotification(
       id: id,
@@ -65,6 +68,7 @@ class ChatNotification extends Notification {
       chatMetadata: chatMetadata,
       isRead: isRead ?? this.isRead,
       postImageUrl: postImageUrl ?? this.postImageUrl,
+      isVideoPost: isVideoPost ?? this.isVideoPost,
     );
   }
 
@@ -94,6 +98,7 @@ class ChatNotification extends Notification {
       timestamp: baseNotification.timestamp,
       isRead: baseNotification.isRead,
       postImageUrl: baseNotification.postImageUrl,
+      isVideoPost: baseNotification.isVideoPost,
       chatRoomId: json['chatRoomId'] as String,
       messageId: json['messageId'] as String?,
       chatType: ChatNotificationType.values.firstWhere(

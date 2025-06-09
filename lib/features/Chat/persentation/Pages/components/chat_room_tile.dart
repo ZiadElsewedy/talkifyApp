@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:talkifyapp/features/Chat/domain/entite/chat_room.dart';
@@ -52,7 +53,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
     );
     
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(-0.1, 0),
+      begin: const Offset(-0.05, 0),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(
@@ -62,7 +63,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
     );
     
     // Stagger the animation based on index
-    Future.delayed(Duration(milliseconds: widget.index * 50), () {
+    Future.delayed(Duration(milliseconds: widget.index * 30), () {
       if (mounted) {
         _animationController.forward();
       }
@@ -88,9 +89,18 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
         _userStatusStream!.listen((snapshot) {
           if (snapshot.exists && mounted) {
             final userData = snapshot.data() as Map<String, dynamic>?;
-            setState(() {
-              _isOtherUserOnline = userData?['isOnline'] ?? false;
-            });
+            final isOnline = userData?['isOnline'] ?? false;
+            
+            // Fix: Use post-frame callback to avoid build during layout
+            if (_isOtherUserOnline != isOnline) {
+              SchedulerBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    _isOtherUserOnline = isOnline;
+                  });
+                }
+              });
+            }
           }
         });
       }
@@ -148,33 +158,23 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
       opacity: _fadeAnimation,
       child: SlideTransition(
         position: _slideAnimation,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          decoration: BoxDecoration(
-            color: isDarkMode
-                ? (hasUnread ? Colors.grey[850] : Theme.of(context).colorScheme.surface)
-                : (hasUnread ? Colors.grey[50] : Colors.white),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: hasUnread 
-                ? [
-                    BoxShadow(
-                      color: isDarkMode 
-                          ? Colors.black.withOpacity(0.2)
-                          : Colors.black.withOpacity(0.05),
-                      offset: const Offset(0, 2),
-                      blurRadius: 5,
-                    ),
-                  ]
-                : null,
-          ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Material(
             color: Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: widget.onTap,
               onLongPress: () => _showOptionsDialog(context),
+              splashColor: isDarkMode 
+                ? Colors.white.withOpacity(0.06)
+                : Colors.black.withOpacity(0.06),
+              highlightColor: isDarkMode 
+                ? Colors.white.withOpacity(0.03)
+                : Colors.black.withOpacity(0.03),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
                 child: Row(
                   children: [
                     _buildAvatar(otherParticipant, isDarkMode),
@@ -184,7 +184,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildTitle(context, otherParticipant, hasUnread, isDarkMode),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           _buildSubtitle(context, hasUnread, isDarkMode),
                         ],
                       ),
@@ -216,7 +216,9 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: isDarkMode
+                        ? Colors.black.withOpacity(0.2)
+                        : Colors.black.withOpacity(0.05),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -224,7 +226,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
               ),
               child: CircleAvatar(
                 radius: 28,
-                backgroundColor: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+                backgroundColor: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFF7F7F7),
                 backgroundImage: avatarUrl.isNotEmpty 
                     ? CachedNetworkImageProvider(avatarUrl)
                     : null,
@@ -232,7 +234,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
                     ? Text(
                         name.isNotEmpty ? name[0].toUpperCase() : 'U',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: isDarkMode ? Colors.white : Colors.black87,
                         ),
@@ -243,44 +245,53 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
             
             // Online status indicator
             if (_isOtherUserOnline)
-            Positioned(
+              Positioned(
                 right: 0,
-              bottom: 0,
-              child: Container(
-                  width: 16,
-                  height: 16,
-                decoration: BoxDecoration(
-                    color: Colors.green,
+                bottom: 0,
+                child: Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4CAF50),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isDarkMode ? Colors.grey[850]! : Colors.white,
-                      width: 2,
+                      color: isDarkMode ? const Color(0xFF121212) : Colors.white,
+                      width: 2.5,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       );
     } else {
       // Group chat avatar
       return Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: CircleAvatar(
-            radius: 28,
-          backgroundColor: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: isDarkMode
+                  ? Colors.black.withOpacity(0.2)
+                  : Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: CircleAvatar(
+          radius: 28,
+          backgroundColor: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFF7F7F7),
           child: Icon(
             Icons.group,
-            size: 24,
+            size: 20,
             color: isDarkMode ? Colors.white : Colors.black87,
           ),
         ),
@@ -313,15 +324,16 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
             chatName,
             style: TextStyle(
               fontSize: 16,
-              fontWeight: hasUnread ? FontWeight.bold : FontWeight.w500,
+              fontWeight: hasUnread ? FontWeight.bold : FontWeight.w600,
+              letterSpacing: 0.1,
               color: isDarkMode 
-                  ? (hasUnread ? Colors.white : Colors.grey[300])
-                  : (hasUnread ? Colors.black87 : Colors.black54),
+                  ? (hasUnread ? Colors.white : const Color(0xFFE0E0E0))
+                  : (hasUnread ? Colors.black : const Color(0xFF303030)),
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          ),
+        ),
       ],
     );
   }
@@ -355,15 +367,15 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
         Expanded(
           child: Text(
             displayText,
-      style: TextStyle(
-        fontSize: 14,
+            style: TextStyle(
+              fontSize: 13,
               color: isDarkMode
-                  ? (hasUnread ? Colors.grey[300] : Colors.grey[500])
-                  : (hasUnread ? Colors.black54 : Colors.grey[600]),
-        fontWeight: hasUnread ? FontWeight.w500 : FontWeight.normal,
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
+                  ? (hasUnread ? const Color(0xFFBDBDBD) : const Color(0xFF757575))
+                  : (hasUnread ? const Color(0xFF505050) : const Color(0xFF757575)),
+              fontWeight: hasUnread ? FontWeight.w500 : FontWeight.normal,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -371,34 +383,46 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
   }
 
   Widget _buildTrailing(BuildContext context, bool hasUnread, int unreadCount, bool isDarkMode) {
+    final lastMessageTime = widget.chatRoom.lastMessageTime;
+    final String timeText = lastMessageTime != null
+        ? _formatTime(lastMessageTime)
+        : '';
+            
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-          Text(
-          widget.chatRoom.lastMessageTime != null 
-              ? timeago.format(widget.chatRoom.lastMessageTime!)
-              : '',
-            style: TextStyle(
-              fontSize: 12,
+        Text(
+          timeText,
+          style: TextStyle(
+            fontSize: 11,
             color: isDarkMode
-                ? (hasUnread ? Colors.grey[300] : Colors.grey[500])
-                : (hasUnread ? Colors.black54 : Colors.grey[500]),
-            fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
-            ),
+                ? (hasUnread ? const Color(0xFFBDBDBD) : const Color(0xFF757575))
+                : (hasUnread ? const Color(0xFF505050) : const Color(0xFF757575)),
+            fontWeight: hasUnread ? FontWeight.w500 : FontWeight.normal,
           ),
+        ),
         const SizedBox(height: 4),
         if (hasUnread)
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: isDarkMode ? Colors.blue[700] : Colors.black,
+              color: isDarkMode ? Colors.white : const Color(0xFF000000),
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: isDarkMode
+                      ? Colors.black.withOpacity(0.2)
+                      : Colors.black.withOpacity(0.05),
+                  blurRadius: 2,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
             child: Text(
               unreadCount > 99 ? '99+' : unreadCount.toString(),
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: isDarkMode ? Colors.black : Colors.white,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
               ),
@@ -408,384 +432,109 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
     );
   }
 
+  // Helper method to format timestamp in a more human-readable way
+  String _formatTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+    
+    if (diff.inDays >= 7) {
+      // More than a week ago - show date
+      return '${dateTime.day}/${dateTime.month}';
+    } else if (diff.inDays >= 1) {
+      // Days ago
+      if (diff.inDays == 1) {
+        return 'Yesterday';
+      } else {
+        return '${diff.inDays} days ago';
+      }
+    } else if (diff.inHours >= 1) {
+      // Hours ago
+      return '${diff.inHours} ${diff.inHours == 1 ? 'hour' : 'hours'} ago';
+    } else if (diff.inMinutes >= 1) {
+      // Minutes ago
+      return '${diff.inMinutes} ${diff.inMinutes == 1 ? 'min' : 'mins'} ago';
+    } else {
+      // Just now
+      return 'Just now';
+    }
+  }
+
   void _showOptionsDialog(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDarkMode ? Colors.black : Colors.white,
+      backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 16),
+              decoration: BoxDecoration(
+                color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        widget.chatRoom.participants.length > 2 
-                            ? Icons.group 
-                            : Icons.person,
-                        color: isDarkMode ? Colors.white : Colors.black,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        _getParticipantName(),
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isDarkMode ? Colors.white : Colors.black,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(),
-              ListTile(
-                leading: Icon(
-                  Icons.archive_outlined, 
-                  color: isDarkMode ? Colors.white : null
-                ),
-                title: Text(
-                  'Archive chat',
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white : Colors.black,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Archive feature coming soon!'),
-                      backgroundColor: Colors.black,
-                    ),
-                  );
-                },
-              ),
-              FutureBuilder<bool>(
-                future: ChatNotificationService.isChatMuted(widget.chatRoom.id),
-                builder: (context, snapshot) {
-                  final isMuted = snapshot.data ?? false;
-                  return ListTile(
-                    leading: Icon(
-                      isMuted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined,
-                      color: isDarkMode ? Colors.white : null
-                    ),
-                    title: Text(
-                      isMuted ? 'Unmute notifications' : 'Mute notifications',
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white : Colors.black,
-                      ),
-                    ),
-                    onTap: () async {
-                      Navigator.of(context).pop();
-                      
-                      if (isMuted) {
-                        // Unmute the chat
-                        await ChatNotificationService.unmuteChat(widget.chatRoom.id);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Notifications unmuted for this chat'),
-                              backgroundColor: Colors.black,
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        }
-                      } else {
-                        // Mute the chat
-                        await ChatNotificationService.muteChat(widget.chatRoom.id);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Notifications muted for this chat'),
-                              backgroundColor: Colors.black,
-                              duration: const Duration(seconds: 2),
-                              action: SnackBarAction(
-                                label: 'UNDO',
-                                onPressed: () async {
-                                  await ChatNotificationService.unmuteChat(widget.chatRoom.id);
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Notifications unmuted'),
-                                        backgroundColor: Colors.black,
-                                        duration: Duration(seconds: 1),
-                                      ),
-                                    );
-                                  }
-                                },
-                                textColor: Colors.white,
-                              ),
-                            ),
-                          );
-                        }
-                      }
-                      
-                      // Force widget to rebuild to reflect the updated mute status
-                      if (mounted) {
-                        setState(() {});
-                      }
-                    },
-                  );
-                }
-              ),
-              const Divider(),
-              ListTile(
-                leading: Icon(
-                  Icons.delete_outline, 
-                  color: isDarkMode ? Colors.white : ChatStyles.errorColor
-                ),
-                title: Text(
-                  'Delete chat',
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white : Colors.black,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _confirmDeleteChat(context);
-                },
-              ),
-              if (widget.chatRoom.participants.length > 2)
-                ListTile(
-                  leading: Icon(
-                    Icons.exit_to_app,
-                    color: isDarkMode ? Colors.white : null
-                  ),
-                  title: Text(
-                    'Leave group',
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    _confirmLeaveGroup(context);
-                  },
-                ),
-            ],
-          ),
+            ),
+            _buildOptionTile(
+              context,
+              icon: Icons.visibility_off,
+              title: 'Hide chat',
+              onTap: () {
+                Navigator.pop(context);
+                // Hide chat functionality
+              },
+              isDarkMode: isDarkMode,
+            ),
+            _buildOptionTile(
+              context,
+              icon: Icons.delete_outline,
+              title: 'Delete chat',
+              onTap: () {
+                Navigator.pop(context);
+                // Delete chat functionality
+              },
+              isDarkMode: isDarkMode,
+              isDestructive: true,
+            ),
+            const SizedBox(height: 12),
+          ],
         ),
       ),
     );
   }
-
-  void _confirmDeleteChat(BuildContext context) {
-    final bool isGroupChat = widget.chatRoom.participants.length > 2;
-    // Safely check if user is admin - handle case where admins list may be null in existing records
-    final bool isAdmin = widget.chatRoom.admins.any((adminId) => adminId == widget.currentUserId);
-    
-    // Keep a reference to cubit to avoid widget deactivation issues
-    final chatCubit = context.read<ChatCubit>();
-    
-    if (isGroupChat) {
-      if (isAdmin) {
-        // Admin can delete the group chat for everyone
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Delete Group Chat'),
-            content: const Text(
-              'As an admin, you can either delete this group for everyone or just leave the group. What would you like to do?'
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _leaveGroupChat(context);
-                },
-                child: const Text('Leave Group'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  
-                  // Show confirmation for deleting the entire group
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Delete for Everyone'),
-                      content: const Text(
-                        'This will delete the group and all messages for all members. This action cannot be undone.'
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            
-                            // Run delete animation and delete the chat room
-                            _animationController.reverse().then((_) {
-                              // Use the stored reference to avoid widget deactivation issues
-                              chatCubit.deleteChatRoom(widget.chatRoom.id);
-                            });
-                          },
-                          style: TextButton.styleFrom(foregroundColor: ChatStyles.errorColor),
-                          child: const Text('Delete for Everyone'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                style: TextButton.styleFrom(foregroundColor: ChatStyles.errorColor),
-                child: const Text('Delete for Everyone'),
-              ),
-            ],
-          ),
-        );
-      } else {
-        // Regular members can only leave the group
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Leave Group Chat'),
-            content: const Text(
-              'You cannot delete the group chat as you are not an admin. Would you like to leave the group instead?'
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _leaveGroupChat(context);
-                },
-                style: TextButton.styleFrom(foregroundColor: Colors.black),
-                child: const Text('Leave Group'),
-              ),
-            ],
-          ),
-        );
-      }
-    } else {
-      // For one-on-one chats, we just hide the chat for the current user
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Delete Chat'),
-          content: const Text(
-            'How would you like to delete this chat?'
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                
-                // Run delete animation
-                _animationController.reverse().then((_) {
-                  // Use the stored reference to avoid widget deactivation issues
-                  chatCubit.hideChatForUser(
-                    chatRoomId: widget.chatRoom.id,
-                    userId: widget.currentUserId,
-                  );
-                });
-              },
-              style: TextButton.styleFrom(foregroundColor: Colors.black),
-              child: const Text('Hide Chat Only'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                
-                // Run delete animation
-                _animationController.reverse().then((_) {
-                  // Use the stored reference to avoid widget deactivation issues
-                  chatCubit.hideChatAndDeleteHistoryForUser(
-                    chatRoomId: widget.chatRoom.id,
-                    userId: widget.currentUserId,
-                  );
-                });
-              },
-              style: TextButton.styleFrom(foregroundColor: ChatStyles.errorColor),
-              child: const Text('Delete Chat & History'),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  void _leaveGroupChat(BuildContext context) {
-    // Get the user name from the chat room
-    final String userName = 
-        widget.chatRoom.participantNames[widget.currentUserId] ?? 'A user';
-    
-    // Keep a reference to cubit to avoid widget deactivation issues
-    final chatCubit = context.read<ChatCubit>();
-    
-    // Run leave animation and leave the group chat
-    _animationController.reverse().then((_) {
-      chatCubit.leaveGroupChat(
-        chatRoomId: widget.chatRoom.id,
-        userId: widget.currentUserId,
-        userName: userName,
-      );
-    });
-  }
-
-  void _confirmLeaveGroup(BuildContext context) {
-    // Keep a reference to cubit to avoid widget deactivation issues
-    final chatCubit = context.read<ChatCubit>();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Leave Group'),
-        content: const Text(
-          'Are you sure you want to leave this group? You will no longer receive messages from this group.'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _leaveGroupChat(context);
-            },
-            style: TextButton.styleFrom(foregroundColor: ChatStyles.errorColor),
-            child: const Text('Leave'),
-          ),
-        ],
+  
+  Widget _buildOptionTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    required bool isDarkMode,
+    bool isDestructive = false,
+  }) {
+    final Color textColor = isDestructive
+        ? Colors.red
+        : (isDarkMode ? Colors.white : Colors.black);
+        
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: textColor,
       ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
     );
   }
 } 

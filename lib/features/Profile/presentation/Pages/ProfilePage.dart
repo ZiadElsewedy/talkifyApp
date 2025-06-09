@@ -558,15 +558,15 @@ class ProfilePageState extends State<ProfilePage> {
                                       height: 24,
                                       width: 4,
                                       decoration: BoxDecoration(
-                                        color: Colors.black,
+                                        color: isDarkMode ? Colors.white : Colors.black,
                                         borderRadius: BorderRadius.circular(2),
                                       ),
                                     ),
                                     const SizedBox(width: 10),
-                                    const Text(
+                                    Text(
                                       'Bio',
                                       style: TextStyle(
-                                        color: Colors.black87,
+                                        color: isDarkMode ? Colors.white : Colors.black87,
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
                                         letterSpacing: 0.5,
@@ -593,15 +593,15 @@ class ProfilePageState extends State<ProfilePage> {
                                       height: 24,
                                       width: 4,
                                       decoration: BoxDecoration(
-                                        color: Colors.black,
+                                        color: isDarkMode ? Colors.white : Colors.black,
                                         borderRadius: BorderRadius.circular(2),
                                       ),
                                     ),
                                     const SizedBox(width: 10),
-                                    const Text(
+                                    Text(
                                       'Posts',
                                       style: TextStyle(
-                                        color: Colors.black87,
+                                        color: isDarkMode ? Colors.white : Colors.black87,
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
                                         letterSpacing: 0.5,
@@ -641,21 +641,23 @@ class ProfilePageState extends State<ProfilePage> {
             ),
           );
         } else if (state is ProfileLoadingState) {
-          return const Scaffold(
-            backgroundColor: Color(0xFFF9F9F9),
+          final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+          return Scaffold(
+            backgroundColor: isDarkMode ? Theme.of(context).scaffoldBackgroundColor : Color(0xFFF9F9F9),
             body: Center(
               child: ProfessionalCircularProgress(),
             ),
           );
         } else if (state is ProfileErrorState) {
+          final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
           return Scaffold(
-            backgroundColor: Color(0xFFF9F9F9),
+            backgroundColor: isDarkMode ? Theme.of(context).scaffoldBackgroundColor : Color(0xFFF9F9F9),
             appBar: AppBar(
-              backgroundColor: Colors.black,
+              backgroundColor: isDarkMode ? Colors.grey[900] : Colors.black,
               elevation: 0,
-              title: const Text('Profile'),
+              title: Text('Profile', style: TextStyle(color: Colors.white)),
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
+                icon: Icon(Icons.arrow_back, color: Colors.white),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
@@ -664,11 +666,13 @@ class ProfilePageState extends State<ProfilePage> {
                 padding: const EdgeInsets.all(24),
                 margin: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDarkMode ? Colors.grey[850] : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: isDarkMode 
+                        ? Colors.black.withOpacity(0.2) 
+                        : Colors.black.withOpacity(0.08),
                       spreadRadius: 1,
                       blurRadius: 10,
                       offset: const Offset(0, 4),
@@ -681,15 +685,15 @@ class ProfilePageState extends State<ProfilePage> {
                   children: [
                     Icon(
                       Icons.error_outline,
-                      color: Colors.black,
+                      color: isDarkMode ? Colors.grey[400] : Colors.black,
                       size: 48,
                     ),
                     const SizedBox(height: 16),
                     Text(
                       state.error,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.black87,
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.grey[300] : Colors.black87,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
@@ -698,7 +702,7 @@ class ProfilePageState extends State<ProfilePage> {
                     ElevatedButton(
                       onPressed: initializeProfile,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
+                        backgroundColor: isDarkMode ? Colors.blue[700] : Colors.black,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         shape: RoundedRectangleBorder(
@@ -768,8 +772,10 @@ class ProfilePageState extends State<ProfilePage> {
                     );
                   },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black,
-                    side: const BorderSide(color: Colors.black),
+                    foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                    side: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),

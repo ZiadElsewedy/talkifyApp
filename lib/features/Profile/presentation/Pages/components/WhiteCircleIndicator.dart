@@ -6,10 +6,10 @@ class PercentCircleIndicator extends StatefulWidget {
   final double size;
 
   /// The color of the progress indicator
-  final Color color;
+  final Color? color;
 
   /// The background color of the circle
-  final Color backgroundColor;
+  final Color? backgroundColor;
 
   /// The stroke width of the progress indicator
   final double strokeWidth;
@@ -20,8 +20,8 @@ class PercentCircleIndicator extends StatefulWidget {
   const PercentCircleIndicator({
     Key? key,
     this.size = 45.0,
-    this.color = Colors.black,
-    this.backgroundColor = Colors.black12,
+    this.color,
+    this.backgroundColor,
     this.strokeWidth = 3.0,
     this.progress,
   }) : super(key: key);
@@ -64,6 +64,10 @@ class _PercentCircleIndicatorState extends State<PercentCircleIndicator>
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color progressColor = widget.color ?? (isDarkMode ? Colors.white : Colors.black);
+    final Color bgColor = widget.backgroundColor ?? (isDarkMode ? Colors.white24 : Colors.black12);
+    
     return Container(
       width: widget.size,
       height: widget.size,
@@ -71,7 +75,7 @@ class _PercentCircleIndicatorState extends State<PercentCircleIndicator>
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: widget.color.withOpacity(0.15),
+            color: progressColor.withOpacity(0.15),
             blurRadius: 8,
             spreadRadius: 2,
           ),
@@ -84,15 +88,15 @@ class _PercentCircleIndicatorState extends State<PercentCircleIndicator>
           CircularProgressIndicator(
             value: widget.progress,
             strokeWidth: widget.strokeWidth,
-            backgroundColor: widget.backgroundColor,
-            valueColor: AlwaysStoppedAnimation<Color>(widget.color),
+            backgroundColor: bgColor,
+            valueColor: AlwaysStoppedAnimation<Color>(progressColor),
           ),
           // Percentage text
           if (widget.progress != null)
             Text(
               '${(widget.progress! * 100).toInt()}%',
               style: TextStyle(
-                color: widget.color,
+                color: progressColor,
                 fontSize: widget.size * 0.25,
                 fontWeight: FontWeight.w600,
               ),
@@ -103,8 +107,8 @@ class _PercentCircleIndicatorState extends State<PercentCircleIndicator>
               turns: _animation,
               child: CircularProgressIndicator(
                 strokeWidth: widget.strokeWidth,
-                backgroundColor: widget.backgroundColor,
-                valueColor: AlwaysStoppedAnimation<Color>(widget.color),
+                backgroundColor: bgColor,
+                valueColor: AlwaysStoppedAnimation<Color>(progressColor),
               ),
             ),
         ],

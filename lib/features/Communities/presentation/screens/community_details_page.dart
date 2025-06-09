@@ -378,50 +378,83 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
     if (!mounted) return;
     
     final communityCubit = context.read<CommunityCubit>();
+    bool isCompleted = false;
     
-    // Update UI to show loading state
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      
-      setState(() {
-        _isLoading = true;
-      });
-    });
+    // Show loading dialog with timeout
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        // Auto-dismiss after 5 seconds
+        Future.delayed(Duration(seconds: 5), () {
+          if (dialogContext.mounted && !isCompleted) {
+            Navigator.pop(dialogContext);
+            
+            if (mounted) {
+              // Indicate that deletion is still processing
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Community deletion is processing in the background'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+              
+              // Navigate back to communities list
+              Navigator.pop(context);
+            }
+          }
+        });
+        
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Deleting community...'),
+            ],
+          ),
+        );
+      },
+    );
     
     try {
       await communityCubit.deleteCommunity(widget.communityId);
+      isCompleted = true;
       
       if (mounted) {
-        // Update UI to reflect the changes
-        SchedulerBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return; // Check mounted again
-          
-          setState(() {
-            _isLoading = false;
-          });
-          
-          // Pop back to communities list
-          Navigator.pop(context);
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Community has been deleted')),
-          );
+        // Dismiss the dialog if it's still showing
+        Navigator.of(context, rootNavigator: true).popUntil((route) {
+          return route.isFirst || route.settings.name == '/communities';
         });
+        
+        // Navigate back to communities list
+        if (mounted) Navigator.pop(context);
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Community has been deleted'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
+      isCompleted = true;
+      
       if (mounted) {
-        // Update UI to reflect error state
-        SchedulerBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return; // Check mounted again
-          
-          setState(() {
-            _isLoading = false;
-          });
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete community: $e')),
-          );
+        // Dismiss the dialog if it's still showing
+        Navigator.of(context, rootNavigator: true).popUntil((route) {
+          return route.isFirst || route.settings.name == null;
         });
+        
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete community: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }

@@ -22,6 +22,8 @@ class InAppNotificationService {
     required String userId,
     String? postId,
     String? userAvatar,
+    String? postThumbnail,
+    bool isVideoPost = false,
     Duration duration = const Duration(seconds: 3),
     bool playSound = true,
   }) {
@@ -46,6 +48,8 @@ class InAppNotificationService {
         userId: userId,
         postId: postId,
         userAvatar: userAvatar,
+        postThumbnail: postThumbnail,
+        isVideoPost: isVideoPost,
         onDismiss: () {
           _currentNotification?.remove();
           _isVisible = false;
@@ -112,6 +116,8 @@ class _InAppNotification extends StatefulWidget {
   final String userId;
   final String? postId;
   final String? userAvatar;
+  final String? postThumbnail;
+  final bool isVideoPost;
   final VoidCallback onDismiss;
   
   const _InAppNotification({
@@ -122,6 +128,8 @@ class _InAppNotification extends StatefulWidget {
     required this.onDismiss,
     this.postId,
     this.userAvatar,
+    this.postThumbnail,
+    this.isVideoPost = false,
   });
 
   @override
@@ -257,17 +265,6 @@ class _InAppNotificationState extends State<_InAppNotification> with SingleTicke
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),  // More padding
                     child: Row(
                       children: [
-                        // Left color indicator bar for notification type
-                        Container(
-                          width: 4,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: _getColor(),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        
                         // Profile picture
                         if (widget.userAvatar != null && widget.userAvatar!.isNotEmpty)
                           CircleAvatar(
@@ -320,6 +317,83 @@ class _InAppNotificationState extends State<_InAppNotification> with SingleTicke
                             ],
                           ),
                         ),
+                        
+                        // Post thumbnail (if available)
+                        if (widget.postThumbnail != null && widget.postThumbnail!.isNotEmpty)
+                          Container(
+                            width: 40,
+                            height: 40,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300,
+                                width: 1,
+                              ),
+                            ),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(3),
+                                  child: CachedNetworkImage(
+                                    imageUrl: widget.postThumbnail!,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => Container(
+                                      color: Colors.grey.shade200,
+                                      child: const Center(
+                                        child: SizedBox(
+                                          width: 12,
+                                          height: 12,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    errorWidget: (context, url, error) {
+                                      if (widget.isVideoPost) {
+                                        return Container(
+                                          color: Colors.grey.shade800,
+                                          child: const Icon(
+                                            Icons.videocam,
+                                            size: 16,
+                                            color: Colors.white,
+                                          ),
+                                        );
+                                      }
+                                      return Container(
+                                        color: Colors.grey.shade200,
+                                        child: const Icon(
+                                          Icons.image_not_supported,
+                                          size: 16,
+                                          color: Colors.grey,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                if (widget.isVideoPost)
+                                  Positioned(
+                                    right: 2,
+                                    bottom: 2,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(1),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.7),
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                      child: const Icon(
+                                        Icons.play_arrow,
+                                        color: Colors.white,
+                                        size: 10,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
                         
                         // Close button
                         IconButton(

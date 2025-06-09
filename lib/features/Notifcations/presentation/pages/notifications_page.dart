@@ -11,6 +11,7 @@ import 'package:talkifyapp/features/Profile/presentation/Pages/ProfilePage.dart'
 import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dart';
 import 'package:talkifyapp/features/Posts/PostComponents/SinglePostView.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/utils/notification_navigation.dart';
+import 'dart:async';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({Key? key}) : super(key: key);
@@ -21,186 +22,213 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   final _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+  late Timer _refreshTimer;
+  bool _isLoading = true;
+  String? _loadError;
 
   @override
   void initState() {
     super.initState();
     
-    if (_currentUserId.isNotEmpty) {
-      // Ensure notifications are loaded when page opens
-      final notificationCubit = context.read<NotificationCubit>();
-      notificationCubit.loadNotifications(_currentUserId);
+    // Initialize and load notifications
+    _loadNotifications();
+    
+    // Set up auto-refresh timer for notifications
+    _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (mounted) {
+        _refreshNotifications();
+      }
+    });
+  }
+
+  void _loadNotifications() async {
+    // Get current user ID
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _loadError = 'User not logged in';
+        });
+      }
+      return;
     }
+    
+    try {
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+          _loadError = null;
+        });
+      }
+      
+      // Load notifications through the cubit
+      await context.read<NotificationCubit>().loadNotifications(currentUser.uid);
+      
+      // Fix video thumbnails in notifications
+      await context.read<NotificationCubit>().fixVideoThumbnails(currentUser.uid);
+      
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _loadError = e.toString();
+        });
+      }
+    }
+  }
+
+  void _refreshNotifications() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null || !mounted) return;
+    
+    // Reload notifications
+    await context.read<NotificationCubit>().loadNotifications(currentUser.uid);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Check if there are any social notifications to show
     final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-
+    final notificationState = context.watch<NotificationCubit>().state;
+    final socialNotifications = notificationState.notifications;
+    final bool hasNotifications = socialNotifications.isNotEmpty;
+    
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        elevation: 0,
+        title: const Text('Notifications'),
         centerTitle: false,
-        backgroundColor: theme.appBarTheme.backgroundColor,
-        title: Text(
-          'Notifications',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          BlocBuilder<NotificationCubit, NotificationState>(
-            builder: (context, state) {
-              // Only show the "Mark all as read" button if there are unread notifications
-              if (state.unreadCount > 0) {
-                return IconButton(
-                  icon: Icon(Icons.done_all, color: theme.colorScheme.onSurface),
-                  onPressed: () {
-                    final notificationCubit = context.read<NotificationCubit>();
-                    notificationCubit.markAllNotificationsAsRead(_currentUserId);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('All notifications marked as read'),
-                        behavior: SnackBarBehavior.floating,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                  tooltip: 'Mark all as read',
-                );
+        actions: _currentUserId.isNotEmpty ? [
+          IconButton(
+            icon: const Icon(Icons.check_circle_outline),
+            tooltip: 'Mark all as read',
+            onPressed: () async {
+              try {
+                await context.read<NotificationCubit>().markAllNotificationsAsRead(_currentUserId);
+                
+                // Show success toast
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('All notifications marked as read'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } catch (e) {
+                // Show error toast
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               }
-              return const SizedBox.shrink(); // Empty widget if no unread notifications
             },
           ),
-        ],
+        ] : null,
       ),
-      body: BlocBuilder<NotificationCubit, NotificationState>(
-        builder: (context, state) {
-          if (state.status == NotificationStatus.loading && state.notifications.isEmpty) {
-            return Center(
-              child: CircularProgressIndicator(
-                color: theme.colorScheme.primary,
-              ),
-            );
-          } else if (state.status == NotificationStatus.error) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 60,
-                    color: theme.colorScheme.error.withOpacity(0.7),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error: ${state.errorMessage}',
-                    style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7)),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<NotificationCubit>().loadNotifications(_currentUserId);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.colorScheme.primary,
-                      foregroundColor: theme.colorScheme.onPrimary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          } else if (state.notifications.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.notifications_off_outlined,
-                    size: 70,
-                    color: theme.colorScheme.onSurface.withOpacity(0.4),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No notifications yet',
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Text(
-                      'You will see notifications when someone interacts with your posts or comments',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-          
-          // Make sure we have the ProfileCubit available for the follow button in notifications
-          final profileCubit = context.read<ProfileCubit>();
-          
-          // Get only social notifications (likes, comments, follows) and filter out message notifications
-          final socialNotifications = state.notifications.where((notification) => 
-            notification.type == app_notification.NotificationType.like || 
-            notification.type == app_notification.NotificationType.comment || 
-            notification.type == app_notification.NotificationType.follow
-          ).toList();
-          
-          return RefreshIndicator(
-            onRefresh: () => context.read<NotificationCubit>().loadNotifications(_currentUserId),
-            child: socialNotifications.isEmpty 
+      body: _isLoading 
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : _loadError != null
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.notifications_off_outlined,
-                        size: 70,
-                        color: theme.colorScheme.onSurface.withOpacity(0.4),
+                      Text(
+                        'Error loading notifications',
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _loadError!,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        'No activity notifications',
-                        style: theme.textTheme.titleMedium,
+                      ElevatedButton(
+                        onPressed: _loadNotifications,
+                        child: const Text('Retry'),
                       ),
                     ],
                   ),
                 )
-              : ListView.builder(
-                  itemCount: socialNotifications.length,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 20),
-                  itemBuilder: (context, index) {
-                    final notification = socialNotifications[index];
-                    
-                    return NotificationItem(
-                      notification: notification,
-                      onTap: () => _handleNotificationTap(notification),
-                      onDeleted: (_) {
-                        // No additional action needed as deletion is handled in the NotificationItem
+              : !hasNotifications
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.notifications_off_outlined,
+                            size: 48,
+                            color: theme.colorScheme.onSurface.withOpacity(0.5),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No notifications yet',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.7),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'When you get notifications, they will appear here',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.5),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _refreshNotifications,
+                            child: const Text('Refresh'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemCount: socialNotifications.length,
+                      separatorBuilder: (context, index) => Divider(
+                        height: 1,
+                        thickness: 0.5,
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? Colors.grey.withOpacity(0.1) 
+                            : Colors.grey.withOpacity(0.1),
+                        indent: 16,
+                        endIndent: 16,
+                      ),
+                      itemBuilder: (context, index) {
+                        final notification = socialNotifications[index];
+                        return NotificationItem(
+                          notification: notification,
+                          onTap: () => _handleNotificationTap(context, notification),
+                          onDeleted: (deletedNotification) {
+                            // This is now handled by the Dismissible widget and NotificationCubit
+                          },
+                        );
                       },
-                    );
-                  },
-                ),
-          );
-        },
+                    ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _refreshNotifications,
+        tooltip: 'Refresh notifications',
+        child: const Icon(Icons.refresh),
       ),
     );
   }
 
-  void _handleNotificationTap(app_notification.Notification notification) {
+  void _handleNotificationTap(BuildContext context, app_notification.Notification notification) {
     try {
       // Mark as read if not already read
       if (!notification.isRead) {
@@ -323,5 +351,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
         builder: (context) => ProfilePage(userId: userId),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer.cancel();
+    super.dispose();
   }
 } 

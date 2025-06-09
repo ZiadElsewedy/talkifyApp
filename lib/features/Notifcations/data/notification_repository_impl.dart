@@ -182,4 +182,24 @@ class NotificationRepositoryImpl implements NotificationRepository {
           }).toList();
         });
   }
+
+  @override
+  Future<void> updateNotificationPostInfo(String notificationId, String? postImageUrl, bool isVideoPost) async {
+    try {
+      print('Updating notification $notificationId with imageUrl: $postImageUrl, isVideoPost: $isVideoPost');
+      
+      await _firestore
+          .collection('notifications')
+          .doc(notificationId)
+          .update({
+            'postImageUrl': postImageUrl,
+            'isVideoPost': isVideoPost,
+          });
+          
+      print('Successfully updated notification with video info');
+    } catch (e) {
+      print('Error updating notification with post info: $e');
+      throw Exception('Failed to update notification with post info: $e');
+    }
+  }
 } 

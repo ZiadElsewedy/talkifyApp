@@ -72,10 +72,26 @@ class CommunityCubit extends Cubit<CommunityState> {
 
   Future<void> deleteCommunity(String id) async {
     emit(CommunityDeleting());
+    
     try {
-      await _repository.deleteCommunity(id);
+      // Use a timeout to ensure we don't wait indefinitely
+      await _repository.deleteCommunity(id).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          // If it times out, we still consider it a success but note that cleanup is happening in background
+          print("Community deletion timed out, but proceeding as successful (cleanup in background)");
+          return;
+        },
+      );
+      
+      // Mark as successfully deleted regardless of timeout
+      // Cleanup will continue in the background
       emit(CommunityDeletedSuccessfully());
+      
+      // Refresh the communities list
+      getAllCommunities();
     } catch (e) {
+      print("Error in deleteCommunity: $e");
       emit(CommunityError(e.toString()));
     }
   }

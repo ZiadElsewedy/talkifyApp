@@ -21,6 +21,7 @@ class Notification {
   final DateTime timestamp;
   final bool isRead;
   final String? postImageUrl; // URL of the post image thumbnail
+  final bool isVideoPost; // Flag to indicate if the post is a video
   
   const Notification({
     required this.id,
@@ -34,12 +35,14 @@ class Notification {
     required this.timestamp,
     this.isRead = false,
     this.postImageUrl,
+    this.isVideoPost = false,
   });
 
   Notification copyWith({
     bool? isRead,
     String? triggerUserProfilePic,
     String? postImageUrl,
+    bool? isVideoPost,
   }) {
     return Notification(
       id: id,
@@ -53,6 +56,7 @@ class Notification {
       timestamp: timestamp,
       isRead: isRead ?? this.isRead,
       postImageUrl: postImageUrl ?? this.postImageUrl,
+      isVideoPost: isVideoPost ?? this.isVideoPost,
     );
   }
 
@@ -69,6 +73,7 @@ class Notification {
       'timestamp': Timestamp.fromDate(timestamp),
       'isRead': isRead,
       'postImageUrl': postImageUrl,
+      'isVideoPost': isVideoPost,
     };
   }
 
@@ -88,6 +93,7 @@ class Notification {
       timestamp: (json['timestamp'] as Timestamp).toDate(),
       isRead: json['isRead'] as bool? ?? false,
       postImageUrl: json['postImageUrl'] as String?,
+      isVideoPost: json['isVideoPost'] as bool? ?? false,
     );
   }
 } 

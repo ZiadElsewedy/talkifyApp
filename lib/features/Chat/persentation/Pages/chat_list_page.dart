@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:math';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
@@ -28,6 +29,7 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
   late AnimationController _fadeInController;
   TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
+  String _searchQuery = '';
   
   // Tab controller for Chats and Communities
   late TabController _tabController;
@@ -82,36 +84,59 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
   }
 
   void _filterChatRooms(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        // Apply the community filter here too
-        _filteredChatRooms = _filterNonCommunityChatRooms(_chatRooms);
-      } else {
-        _filteredChatRooms = _filterNonCommunityChatRooms(_chatRooms).where((chatRoom) {
-          // Search in chat name (group name or participant name)
-          String chatName = '';
-          if (chatRoom.isGroupChat) {
-            // For group chats, use the first participant's name as a fallback
-            // Since there's no explicit "groupName" field in the model
-            chatName = chatRoom.participants.length > 2 
-                ? "Group: ${chatRoom.participantNames.values.join(", ").substring(0, 
-                    min(chatRoom.participantNames.values.join(", ").length, 20))}..."
-                : "";
+    // Fix: Store the query first, then schedule the setState for next frame
+    _searchQuery = query;
+    
+    // Use post-frame callback to avoid setState during build
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          if (_searchQuery.isEmpty) {
+            // Apply the community filter here too
+            _filteredChatRooms = _filterNonCommunityChatRooms(_chatRooms);
           } else {
-            // For direct chats, find the other participant's name
-            final currentUserName = context.read<AuthCubit>().GetCurrentUser()?.name ?? '';
-            chatName = chatRoom.participantNames.entries
-                .where((entry) => entry.value != currentUserName)
-                .map((entry) => entry.value)
-                .join(", ");
+            _filteredChatRooms = _filterNonCommunityChatRooms(_chatRooms).where((chatRoom) {
+              // Search in chat name (group name or participant name)
+              String chatName = '';
+              if (chatRoom.isGroupChat) {
+                // For group chats, use the first participant's name as a fallback
+                // Since there's no explicit "groupName" field in the model
+                chatName = chatRoom.participants.length > 2 
+                    ? "Group: ${chatRoom.participantNames.values.join(", ").substring(0, 
+                        min(chatRoom.participantNames.values.join(", ").length, 20))}..."
+                    : "";
+              } else {
+                // For direct chats, find the other participant's name
+                final currentUserName = context.read<AuthCubit>().GetCurrentUser()?.name ?? '';
+                chatName = chatRoom.participantNames.entries
+                    .where((entry) => entry.value != currentUserName)
+                    .map((entry) => entry.value)
+                    .join(", ");
+              }
+              
+              // Search in last message
+              final String lastMessageContent = chatRoom.lastMessage ?? '';
+              
+              return chatName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                     lastMessageContent.toLowerCase().contains(_searchQuery.toLowerCase());
+            }).toList();
           }
-          
-          // Search in last message
-          final String lastMessageContent = chatRoom.lastMessage ?? '';
-          
-          return chatName.toLowerCase().contains(query.toLowerCase()) ||
-                 lastMessageContent.toLowerCase().contains(query.toLowerCase());
-        }).toList();
+        });
+      }
+    });
+  }
+
+  void _toggleSearch() {
+    // Use post-frame callback to avoid setState during build
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _isSearching = !_isSearching;
+          if (!_isSearching) {
+            _searchController.clear();
+            _filterChatRooms('');
+          }
+        });
       }
     });
   }
@@ -119,254 +144,404 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final currentUser = context.read<AuthCubit>().GetCurrentUser();
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.white,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
             SliverAppBar(
+              elevation: 0,
+              backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.white,
               title: _isSearching
-                  ? TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Search conversations...',
-                        hintStyle: TextStyle(
-                          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search conversations...',
+                          hintStyle: TextStyle(
+                            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                            fontSize: 16,
+                          ),
+                          border: InputBorder.none,
+                          icon: Icon(
+                            Icons.search,
+                            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                          ),
+                          suffixIcon: _searchController.text.isNotEmpty
+                              ? GestureDetector(
+                                  onTap: () {
+                                    _searchController.clear();
+                                    _filterChatRooms('');
+                                  },
+                                  child: Icon(
+                                    Icons.clear,
+                                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                    size: 18,
+                                  ),
+                                )
+                              : null,
                         ),
-                        border: InputBorder.none,
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black,
+                          fontSize: 16,
+                        ),
+                        onChanged: _filterChatRooms,
+                        autofocus: true,
                       ),
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.inversePrimary,
-                      ),
-                      onChanged: _filterChatRooms,
-                      autofocus: true,
                     )
-                  : Text(
-          'Conversations',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.inversePrimary,
-              ),
-        ),
-        actions: [
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _isSearching = !_isSearching;
-                if (!_isSearching) {
-                  _searchController.clear();
-                  _filterChatRooms('');
-                }
-              });
-            },
-                  icon: Icon(
-                    _isSearching ? Icons.close : Icons.search,
-                    color: Theme.of(context).colorScheme.inversePrimary,
-                  ),
-          ),
-                PopupMenuButton<String>(
-                  icon: Icon(
-                Icons.more_vert, 
-                    color: Theme.of(context).colorScheme.inversePrimary,
-                  ),
-                  onSelected: (value) {
-                    if (value == 'new_chat') {
-                      Navigator.push(
-                        context,
-                        PageTransitions.slideRightTransition(
-                          page: const NewChatPage(),
-            ),
-                      ).then((_) {
-                        // Reload chat rooms when returning from new chat
-                        if (mounted) _loadChatRooms();
-                      });
-                    } else if (value == 'new_community') {
-                      Navigator.push(
-                        context,
-                        PageTransitions.slideRightTransition(
-                          page: const CreateCommunityPage(),
-            ),
-                      );
-                    }
-                  },
-            itemBuilder: (context) => [
-                    const PopupMenuItem<String>(
-                      value: 'new_chat',
-                child: Row(
-                  children: [
-                          Icon(Icons.chat_bubble_outline),
-                          SizedBox(width: 8),
-                          Text('New Chat'),
-                  ],
-                ),
-              ),
-                    const PopupMenuItem<String>(
-                      value: 'new_community',
-                child: Row(
-                  children: [
-                          Icon(Icons.group_add),
-                          SizedBox(width: 8),
-                          Text('New Community'),
-                        ],
-                      ),
+                  : Row(
+                      children: [
+                        Text(
+                          'Messages',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                            fontSize: 28,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+              actions: [
+                if (!_isSearching)
+                  IconButton(
+                    onPressed: _toggleSearch,
+                    icon: Icon(
+                      Icons.search,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                      size: 24,
+                    ),
+                    splashRadius: 20,
+                  ),
+                if (_isSearching)
+                  IconButton(
+                    onPressed: _toggleSearch,
+                    icon: Icon(
+                      Icons.close,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                      size: 24,
+                    ),
+                    splashRadius: 20,
+                  ),
+                if (!_isSearching)
+                  PopupMenuButton<String>(
+                    icon: Icon(
+                      Icons.more_vert,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                      size: 24,
+                    ),
+                    color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    onSelected: (value) {
+                      if (value == 'new_chat') {
+                        Navigator.push(
+                          context,
+                          PageTransitions.slideRightTransition(
+                            page: const NewChatPage(),
+                          ),
+                        ).then((_) {
+                          // Reload chat rooms when returning from new chat
+                          if (mounted) _loadChatRooms();
+                        });
+                      } else if (value == 'new_community') {
+                        Navigator.push(
+                          context,
+                          PageTransitions.slideRightTransition(
+                            page: const CreateCommunityPage(),
+                          ),
+                        );
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem<String>(
+                        value: 'new_chat',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.chat_bubble_outline,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'New Chat',
+                              style: TextStyle(
+                                color: isDarkMode ? Colors.white : Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'new_community',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.group_add,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'New Community',
+                              style: TextStyle(
+                                color: isDarkMode ? Colors.white : Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
               ],
               floating: true,
-              elevation: 0,
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                  ),
+              snap: true,
+              pinned: false,
+            ),
             SliverPersistentHeader(
               delegate: _SliverAppBarDelegate(
-                TabBar(
-          controller: _tabController,
-                  labelColor: Theme.of(context).colorScheme.inversePrimary,
-                  unselectedLabelColor: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.5),
-                  indicatorColor: Theme.of(context).colorScheme.inversePrimary,
-          tabs: const [
-            Tab(text: 'Chats'),
-            Tab(text: 'Communities'),
-          ],
-        ),
-      ),
+                Container(
+                  color: isDarkMode ? const Color(0xFF121212) : Colors.white,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TabBar(
+                      controller: _tabController,
+                      labelColor: isDarkMode ? Colors.white : Colors.black,
+                      unselectedLabelColor: isDarkMode ? Colors.grey[500] : Colors.grey[500],
+                      indicatorColor: isDarkMode ? Colors.white : Colors.black,
+                      indicatorSize: TabBarIndicatorSize.label,
+                      indicatorWeight: 3,
+                      isScrollable: true,
+                      labelStyle: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        letterSpacing: 0.2,
+                      ),
+                      unselectedLabelStyle: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                        letterSpacing: 0.2,
+                      ),
+                      tabs: [
+                        Container(
+                          width: screenWidth * 0.3,
+                          alignment: Alignment.center,
+                          child: const Tab(text: 'Chats'),
+                        ),
+                        Container(
+                          width: screenWidth * 0.5,
+                          alignment: Alignment.center,
+                          child: const Tab(text: 'Communities'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               pinned: true,
             ),
           ];
         },
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // Chats Tab
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            // Chats Tab
             SafeArea(
               child: Column(
-            children: [
-              Expanded(
-                  child: BlocConsumer<ChatCubit, ChatState>(
-                    listener: (context, state) {
-                      if (state is ChatRoomsLoaded) {
-                        setState(() {
-                            // Filter out community chat rooms from the main list
-                            _chatRooms = _filterNonCommunityChatRooms(state.chatRooms);
-                            _filteredChatRooms = _chatRooms;
-                        });
-                      }
-                    },
-                    builder: (context, state) {
+                children: [
+                  Expanded(
+                    child: BlocConsumer<ChatCubit, ChatState>(
+                      listener: (context, state) {
+                        if (state is ChatRoomsLoaded) {
+                          // Use post-frame callback to avoid setState during build
+                          SchedulerBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) {
+                              setState(() {
+                                // Filter out community chat rooms from the main list
+                                _chatRooms = _filterNonCommunityChatRooms(state.chatRooms);
+                                _filteredChatRooms = _chatRooms;
+                              });
+                            }
+                          });
+                        }
+                      },
+                      builder: (context, state) {
                         if (state is ChatRoomsLoading) {
                           return Center(
                             child: CircularProgressIndicator(
-                              color: Theme.of(context).colorScheme.inversePrimary,
-                            ),
-                        );
-                        } else if (state is ChatRoomsLoaded && _filteredChatRooms.isEmpty) {
-                          // No chats yet
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.chat_bubble_outline,
-                                  size: 70,
-                                  color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.5),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No conversations yet',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.inversePrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Start chatting with friends',
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      PageTransitions.slideRightTransition(
-                                        page: const NewChatPage(),
-                                      ),
-                                    ).then((_) {
-                                      // Reload chat rooms when returning from new chat
-                                      if (mounted) _loadChatRooms();
-                                    });
-                                  },
-                                  icon: const Icon(Icons.add),
-                                  label: const Text('Start a Chat'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-                                    foregroundColor: Theme.of(context).colorScheme.surface,
-                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                              color: isDarkMode ? Colors.white : Colors.black,
+                              strokeWidth: 2,
                             ),
                           );
+                        } else if ((state is ChatRoomsLoaded || _chatRooms.isNotEmpty) && _filteredChatRooms.isEmpty) {
+                          // No chats match the filter or no chats yet
+                          if (_isSearching && _searchQuery.isNotEmpty) {
+                            // No results for search
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.search_off,
+                                    size: 60,
+                                    color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No matches found',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDarkMode ? Colors.white : Colors.black,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Try a different search term',
+                                    style: TextStyle(
+                                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          } else {
+                            // No chats yet
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.chat_bubble_outline,
+                                    size: 64,
+                                    color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                                  ),
+                                  const SizedBox(height: 24),
+                                  Text(
+                                    'No conversations yet',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDarkMode ? Colors.white : Colors.black,
+                                      letterSpacing: -0.3,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Start chatting with friends',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 32),
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        PageTransitions.slideRightTransition(
+                                          page: const NewChatPage(),
+                                        ),
+                                      ).then((_) {
+                                        // Reload chat rooms when returning from new chat
+                                        if (mounted) _loadChatRooms();
+                                      });
+                                    },
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Start a Chat'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isDarkMode ? Colors.white : Colors.black,
+                                      foregroundColor: isDarkMode ? Colors.black : Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(30),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
                         } else if (state is ChatError) {
                           return Center(
                             child: Text(
                               'Error: ${state.message}',
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.inversePrimary,
+                                color: isDarkMode ? Colors.white : Colors.black,
                               ),
                             ),
                           );
-                      }
+                        }
 
                         // Display chat rooms
-                      return FadeTransition(
-                        opacity: _fadeInController,
-                        child: ListView.builder(
-                          itemCount: _filteredChatRooms.length,
-                          itemBuilder: (context, index) {
-                            final chatRoom = _filteredChatRooms[index];
-                            return ChatRoomTile(
-                              chatRoom: chatRoom,
-                              currentUserId: currentUser?.id ?? '',
-                              index: index,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  PageTransitions.slideRightTransition(
-                                    page: ChatRoomPage(
-                                      chatRoom: chatRoom,
-                                    ),
-                                  ),
-                                ).then((_) {
-                                  // Reload chat rooms when returning from chat
-                                  if (mounted) _loadChatRooms();
-                                });
+                        return FadeTransition(
+                          opacity: _fadeInController,
+                          child: RefreshIndicator(
+                            onRefresh: () async {
+                              _loadChatRooms();
+                            },
+                            color: isDarkMode ? Colors.white : Colors.black,
+                            backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+                            child: ListView.builder(
+                              itemCount: _filteredChatRooms.length,
+                              padding: const EdgeInsets.only(top: 12, bottom: 80),
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              itemBuilder: (context, index) {
+                                final chatRoom = _filteredChatRooms[index];
+                                return ChatRoomTile(
+                                  chatRoom: chatRoom,
+                                  currentUserId: currentUser?.id ?? '',
+                                  index: index,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      PageTransitions.slideRightTransition(
+                                        page: ChatRoomPage(
+                                          chatRoom: chatRoom,
+                                        ),
+                                      ),
+                                    ).then((_) {
+                                      // Reload chat rooms when returning from chat
+                                      if (mounted) _loadChatRooms();
+                                    });
+                                  },
+                                );
                               },
-                            );
-                          },
-                        ),
-                      );
-                    },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
                 ],
               ),
-          ),
-          
-          // Communities Tab
-          const CommunitiesTab(),
-        ],
+            ),
+            
+            // Communities Tab
+            const CommunitiesTab(),
+          ],
+        ),
       ),
-      ),
-      floatingActionButton: _tabController.index == 0
+      floatingActionButton: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          return ScaleTransition(scale: animation, child: child);
+        },
+        child: _tabController.index == 0
           ? FloatingActionButton(
+              key: const ValueKey('chatFab'),
               heroTag: 'newChatFAB',
               onPressed: () {
                 Navigator.push(
@@ -379,10 +554,16 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                   if (mounted) _loadChatRooms();
                 });
               },
-              backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+              backgroundColor: isDarkMode ? Colors.white : Colors.black,
+              foregroundColor: isDarkMode ? Colors.black : Colors.white,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: const Icon(Icons.chat),
             )
           : FloatingActionButton(
+              key: const ValueKey('communityFab'),
               heroTag: 'createCommunityFAB',
               onPressed: () {
                 Navigator.push(
@@ -392,35 +573,38 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                   ),
                 );
               },
-              backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+              backgroundColor: isDarkMode ? Colors.white : Colors.black,
+              foregroundColor: isDarkMode ? Colors.black : Colors.white,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: const Icon(Icons.group_add),
             ),
+      ),
     );
   }
 }
 
-// Implement the missing _SliverAppBarDelegate class
+// Implement the SliverAppBarDelegate class
 class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabBar tabBar;
+  final Widget child;
 
-  _SliverAppBarDelegate(this.tabBar);
+  _SliverAppBarDelegate(this.child);
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: tabBar,
-    );
+    return child;
   }
 
   @override
-  double get maxExtent => tabBar.preferredSize.height;
+  double get maxExtent => 48;
 
   @override
-  double get minExtent => tabBar.preferredSize.height;
+  double get minExtent => 48;
 
   @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
-    return false;
+  bool shouldRebuild(covariant _SliverAppBarDelegate oldDelegate) {
+    return oldDelegate.child != child;
   }
 } 

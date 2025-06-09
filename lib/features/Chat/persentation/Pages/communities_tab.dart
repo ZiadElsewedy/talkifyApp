@@ -692,51 +692,76 @@ class _CommunitiesTabContentState extends State<_CommunitiesTabContent> {
     // Delete the community
     context.read<CommunityCubit>().deleteCommunity(communityId);
     
-    // Show loading indicator
+    // Add a local loading state
+    setState(() {
+      _membershipStatus.remove(communityId);
+    });
+    
+    // Show loading indicator with timeout
+    bool isDeleted = false;
+    
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => BlocListener<CommunityCubit, CommunityState>(
-        listener: (context, state) {
-          if (state is CommunityDeletedSuccessfully) {
-            // Update membership status
-            setState(() {
-              _membershipStatus.remove(communityId);
-            });
-            
-            // Reload communities list
-            context.read<CommunityCubit>().getAllCommunities();
-            
-            // Close dialog and show success message
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Community has been closed'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          } else if (state is CommunityError) {
-            // Close dialog and show error message
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Failed to close the community: ${state.message}'),
-                backgroundColor: Colors.red,
-              ),
-            );
+      builder: (dialogContext) {
+        // Set a timeout to automatically dismiss the dialog after 5 seconds
+        Future.delayed(Duration(seconds: 5), () {
+          if (dialogContext.mounted && !isDeleted) {
+            Navigator.pop(dialogContext);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Community deletion is processing in the background'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
           }
-        },
-        child: AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Closing community...'),
-            ],
+        });
+        
+        return BlocListener<CommunityCubit, CommunityState>(
+          listener: (context, state) {
+            if (state is CommunityDeletedSuccessfully) {
+              isDeleted = true;
+              
+              // Reload communities list
+              context.read<CommunityCubit>().getAllCommunities();
+              
+              // Close dialog and show success message
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Community has been closed'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            } else if (state is CommunityError) {
+              // Close dialog and show error message
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to close the community: ${state.message}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
+          child: AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Closing community...'),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
   

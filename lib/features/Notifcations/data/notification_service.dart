@@ -120,56 +120,124 @@ class NotificationService {
   }
 
   // Get post image URL for notifications
-  Future<String?> _getPostImageUrl(String postId) async {
+  Future<Map<String, dynamic>> _getPostImageInfo(String postId) async {
+    String? imageUrl;
+    bool isVideo = false;
+    
     try {
       final postDoc = await _firestore.collection('posts').doc(postId).get();
       if (postDoc.exists) {
         final data = postDoc.data();
         print('Post data for image retrieval: $data');
         
-        // Check for 'imageurl' field (used in Post.fromJson)
+        // Check if this is a video post
+        isVideo = data?['isVideo'] as bool? ?? false;
+        print('Post is video: $isVideo');
+        
+        // Get the appropriate image URL
         if (data?.containsKey('imageurl') == true) {
-          final imageUrl = data!['imageurl'] as String?;
+          imageUrl = data!['imageurl'] as String?;
           print('Found imageurl field: $imageUrl');
-          
-          if (imageUrl != null && imageUrl.isNotEmpty) {
-            print('Retrieved image URL: $imageUrl');
-            return imageUrl;
-          } else {
-            print('imageurl exists but is empty');
-          }
-        } 
-        // Also check for 'imageUrl' field (used in some places)
-        else if (data?.containsKey('imageUrl') == true) {
-          print('Found imageUrl field: ${data?['imageUrl']}');
-          
-          // Check if it's a list and has items (some implementations store it as a list)
+        } else if (data?.containsKey('imageUrl') == true) {
           if (data?['imageUrl'] is List && (data?['imageUrl'] as List).isNotEmpty) {
-            final imageUrl = (data?['imageUrl'] as List)[0]?.toString();
-            print('Retrieved image URL from list: $imageUrl');
-            return imageUrl;
-          } 
-          // Check if it's a string
-          else if (data?['imageUrl'] is String && (data?['imageUrl'] as String).isNotEmpty) {
-            final imageUrl = data?['imageUrl'] as String;
-            print('Retrieved image URL as string: $imageUrl');
-            return imageUrl;
-          }
-          else {
-            print('imageUrl exists but is in an unexpected format or empty: ${data?['imageUrl']}');
+            imageUrl = (data?['imageUrl'] as List)[0]?.toString();
+          } else if (data?['imageUrl'] is String && (data?['imageUrl'] as String).isNotEmpty) {
+            imageUrl = data?['imageUrl'] as String;
           }
         }
-        else {
-          print('Post does not contain imageurl or imageUrl field');
+        
+        // Ensure video posts always have a thumbnail
+        if (isVideo && (imageUrl == null || imageUrl.isEmpty)) {
+          // For video posts without thumbnails, try to use a default video thumbnail
+          print('Video post without thumbnail detected');
+          imageUrl = await _generateVideoThumbnail(postId);
         }
-      } else {
-        print('Post document does not exist: $postId');
+        
+        // Verify URL format
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          try {
+            if (!imageUrl.startsWith('http')) {
+              imageUrl = 'https://$imageUrl';
+              print('Updated image URL with https: $imageUrl');
+            }
+          } catch (e) {
+            print('Error parsing image URL: $e');
+          }
+        }
+        
+        print('Final image URL: $imageUrl, isVideo: $isVideo');
       }
     } catch (e) {
-      print('Error fetching post image: $e');
+      print('Error fetching post image info: $e');
     }
-    print('Returning null for post image URL');
-    return null;
+    
+    return {
+      'imageUrl': imageUrl,
+      'isVideo': isVideo,
+    };
+  }
+  
+  // Generate a video thumbnail if missing
+  Future<String?> _generateVideoThumbnail(String postId) async {
+    try {
+      print('Generating video thumbnail for post: $postId');
+      
+      // First check if the post exists and is actually a video
+      final postDoc = await _firestore.collection('posts').doc(postId).get();
+      if (!postDoc.exists) {
+        print('Post does not exist: $postId');
+        return null;
+      }
+      
+      final postData = postDoc.data()!;
+      final bool isVideo = postData['isVideo'] as bool? ?? false;
+      
+      if (!isVideo) {
+        print('Post is not a video: $postId');
+        return null;
+      }
+      
+      // Get the video URL from the post
+      final String videoUrl = postData['imageurl'] as String? ?? '';
+      if (videoUrl.isEmpty) {
+        print('Video URL is empty for post: $postId');
+        return 'https://firebasestorage.googleapis.com/v0/b/talkify-12.appspot.com/o/default_video_thumbnail.png?alt=media';
+      }
+      
+      print('Using video URL as thumbnail: $videoUrl');
+      return videoUrl;
+    } catch (e) {
+      print('Error generating video thumbnail: $e');
+      return 'https://firebasestorage.googleapis.com/v0/b/talkify-12.appspot.com/o/default_video_thumbnail.png?alt=media';
+    }
+  }
+
+  // Check if a post is a video post and get its data
+  Future<Map<String, dynamic>> _getCompletePostData(String postId) async {
+    bool isVideo = false;
+    String? imageUrl;
+    
+    try {
+      final postDoc = await _firestore.collection('posts').doc(postId).get();
+      if (postDoc.exists) {
+        final data = postDoc.data()!;
+        
+        // Extract video info
+        isVideo = data['isVideo'] as bool? ?? false;
+        imageUrl = data['imageurl'] as String? ?? '';
+        
+        print('NOTIFICATION DEBUG - Post $postId data:');
+        print('  - Is video: $isVideo');
+        print('  - Image URL: $imageUrl');
+      }
+    } catch (e) {
+      print('Error getting post data: $e');
+    }
+    
+    return {
+      'isVideo': isVideo,
+      'imageUrl': imageUrl,
+    };
   }
 
   // Create a like post notification
@@ -220,21 +288,18 @@ class NotificationService {
       // Always get the latest profile picture directly from users collection
       final profilePic = await _getLatestUserProfilePic(likerUserId);
       
-      // Get post image URL
-      final postImageUrl = await _getPostImageUrl(postId);
-      print('Post image URL for notification: $postImageUrl');
+      // Get complete post data including video status
+      final postData = await _getCompletePostData(postId);
+      final bool isVideoPost = postData['isVideo'] as bool;
+      String? postImageUrl = postData['imageUrl'] as String?;
       
-      // Verify the image URL works
-      if (postImageUrl != null && postImageUrl.isNotEmpty) {
-        try {
-          final uri = Uri.parse(postImageUrl);
-          if (!uri.hasScheme) {
-            print('Image URL does not have a proper scheme: $postImageUrl');
-          }
-        } catch (e) {
-          print('Error parsing image URL: $e');
-        }
+      // For video posts, ensure we have a thumbnail
+      if (isVideoPost && (postImageUrl == null || postImageUrl.isEmpty)) {
+        postImageUrl = await _generateVideoThumbnail(postId);
+        print('Generated video thumbnail: $postImageUrl');
       }
+      
+      print('Final notification data - Post: $postId, Image URL: $postImageUrl, Is Video: $isVideoPost');
       
       // Create the notification object
       final notification = Notification(
@@ -248,6 +313,7 @@ class NotificationService {
         content: '$likerUserName liked your post',
         timestamp: DateTime.now(),
         postImageUrl: postImageUrl,
+        isVideoPost: isVideoPost,
       );
       
       print('Creating notification with data: ${notification.toJson()}');
@@ -288,8 +354,10 @@ class NotificationService {
       // Always get the latest profile picture directly from users collection
       final profilePic = await _getLatestUserProfilePic(commenterUserId);
       
-      // Get post image URL
-      final postImageUrl = await _getPostImageUrl(postId);
+      // Get post image URL and video status
+      final postInfo = await _getPostImageInfo(postId);
+      final postImageUrl = postInfo['imageUrl'] as String?;
+      final isVideoPost = postInfo['isVideo'] as bool;
       
       final notification = Notification(
         id: _uuid.v4(),
@@ -302,6 +370,7 @@ class NotificationService {
         content: '$commenterUserName commented on your post: "${_truncateContent(commentContent)}"',
         timestamp: DateTime.now(),
         postImageUrl: postImageUrl,
+        isVideoPost: isVideoPost,
       );
       
       await _notificationRepository.createNotification(notification);
@@ -341,8 +410,10 @@ class NotificationService {
       // Always get the latest profile picture directly from users collection
       final profilePic = await _getLatestUserProfilePic(replierUserId);
       
-      // Get post image URL
-      final postImageUrl = await _getPostImageUrl(postId);
+      // Get post image URL and video status
+      final postInfo = await _getPostImageInfo(postId);
+      final postImageUrl = postInfo['imageUrl'] as String?;
+      final isVideoPost = postInfo['isVideo'] as bool;
       
       final notification = Notification(
         id: _uuid.v4(),
@@ -355,6 +426,7 @@ class NotificationService {
         content: '$replierUserName replied to your comment: "${_truncateContent(replyContent)}"',
         timestamp: DateTime.now(),
         postImageUrl: postImageUrl,
+        isVideoPost: isVideoPost,
       );
       
       await _notificationRepository.createNotification(notification);
@@ -393,8 +465,10 @@ class NotificationService {
       // Always get the latest profile picture directly from users collection
       final profilePic = await _getLatestUserProfilePic(likerUserId);
       
-      // Get post image URL
-      final postImageUrl = await _getPostImageUrl(postId);
+      // Get post image URL and video status
+      final postInfo = await _getPostImageInfo(postId);
+      final postImageUrl = postInfo['imageUrl'] as String?;
+      final isVideoPost = postInfo['isVideo'] as bool;
       
       final notification = Notification(
         id: _uuid.v4(),
@@ -407,6 +481,7 @@ class NotificationService {
         content: '$likerUserName liked your comment',
         timestamp: DateTime.now(),
         postImageUrl: postImageUrl,
+        isVideoPost: isVideoPost,
       );
       
       await _notificationRepository.createNotification(notification);

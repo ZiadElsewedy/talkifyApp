@@ -8,6 +8,7 @@ import 'package:talkifyapp/features/Notifcations/presentation/cubit/notification
 import 'package:talkifyapp/features/Notifcations/presentation/utils/notification_dispatcher.dart';
 import 'package:talkifyapp/features/Notifcations/Domain/Entite/chat_notification.dart';
 import 'package:talkifyapp/features/Notifcations/presentation/services/in_app_notification_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class NotificationCubit extends Cubit<NotificationState> {
   final NotificationRepository notificationRepository;
@@ -259,80 +260,153 @@ class NotificationCubit extends Cubit<NotificationState> {
   }
   
   void startNotificationStream(String userId) {
+    print('NotificationCubit: Starting notification stream for user $userId');
+    
+    // Cancel any existing subscription
+    _notificationSubscription?.cancel();
+    
+    // Start the subscription
+    _notificationSubscription = notificationRepository
+        .getNotificationsStream(userId)
+        .listen((notifications) {
+          _handleNewNotifications(notifications, userId);
+        });
+  }
+  
+  // Helper method to fix video thumbnails in notifications
+  Future<void> fixVideoThumbnails(String userId) async {
     try {
-      // Cancel any existing subscription first
-      _notificationSubscription?.cancel();
+      print('Checking for video notifications that need thumbnail fixes');
       
-      // Start listening to notifications stream
-      _notificationSubscription = notificationRepository.getNotificationsStream(userId).listen(
-        (notifications) {
-          // Find new notifications by comparing with processed IDs
-          final newNotifications = notifications.where(
-            (notification) => !_processedNotificationIds.contains(notification.id)
-          ).toList();
-
-          // Separate standard and chat notifications
-          final newStandardNotifications = newNotifications
-              .where((n) => n is! ChatNotification)
-              .toList();
-              
-          final newChatNotifications = newNotifications
-              .where((n) => n is ChatNotification)
-              .map((n) => n as ChatNotification)
-              .toList();
-          
-          // Update chat notifications list
-          _chatNotifications.addAll(newChatNotifications);
-
-          // Show in-app notifications for new notifications
-          if (newNotifications.isNotEmpty && _context != null) {
-            // Show all new notifications as pop-ups
-            for (final notification in newNotifications) {
-              // Add a small delay to ensure context is ready and to space out multiple notifications
-              Future.delayed(Duration(milliseconds: 300 * newNotifications.indexOf(notification)), () {
-                if (_context != null) {
-                  NotificationDispatcher.showFromNotification(
-                    context: _context!,
-                    notification: notification,
-                  );
-                }
-              });
-            }
-            
-            // Mark all new notification IDs as processed
-            for (final notification in newNotifications) {
-              _processedNotificationIds.add(notification.id);
-            }
-          }
-          
-          // Update state with only standard notifications
-          final currentNotifications = standardNotifications;
-          currentNotifications.addAll(newStandardNotifications);
-          
-          // Sort by timestamp (newest first)
-          currentNotifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-          
-          // Update unread count for standard notifications only
-          final unreadCount = currentNotifications.where((n) => !n.isRead).length;
-          
-          emit(state.copyWith(
-            status: NotificationStatus.loaded,
-            notifications: currentNotifications,
-            unreadCount: unreadCount,
-          ));
-        },
-        onError: (error) {
-          emit(state.copyWith(
-            status: NotificationStatus.error,
-            errorMessage: error.toString(),
-          ));
-        },
-      );
+      final allNotifications = await notificationRepository.getNotifications(userId);
+      
+      // Filter for like/comment notifications that might be for videos
+      final potentialVideoNotifications = allNotifications.where((notification) => 
+        (notification.type == app_notification.NotificationType.like || 
+         notification.type == app_notification.NotificationType.comment) &&
+        !notification.isVideoPost && // Not already marked as video
+        (notification.postImageUrl == null || notification.postImageUrl!.isEmpty) // No thumbnail
+      ).toList();
+      
+      if (potentialVideoNotifications.isEmpty) {
+        print('No video notifications need fixing');
+        return;
+      }
+      
+      print('Found ${potentialVideoNotifications.length} notifications that might need thumbnail fixes');
+      
+      // Check if they are video posts and update their thumbnails
+      for (final notification in potentialVideoNotifications) {
+        await _checkAndUpdateVideoThumbnail(notification);
+      }
+      
+      // Reload notifications to reflect changes
+      loadNotifications(userId);
+      
     } catch (e) {
+      print('Error fixing video thumbnails: $e');
+    }
+  }
+  
+  Future<void> _checkAndUpdateVideoThumbnail(app_notification.Notification notification) async {
+    try {
+      final targetId = notification.targetId; // This should be the postId
+      
+      // Fetch post data from Firestore
+      final postDoc = await FirebaseFirestore.instance.collection('posts').doc(targetId).get();
+      if (!postDoc.exists) {
+        print('Post ${targetId} does not exist, cannot fix thumbnail');
+        return;
+      }
+      
+      final postData = postDoc.data()!;
+      final bool isVideo = postData['isVideo'] as bool? ?? false;
+      
+      if (!isVideo) {
+        print('Post ${targetId} is not a video, no fix needed');
+        return;
+      }
+      
+      // Get video URL as thumbnail
+      final String? imageUrl = postData['imageurl'] as String?;
+      if (imageUrl == null || imageUrl.isEmpty) {
+        print('Post ${targetId} has no image URL, cannot fix thumbnail');
+        return;
+      }
+      
+      print('Updating notification ${notification.id} with video info: isVideo=true, imageUrl=${imageUrl}');
+      
+      // Update the notification with video info
+      await notificationRepository.updateNotificationPostInfo(
+        notification.id, 
+        imageUrl, 
+        true // isVideoPost
+      );
+      
+      print('Successfully fixed video thumbnail for notification ${notification.id}');
+    } catch (e) {
+      print('Error checking/updating video thumbnail: $e');
+    }
+  }
+  
+  void _handleNewNotifications(List<app_notification.Notification> notifications, String userId) {
+    try {
+      // Filter out chat notifications from the main notifications list
+      final regularNotifications = notifications.where((n) => n is! ChatNotification).toList();
+      
+      // Extract chat notifications and store them separately
+      final chatNotifs = notifications
+          .where((n) => n is ChatNotification)
+          .map((n) => n as ChatNotification)
+          .toList();
+      
+      _chatNotifications.clear();
+      _chatNotifications.addAll(chatNotifs);
+      
+      // Calculate unread count for regular notifications only
+      final unreadCount = regularNotifications.where((n) => !n.isRead).length;
+      
+      // Check for new notifications to show in-app notifications
+      _checkForNewNotifications(notifications);
+      
+      // Update state with new notifications
       emit(state.copyWith(
-        status: NotificationStatus.error,
-        errorMessage: e.toString(),
+        status: NotificationStatus.loaded,
+        notifications: regularNotifications,
+        unreadCount: unreadCount,
       ));
+      
+      // Fix video thumbnails in the background
+      fixVideoThumbnails(userId);
+    } catch (e) {
+      print('Error handling new notifications: $e');
+    }
+  }
+  
+  void _checkForNewNotifications(List<app_notification.Notification> notifications) {
+    // Find notifications that haven't been processed yet
+    final newNotifications = notifications.where(
+      (notification) => !_processedNotificationIds.contains(notification.id)
+    ).toList();
+    
+    if (newNotifications.isEmpty || _context == null) {
+      return;
+    }
+    
+    // Show in-app notifications for new ones
+    for (final notification in newNotifications) {
+      // Add to processed set
+      _processedNotificationIds.add(notification.id);
+      
+      // Add a small delay to space out multiple notifications
+      Future.delayed(Duration(milliseconds: 300 * newNotifications.indexOf(notification)), () {
+        if (_context != null) {
+          NotificationDispatcher.showFromNotification(
+            context: _context!,
+            notification: notification,
+          );
+        }
+      });
     }
   }
   

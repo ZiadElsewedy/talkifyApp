@@ -198,7 +198,7 @@ class NotificationDispatcher {
           InAppNotificationService.show(
             context: context,
             title: 'New Chat',
-            message: '${chatNotif.triggerUserName} started a conversation with you',
+            message: chatNotif.content,
             type: NotificationType.message,
             userId: chatNotif.triggerUserId,
             postId: chatNotif.chatRoomId,
@@ -206,82 +206,53 @@ class NotificationDispatcher {
           );
           break;
       }
-      return;
+    } else {
+      // Handle regular notifications
+      InAppNotificationService.show(
+        context: context,
+        title: _getTitleForNotificationType(notification.type),
+        message: notification.content,
+        type: _convertToServiceNotificationType(notification.type),
+        userId: notification.triggerUserId,
+        postId: notification.targetId,
+        userAvatar: notification.triggerUserProfilePic,
+        postThumbnail: notification.postImageUrl,
+        isVideoPost: notification.isVideoPost,
+      );
     }
-    
-    // Handle regular notifications
-    switch (notification.type) {
+  }
+
+  static String _getTitleForNotificationType(app_notification.NotificationType type) {
+    switch (type) {
       case app_notification.NotificationType.like:
-        showLikeNotification(
-          context: context,
-          userName: notification.triggerUserName,
-          userId: notification.triggerUserId,
-          postId: notification.targetId,
-          userAvatar: notification.triggerUserProfilePic,
-        );
-        break;
-        
+        return 'New Like';
       case app_notification.NotificationType.comment:
-        showCommentNotification(
-          context: context,
-          userName: notification.triggerUserName,
-          userId: notification.triggerUserId,
-          postId: notification.targetId,
-          comment: notification.content.replaceAll('${notification.triggerUserName} commented on your post: ', ''),
-          userAvatar: notification.triggerUserProfilePic,
-        );
-        break;
-        
+        return 'New Comment';
       case app_notification.NotificationType.follow:
-        showFollowNotification(
-          context: context,
-          userName: notification.triggerUserName,
-          userId: notification.triggerUserId,
-          userAvatar: notification.triggerUserProfilePic,
-        );
-        break;
-        
+        return 'New Follower';
       case app_notification.NotificationType.message:
-        // Handle regular message notifications (not ChatNotification)
-        showChatNotification(
-          context: context,
-          userName: notification.triggerUserName,
-          userId: notification.triggerUserId,
-          chatRoomId: notification.targetId, // Use targetId as chatRoomId
-          message: notification.content.replaceAll('${notification.triggerUserName}: ', ''),
-          userAvatar: notification.triggerUserProfilePic,
-        );
-        break;
-        
+        return 'New Message';
       case app_notification.NotificationType.mention:
-        // Check if it's a mention in chat or post
-        if (notification.targetId.startsWith('chat_')) {
-          showChatMentionNotification(
-            context: context,
-            userName: notification.triggerUserName,
-            userId: notification.triggerUserId,
-            chatRoomId: notification.targetId.substring(5),
-            message: notification.content,
-            userAvatar: notification.triggerUserProfilePic,
-          );
-        } else {
-          // It's a mention in a post
-          InAppNotificationService.show(
-            context: context,
-            title: 'Mention',
-            message: '${notification.triggerUserName} mentioned you in a post',
-            type: NotificationType.message,
-            userId: notification.triggerUserId,
-            postId: notification.targetId,
-            userAvatar: notification.triggerUserProfilePic,
-          );
-        }
-        break;
-        
-      // For other types, we could add more cases in the future
+        return 'Mention';
       default:
-        // No specialized handling for other notification types yet
-        break;
+        return 'Notification';
+    }
+  }
+
+  static NotificationType _convertToServiceNotificationType(app_notification.NotificationType type) {
+    switch (type) {
+      case app_notification.NotificationType.like:
+        return NotificationType.like;
+      case app_notification.NotificationType.comment:
+        return NotificationType.comment;
+      case app_notification.NotificationType.follow:
+        return NotificationType.follow;
+      case app_notification.NotificationType.message:
+        return NotificationType.message;
+      case app_notification.NotificationType.mention:
+        return NotificationType.message;
+      default:
+        throw Exception('Unsupported notification type');
     }
   }
 } 

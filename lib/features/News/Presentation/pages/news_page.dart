@@ -257,7 +257,7 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
     final searchIcon = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
     final borderColor = isDarkMode ? Colors.grey[700]! : Colors.grey[300]!;
     final focusedBorderColor = isDarkMode ? Colors.blue[400]! : Colors.black;
-    final breakingBg = isDarkMode ? Colors.blue[800] : Colors.orange[700];
+    final breakingBg = isDarkMode ? Colors.blue[900] : Colors.orange[700];
     final breakingText = Colors.white;
     final breakingSubText = isDarkMode ? Colors.grey[300] : Colors.grey[800];
     
@@ -597,11 +597,13 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
         width: 250,
         margin: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[850] : Colors.white,
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Theme.of(context).brightness == Brightness.dark 
+                ? Colors.black.withOpacity(0.2) 
+                : Colors.black.withOpacity(0.05),
               blurRadius: 5,
               offset: const Offset(0, 2),
             ),
@@ -624,14 +626,14 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          color: Colors.grey[200],
-                          child: Icon(Icons.image_not_supported, color: Colors.grey[400]),
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.grey[200],
+                          child: Icon(Icons.image_not_supported, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[600] : Colors.grey[400]),
                         );
                       },
                     )
                   : Container(
-                      color: Colors.grey[200],
-                      child: Icon(Icons.newspaper, color: Colors.grey[400]),
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.grey[200],
+                      child: Icon(Icons.newspaper, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[600] : Colors.grey[400]),
                     ),
               ),
             ),
@@ -649,7 +651,7 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
                       ),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
@@ -662,7 +664,7 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                       _formatBreakingTime(article.publishedAt),
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
                       ),
                     ),
                   ],
