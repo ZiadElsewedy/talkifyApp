@@ -462,6 +462,13 @@ class CommunityRepositoryImpl implements CommunityRepository {
     // Remove id as Firestore will generate one
     eventMap.remove('id');
     
+    // Make sure we store the communityId as a field in the event document
+    // This will help us locate events in the future without complex queries
+    if (!eventMap.containsKey('communityId')) {
+      eventMap['communityId'] = event.communityId;
+      print("OPTIMIZE: Added communityId to event for easier retrieval");
+    }
+    
     final docRef = await _firestore
         .collection('communities')
         .doc(event.communityId)
@@ -491,115 +498,188 @@ class CommunityRepositoryImpl implements CommunityRepository {
 
   @override
   Future<void> deleteEvent(String eventId) async {
-    // Need to find the community ID first
-    final querySnapshot = await _firestore
-        .collectionGroup('events')
-        .where(FieldPath.documentId, isEqualTo: eventId)
-        .limit(1)
-        .get();
-    
-    if (querySnapshot.docs.isEmpty) {
-      throw Exception('Event not found');
+    try {
+      print("FIXED-V2: Deleting event $eventId");
+      
+      // Using the same approach as our fixed join/leave event methods
+      // Instead of using collection group queries with FieldPath.documentId which causes errors
+      
+      // Step 1: Get all communities
+      final communitiesSnapshot = await _firestore.collection('communities').get();
+      
+      // Step 2: Search for the event in each community
+      bool eventFound = false;
+      for (final communityDoc in communitiesSnapshot.docs) {
+        try {
+          // Try to get the event directly
+          final eventRef = _firestore
+              .collection('communities')
+              .doc(communityDoc.id)
+              .collection('events')
+              .doc(eventId);
+              
+          final eventDoc = await eventRef.get();
+          
+          // If we found the event
+          if (eventDoc.exists) {
+            print("FIXED-V2: Found event to delete in community ${communityDoc.id}");
+            eventFound = true;
+            
+            // Delete the event document directly
+            await eventRef.delete();
+            
+            print("FIXED-V2: Successfully deleted event");
+            break;
+          }
+        } catch (e) {
+          print("FIXED-V2: Error checking community ${communityDoc.id}: $e");
+          // Continue to next community
+        }
+      }
+      
+      if (!eventFound) {
+        throw Exception('Event not found in any community');
+      }
+      
+    } catch (e) {
+      print("FIXED-V2: Error deleting event: $e");
+      throw Exception('Failed to delete event. Please try again.');
     }
-    
-    final eventPath = querySnapshot.docs.first.reference.path;
-    final pathParts = eventPath.split('/');
-    
-    if (pathParts.length < 4) {
-      throw Exception('Invalid event path');
-    }
-    
-    final communityId = pathParts[pathParts.length - 3];
-    
-    await _firestore
-        .collection('communities')
-        .doc(communityId)
-        .collection('events')
-        .doc(eventId)
-        .delete();
   }
 
   @override
   Future<void> joinEvent(String eventId, String userId) async {
-    // Need to find the community ID first
-    final querySnapshot = await _firestore
-        .collectionGroup('events')
-        .where(FieldPath.documentId, isEqualTo: eventId)
-        .limit(1)
-        .get();
-    
-    if (querySnapshot.docs.isEmpty) {
-      throw Exception('Event not found');
-    }
-    
-    final eventDoc = querySnapshot.docs.first;
-    final eventPath = eventDoc.reference.path;
-    final pathParts = eventPath.split('/');
-    
-    if (pathParts.length < 4) {
-      throw Exception('Invalid event path');
-    }
-    
-    final communityId = pathParts[pathParts.length - 3];
-    
-    // Get current attendees
-    final event = CommunityEventModel.fromJson({
-      'id': eventDoc.id,
-      ...eventDoc.data(),
-    });
-    
-    // Add user to attendees if not already in the list
-    if (!event.attendees.contains(userId)) {
-      List<String> updatedAttendees = List.from(event.attendees)..add(userId);
+    try {
+      print("FIXED-V2: Joining event $eventId for user $userId");
       
-      await _firestore
-          .collection('communities')
-          .doc(communityId)
-          .collection('events')
-          .doc(eventId)
-          .update({'attendees': updatedAttendees});
+      // COMPLETELY DIFFERENT APPROACH:
+      // Instead of using collection group queries with FieldPath.documentId which is causing errors,
+      // we'll query for all communities and then look for the event directly
+      
+      // Step 1: Get all communities
+      final communitiesSnapshot = await _firestore.collection('communities').get();
+      
+      // Step 2: Search for the event in each community
+      bool eventFound = false;
+      for (final communityDoc in communitiesSnapshot.docs) {
+        try {
+          // Try to get the event directly without any complex queries
+          final eventRef = _firestore
+              .collection('communities')
+              .doc(communityDoc.id)
+              .collection('events')
+              .doc(eventId);
+              
+          final eventDoc = await eventRef.get();
+          
+          // If we found the event
+          if (eventDoc.exists) {
+            print("FIXED-V2: Found event in community ${communityDoc.id}");
+            eventFound = true;
+            
+            // Get current attendees
+            Map<String, dynamic> data = eventDoc.data() as Map<String, dynamic>;
+            List<String> attendees = [];
+            
+            if (data.containsKey('attendees') && data['attendees'] != null) {
+              attendees = List<String>.from(data['attendees']);
+            }
+            
+            // Add user if not already attending
+            if (!attendees.contains(userId)) {
+              attendees.add(userId);
+            }
+            
+            // Update the event document directly
+            await eventRef.update({
+              'attendees': attendees
+            });
+            
+            print("FIXED-V2: Successfully joined event");
+            break;
+          }
+        } catch (e) {
+          print("FIXED-V2: Error checking community ${communityDoc.id}: $e");
+          // Continue to next community
+        }
+      }
+      
+      if (!eventFound) {
+        throw Exception('Event not found in any community');
+      }
+      
+    } catch (e) {
+      print("FIXED-V2: Error joining event: $e");
+      // Create a more user-friendly error message
+      throw Exception('Failed to join event. Please try again.');
     }
   }
 
   @override
   Future<void> leaveEvent(String eventId, String userId) async {
-    // Need to find the community ID first
-    final querySnapshot = await _firestore
-        .collectionGroup('events')
-        .where(FieldPath.documentId, isEqualTo: eventId)
-        .limit(1)
-        .get();
-    
-    if (querySnapshot.docs.isEmpty) {
-      throw Exception('Event not found');
-    }
-    
-    final eventDoc = querySnapshot.docs.first;
-    final eventPath = eventDoc.reference.path;
-    final pathParts = eventPath.split('/');
-    
-    if (pathParts.length < 4) {
-      throw Exception('Invalid event path');
-    }
-    
-    final communityId = pathParts[pathParts.length - 3];
-    
-    // Get current attendees
-    final event = CommunityEventModel.fromJson({
-      'id': eventDoc.id,
-      ...eventDoc.data(),
-    });
-    
-    // Remove user from attendees if in the list
-    if (event.attendees.contains(userId)) {
-      List<String> updatedAttendees = List.from(event.attendees)..remove(userId);
+    try {
+      print("FIXED-V2: Leaving event $eventId for user $userId");
       
-      await _firestore
-          .collection('communities')
-          .doc(communityId)
-          .collection('events')
-          .doc(eventId)
-          .update({'attendees': updatedAttendees});
+      // COMPLETELY DIFFERENT APPROACH:
+      // Instead of using collection group queries with FieldPath.documentId which is causing errors,
+      // we'll query for all communities and then look for the event directly
+      
+      // Step 1: Get all communities
+      final communitiesSnapshot = await _firestore.collection('communities').get();
+      
+      // Step 2: Search for the event in each community
+      bool eventFound = false;
+      for (final communityDoc in communitiesSnapshot.docs) {
+        try {
+          // Try to get the event directly without any complex queries
+          final eventRef = _firestore
+              .collection('communities')
+              .doc(communityDoc.id)
+              .collection('events')
+              .doc(eventId);
+              
+          final eventDoc = await eventRef.get();
+          
+          // If we found the event
+          if (eventDoc.exists) {
+            print("FIXED-V2: Found event in community ${communityDoc.id}");
+            eventFound = true;
+            
+            // Get current attendees
+            Map<String, dynamic> data = eventDoc.data() as Map<String, dynamic>;
+            List<String> attendees = [];
+            
+            if (data.containsKey('attendees') && data['attendees'] != null) {
+              attendees = List<String>.from(data['attendees']);
+            }
+            
+            // Remove user if already attending
+            if (attendees.contains(userId)) {
+              attendees.remove(userId);
+            }
+            
+            // Update the event document directly
+            await eventRef.update({
+              'attendees': attendees
+            });
+            
+            print("FIXED-V2: Successfully left event");
+            break;
+          }
+        } catch (e) {
+          print("FIXED-V2: Error checking community ${communityDoc.id}: $e");
+          // Continue to next community
+        }
+      }
+      
+      if (!eventFound) {
+        throw Exception('Event not found in any community');
+      }
+      
+    } catch (e) {
+      print("FIXED-V2: Error leaving event: $e");
+      // Create a more user-friendly error message
+      throw Exception('Failed to leave event. Please try again.');
     }
   }
 } 

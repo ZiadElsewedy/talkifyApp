@@ -861,6 +861,7 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                 );
               },
               child: FloatingActionButton.extended(
+                heroTag: 'startChatFAB',
                 onPressed: _startChat,
                 backgroundColor: isDarkMode ? Colors.white : Colors.black,
                 icon: AnimatedSwitcher(

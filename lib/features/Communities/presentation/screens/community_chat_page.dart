@@ -15,6 +15,10 @@ import 'package:talkifyapp/features/Communities/data/repositories/community_repo
 import 'community_info_page.dart';
 import 'community_events_page.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/components/percent_circle_indicator.dart' as chat_indicator;
+import 'package:file_picker/file_picker.dart';
+import 'package:talkifyapp/features/Communities/domain/entites/Community.dart';
+import 'package:talkifyapp/features/Communities/presentation/cubit/community_cubit.dart';
+import 'community_details_page.dart';
 
 class CommunityChatPage extends StatefulWidget {
   final String communityId;
@@ -69,81 +73,24 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
     }
   }
   
-  // Load community members and create a chat with them
-  Future<void> _loadCommunityMembersAndCreateChat(dynamic currentUser) async {
+  Future<void> _findOrCreateChatRoom() async {
+    final currentUser = context.read<AuthCubit>().GetCurrentUser();
+    if (currentUser == null || widget.communityId.isEmpty) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    print("DEBUG: Looking for community chat room for community ID: ${widget.communityId}");
+    
     try {
-      print("DEBUG: Starting _loadCommunityMembersAndCreateChat");
-      print("DEBUG: Current user ID: ${currentUser.id}, Name: ${currentUser.name}");
-      print("DEBUG: Community ID: ${widget.communityId}, Name: ${widget.communityName}");
-      
-      // Import and use CommunityRepositoryImpl directly
+      // Try to get all members of the community
       final communityRepo = CommunityRepositoryImpl();
-      
-      print("DEBUG: Loading members for community: ${widget.communityId}");
       final members = await communityRepo.getCommunityMembers(widget.communityId);
       
-      print("DEBUG: Found ${members.length} members in the community");
-      // Log member details for debugging
-      for (final member in members) {
-        print("DEBUG: Member - ID: ${member.userId}, Name: ${member.userName}, Role: ${member.role}");
-      }
-      
-      // Extract member IDs
-      final List<String> memberIds = members.map((m) => m.userId).toList();
-      
-      // Make sure the current user is included
-      if (!memberIds.contains(currentUser.id)) {
-        print("DEBUG: Current user not found in members, adding them");
-        memberIds.add(currentUser.id);
-      }
-      
-      // Create maps for participant names and avatars
-      final Map<String, String> participantNames = {};
-      final Map<String, String> participantAvatars = {};
-      final Map<String, int> unreadCounts = {};
-      
-      // Add current user
-      participantNames[currentUser.id] = currentUser.name;
-      participantAvatars[currentUser.id] = currentUser.profilePictureUrl;
-      unreadCounts[currentUser.id] = 0;
-      
-      // Add other members
-      for (final member in members) {
-        if (member.userId != currentUser.id) {
-          participantNames[member.userId] = member.userName;
-          participantAvatars[member.userId] = member.userAvatar;
-          unreadCounts[member.userId] = 0;
-        }
-      }
-      
-      print("DEBUG: Creating chat room with ${memberIds.length} participants");
-      print("DEBUG: Participant IDs: $memberIds");
-      print("DEBUG: Participant Names: $participantNames");
-      
-      // Create chat room with all members
-      context.read<ChatCubit>().createGroupChatRoom(
-        participants: memberIds,
-        participantNames: participantNames,
-        participantAvatars: participantAvatars,
-        unreadCount: unreadCounts,
-        groupName: widget.communityName ?? 'Community Chat',
-        communityId: widget.communityId,
-      );
-    } catch (e) {
-      print('Error loading community members: $e');
-      setState(() {
-        _isLoading = false;
-      });
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load community members: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        
-        // Fallback to creating chat with just current user
+      if (members.isEmpty) {
+        print("DEBUG: No members found, creating chat with just current user");
+        // If no members, create chat with just current user
         context.read<ChatCubit>().createGroupChatRoom(
           participants: [currentUser.id],
           participantNames: {currentUser.id: currentUser.name},
@@ -152,7 +99,56 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
           groupName: widget.communityName ?? 'Community Chat',
           communityId: widget.communityId,
         );
+      } else {
+        print("DEBUG: Found ${members.length} community members");
+        
+        // Create maps of participant IDs, names, and avatars
+        final List<String> participantIds = [];
+        final Map<String, String> participantNames = {};
+        final Map<String, String> participantAvatars = {};
+        final Map<String, int> unreadCount = {};
+        
+        // Add all community members
+        for (final member in members) {
+          participantIds.add(member.userId);
+          participantNames[member.userId] = member.userName;
+          participantAvatars[member.userId] = member.userAvatar;
+          unreadCount[member.userId] = 0;
+          
+          print("DEBUG: Added member: ${member.userName} with avatar: ${member.userAvatar}");
+        }
+        
+        // Make sure current user is included (in case they're not in the members list yet)
+        if (!participantIds.contains(currentUser.id)) {
+          participantIds.add(currentUser.id);
+          participantNames[currentUser.id] = currentUser.name;
+          participantAvatars[currentUser.id] = currentUser.profilePictureUrl;
+          unreadCount[currentUser.id] = 0;
+          
+          print("DEBUG: Added current user: ${currentUser.name} with avatar: ${currentUser.profilePictureUrl}");
+        }
+        
+        // Create group chat room with all community members
+        context.read<ChatCubit>().createGroupChatRoom(
+          participants: participantIds,
+          participantNames: participantNames,
+          participantAvatars: participantAvatars,
+          unreadCount: unreadCount,
+          groupName: widget.communityName ?? 'Community Chat',
+          communityId: widget.communityId,
+        );
       }
+    } catch (e) {
+      print("DEBUG: Error finding members: $e");
+      // Fallback to creating chat with just current user
+      context.read<ChatCubit>().createGroupChatRoom(
+        participants: [currentUser.id],
+        participantNames: {currentUser.id: currentUser.name},
+        participantAvatars: {currentUser.id: currentUser.profilePictureUrl},
+        unreadCount: {currentUser.id: 0},
+        groupName: widget.communityName ?? 'Community Chat',
+        communityId: widget.communityId,
+      );
     }
   }
   
@@ -209,7 +205,6 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
     final ImagePicker picker = ImagePicker();
     final XFile? video = await picker.pickVideo(
       source: ImageSource.gallery,
-      maxDuration: const Duration(minutes: 5),
     );
     
     if (video != null) {
@@ -228,54 +223,126 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
     }
   }
   
-  void _showAttachmentOptions() {
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+  Future<void> _pickAndSendFile() async {
+    if (_chatRoom == null) return;
+    final currentUser = context.read<AuthCubit>().GetCurrentUser();
+    if (currentUser == null) return;
     
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+    if (result != null) {
+      final File file = File(result.files.single.path!);
+      final String fileName = result.files.single.name;
+      
+      // Upload and send the file
+      context.read<ChatCubit>().sendMediaMessage(
+        chatRoomId: _chatRoom!.id,
+        senderId: currentUser.id,
+        senderName: currentUser.name,
+        senderAvatar: currentUser.profilePictureUrl,
+        filePath: file.path,
+        fileName: fileName,
+        type: MessageType.file,
+      );
+    }
+  }
+  
+  void _takeAndSendPhoto() async {
+    if (_chatRoom == null) return;
+    final currentUser = context.read<AuthCubit>().GetCurrentUser();
+    if (currentUser == null) return;
+    
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 70,
+    );
+    
+    if (image != null) {
+      final File file = File(image.path);
+      
+      // Upload and send the image
+      context.read<ChatCubit>().sendMediaMessage(
+        chatRoomId: _chatRoom!.id,
+        senderId: currentUser.id,
+        senderName: currentUser.name,
+        senderAvatar: currentUser.profilePictureUrl,
+        filePath: file.path,
+        fileName: image.name,
+        type: MessageType.image,
+      );
+    }
+  }
+  
+  void _showAttachmentOptions(bool isDarkMode) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: colorScheme.surface,
+      backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildAttachmentOption(
-                  icon: Icons.photo,
-                  label: 'Photo',
-                  color: Colors.purple,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickAndSendImage();
-                  },
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Share Media',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: isDarkMode ? Colors.white : Colors.black,
                 ),
-                _buildAttachmentOption(
-                  icon: Icons.videocam,
-                  label: 'Video',
-                  color: Colors.pink,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickAndSendVideo();
-                  },
-                ),
-                _buildAttachmentOption(
-                  icon: Icons.camera_alt,
-                  label: 'Camera',
-                  color: Colors.red,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickAndSendImage();
-                  },
-                ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildAttachmentOption(
+                    icon: Icons.camera_alt,
+                    label: 'Camera',
+                    color: Colors.blue,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _takeAndSendPhoto();
+                    },
+                    isDarkMode: isDarkMode,
+                  ),
+                  _buildAttachmentOption(
+                    icon: Icons.photo,
+                    label: 'Gallery',
+                    color: Colors.green,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickAndSendImage();
+                    },
+                    isDarkMode: isDarkMode,
+                  ),
+                  _buildAttachmentOption(
+                    icon: Icons.videocam,
+                    label: 'Video',
+                    color: Colors.red,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickAndSendVideo();
+                    },
+                    isDarkMode: isDarkMode,
+                  ),
+                  _buildAttachmentOption(
+                    icon: Icons.insert_drive_file,
+                    label: 'File',
+                    color: Colors.orange,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickAndSendFile();
+                    },
+                    isDarkMode: isDarkMode,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -286,8 +353,9 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
     required String label,
     required Color color,
     required VoidCallback onTap,
+    required bool isDarkMode,
   }) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -297,7 +365,8 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
             height: 60,
             decoration: BoxDecoration(
               color: color.withOpacity(0.2),
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: color, width: 2),
             ),
             child: Icon(
               icon,
@@ -310,7 +379,7 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Theme.of(context).colorScheme.onSurface,
+              color: isDarkMode ? Colors.white : Colors.black,
             ),
           ),
         ],
@@ -413,7 +482,7 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
             print('Creating community chat room for community: ${widget.communityId}');
             
             // Get community members to add to the chat room
-            _loadCommunityMembersAndCreateChat(currentUser);
+            _findOrCreateChatRoom();
           } else if (state is ChatRoomCreating) {
             setState(() {
               _isLoading = true;
@@ -583,9 +652,7 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
               Icons.add_circle_outline,
               color: Theme.of(context).colorScheme.inversePrimary,
             ),
-            onPressed: () {
-              // Show attachment options
-            },
+            onPressed: () => _showAttachmentOptions(isDarkMode),
           ),
           Expanded(
             child: TextField(

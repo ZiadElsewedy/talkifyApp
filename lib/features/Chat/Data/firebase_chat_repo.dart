@@ -299,6 +299,21 @@ class FirebaseChatRepo implements ChatRepo {
     Map<String, dynamic>? metadata,
   }) async {
     try {
+      // First, always get the latest profile picture from users collection
+      String updatedAvatar = senderAvatar;
+      try {
+        final userDoc = await _firestore.collection('users').doc(senderId).get();
+        if (userDoc.exists && userDoc.data()!.containsKey('profilePictureUrl')) {
+          final profilePicture = userDoc.data()!['profilePictureUrl'] as String?;
+          if (profilePicture != null && profilePicture.isNotEmpty) {
+            updatedAvatar = profilePicture;
+            print("DEBUG: Using updated avatar URL from users collection: $updatedAvatar");
+          }
+        }
+      } catch (e) {
+        print("DEBUG: Error fetching user profile: $e - will use provided avatar");
+      }
+      
       final messageRef = _firestore
           .collection(_chatRoomsCollection)
           .doc(chatRoomId)
@@ -312,7 +327,7 @@ class FirebaseChatRepo implements ChatRepo {
         chatRoomId: chatRoomId,
         senderId: senderId,
         senderName: senderName,
-        senderAvatar: senderAvatar,
+        senderAvatar: updatedAvatar, // Use the updated avatar
         content: content,
         type: type,
         status: MessageStatus.sent,
@@ -339,6 +354,13 @@ class FirebaseChatRepo implements ChatRepo {
       if (chatRoom != null) {
         final batch = _firestore.batch();
         final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc(chatRoomId);
+        
+        // Also update the participant avatar in the chat room
+        if (updatedAvatar != senderAvatar) {
+          batch.update(chatRoomRef, {
+            'participantAvatars.$senderId': updatedAvatar
+          });
+        }
         
         for (final participantId in chatRoom.participants) {
           if (participantId != senderId) {

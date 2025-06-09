@@ -41,6 +41,8 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
   String? _currentUserId;
   bool _isLoading = false;
   bool _isImageLoading = false;
+  bool _showFAB = false;
+  late ScrollController _scrollController;
   
   // Stream subscriptions
   List<StreamSubscription> _subscriptions = [];
@@ -49,6 +51,8 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
     _loadCommunityDetails();
     
     // Get current user ID
@@ -56,6 +60,11 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
     
     // Set up subscriptions for cubits
     _setupSubscriptions();
+    
+    // Wait a bit before showing FAB to avoid UI jank
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) setState(() => _showFAB = true);
+    });
   }
 
   void _setupSubscriptions() {
@@ -482,49 +491,7 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
   }
   
   Future<void> _changeCommunityPhoto() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    
-    if (pickedFile == null) return;
-    
-    setState(() {
-      _isLoading = true;
-    });
-    
-    try {
-      final File imageFile = File(pickedFile.path);
-      final storage = FirebaseStorageRepo();
-      final path = 'communities/${widget.communityId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      
-      final url = await storage.uploadFile(imageFile.path, path) ?? '';
-      
-      if (url.isNotEmpty && context.read<CommunityCubit>().state is CommunityDetailLoaded) {
-        final community = (context.read<CommunityCubit>().state as CommunityDetailLoaded).community;
-        final updatedCommunity = Community(
-          id: community.id,
-          name: community.name,
-          description: community.description,
-          category: community.category,
-          iconUrl: url,
-          memberCount: community.memberCount,
-          createdBy: community.createdBy,
-          isPrivate: community.isPrivate,
-          createdAt: community.createdAt,
-        );
-        
-        context.read<CommunityCubit>().updateCommunity(updatedCommunity);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Community photo updated')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update photo: $e')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    _updateCommunityImage();
   }
   
   void _showEditCommunityDialog() {
@@ -705,18 +672,21 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      floatingActionButton: _isUserAdmin && _showFAB 
+          ? FloatingActionButton(
+              heroTag: 'adminActionsFAB',
+              child: const Icon(Icons.camera_alt),
+              onPressed: _showAdminActionsDialog,
+            )
+          : null,
       body: BlocBuilder<CommunityCubit, CommunityState>(
         builder: (context, state) {
           if (state is CommunityDetailLoading) {
-            return Center(
-              child: CircularProgressIndicator(
-                color: Theme.of(context).colorScheme.inversePrimary,
-              ),
+            return const Center(
+              child: CircularProgressIndicator(),
             );
           } else if (state is CommunityDetailLoaded) {
-            final community = state.community;
-            return _buildCommunityDetail(context, community);
+            return _buildCommunityDetail(context, state.community);
           } else if (state is CommunityError) {
             return Center(
               child: Text(
@@ -788,6 +758,7 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
                     right: 8,
                     bottom: 40,
                     child: FloatingActionButton.small(
+                      heroTag: 'editCommunityPhotoFAB',
                       onPressed: _changeCommunityPhoto,
                       backgroundColor: Colors.black54,
                       child: _isLoading 
@@ -1552,6 +1523,345 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
     );
   }
   
+  Future<void> _updateCommunity(
+    String name,
+    String description,
+    String category,
+    bool isPrivate,
+  ) async {
+    if (context.read<CommunityCubit>().state is CommunityDetailLoaded) {
+      final community = (context.read<CommunityCubit>().state as CommunityDetailLoaded).community;
+      
+      final updatedCommunity = CommunityModel(
+        id: community.id,
+        name: name.trim(),
+        description: description.trim(),
+        category: category,
+        iconUrl: community.iconUrl,
+        rulesPictureUrl: community.rulesPictureUrl,
+        memberCount: community.memberCount,
+        createdBy: community.createdBy,
+        isPrivate: isPrivate,
+        createdAt: community.createdAt,
+        rules: community.rules,
+      );
+      
+      try {
+        // Show loading dialog
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Updating community info...'),
+              ],
+            ),
+          ),
+        );
+        
+        // Update community
+        await context.read<CommunityCubit>().updateCommunity(updatedCommunity);
+        
+        // Close loading dialog
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+        
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Community updated successfully')),
+          );
+        }
+        
+        // Refresh the community data
+        if (mounted) {
+          context.read<CommunityCubit>().getCommunityById(community.id);
+        }
+        
+      } catch (e) {
+        // Close loading dialog
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+        
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to update community: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  // Add this method to show admin actions dialog
+  void _showAdminActionsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Admin Actions'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(context);
+              _changeCommunityPhoto();
+            },
+            child: const ListTile(
+              leading: Icon(Icons.photo_camera),
+              title: Text('Change Community Photo'),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(context);
+              _changeRulesPicture();
+            },
+            child: const ListTile(
+              leading: Icon(Icons.rule),
+              title: Text('Change Rules Photo'),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(context);
+              _showEditCommunityDialog();
+            },
+            child: const ListTile(
+              leading: Icon(Icons.edit),
+              title: Text('Edit Community Info'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _onScroll() {
+    // Keep FAB visible at all times
+  }
+
+  // Add a new method to change the rules picture
+  Future<void> _changeRulesPicture() async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    
+    if (pickedFile == null) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      final File imageFile = File(pickedFile.path);
+      final storage = FirebaseStorageRepo();
+      final path = 'communities/${widget.communityId}_rules_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      
+      final url = await storage.uploadFile(imageFile.path, path) ?? '';
+      
+      if (url.isNotEmpty && context.read<CommunityCubit>().state is CommunityDetailLoaded) {
+        final community = (context.read<CommunityCubit>().state as CommunityDetailLoaded).community;
+        final updatedCommunity = CommunityModel(
+          id: community.id,
+          name: community.name,
+          description: community.description,
+          category: community.category,
+          iconUrl: community.iconUrl,
+          rulesPictureUrl: url,
+          memberCount: community.memberCount,
+          createdBy: community.createdBy,
+          isPrivate: community.isPrivate,
+          createdAt: community.createdAt,
+          rules: community.rules,
+        );
+        
+        try {
+          // Show loading dialog
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Updating rules picture...'),
+                ],
+              ),
+            ),
+          );
+          
+          // Update community
+          await context.read<CommunityCubit>().updateCommunity(updatedCommunity);
+          
+          // Close loading dialog
+          if (mounted && Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+          
+          // Show success message
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Rules picture updated successfully')),
+            );
+          }
+          
+          // Refresh the community data
+          if (mounted) {
+            context.read<CommunityCubit>().getCommunityById(community.id);
+          }
+        } catch (e) {
+          // Close loading dialog
+          if (mounted && Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+          
+          // Show error message
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to update rules picture: $e')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to upload rules picture: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Update the _buildRulesContent method to include rules picture
+  Widget _buildRulesContent(BuildContext context, Community community) {
+    return Card(
+      margin: EdgeInsets.zero,
+      color: Theme.of(context).colorScheme.surface,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Rules',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.inversePrimary,
+                  ),
+                ),
+                if (_isUserAdmin)
+                  IconButton(
+                    icon: Icon(
+                      Icons.edit,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    ),
+                    onPressed: () => _showEditRulesDialog(context, community),
+                    tooltip: 'Edit Rules',
+                  ),
+              ],
+            ),
+            
+            // Add Rules Picture if it exists
+            if (community.rulesPictureUrl.isNotEmpty)
+              Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        community.rulesPictureUrl,
+                        height: 150,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 150,
+                            width: double.infinity,
+                            color: Colors.grey.withOpacity(0.3),
+                            child: const Center(
+                              child: Text('Image not available'),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  // Add edit button for admin to change rules picture
+                  if (_isUserAdmin)
+                    Positioned(
+                      right: 8,
+                      bottom: 20,
+                      child: FloatingActionButton.small(
+                        heroTag: 'editRulesPictureFAB',
+                        onPressed: _changeRulesPicture,
+                        backgroundColor: Colors.black54,
+                        child: const Icon(Icons.camera_alt),
+                      ),
+                    ),
+                ],
+              )
+            else if (_isUserAdmin)
+              // Show add rules picture button for admin
+              InkWell(
+                onTap: _changeRulesPicture,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 12.0),
+                  width: double.infinity,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.withOpacity(0.5)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_photo_alternate,
+                        size: 40,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Add Rules Picture',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.inversePrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            
+            const SizedBox(height: 16.0),
+            ...community.rules.map((rule) => _buildRuleItem(context, rule)).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Add method for updating community image
   Future<void> _updateCommunityImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
@@ -1655,204 +1965,6 @@ class _CommunityDetailsPageState extends State<CommunityDetailsPage> with Single
           _isImageLoading = false;
         });
       }
-    }
-  }
-
-  // Add a new method to change the rules picture
-  Future<void> _changeRulesPicture() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    
-    if (pickedFile == null) return;
-    
-    setState(() {
-      _isLoading = true;
-    });
-    
-    try {
-      final File imageFile = File(pickedFile.path);
-      final storage = FirebaseStorageRepo();
-      final path = 'communities/${widget.communityId}_rules_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      
-      final url = await storage.uploadFile(imageFile.path, path) ?? '';
-      
-      if (url.isNotEmpty && context.read<CommunityCubit>().state is CommunityDetailLoaded) {
-        final community = (context.read<CommunityCubit>().state as CommunityDetailLoaded).community;
-        final updatedCommunity = CommunityModel(
-          id: community.id,
-          name: community.name,
-          description: community.description,
-          category: community.category,
-          iconUrl: community.iconUrl,
-          rulesPictureUrl: url,
-          memberCount: community.memberCount,
-          createdBy: community.createdBy,
-          isPrivate: community.isPrivate,
-          createdAt: community.createdAt,
-          rules: community.rules,
-        );
-        
-        context.read<CommunityCubit>().updateCommunity(updatedCommunity);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Rules picture updated')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update rules picture: $e')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  // Update the _buildRulesContent method to include rules picture
-  Widget _buildRulesContent(BuildContext context, Community community) {
-    return Card(
-      margin: EdgeInsets.zero,
-      color: Theme.of(context).colorScheme.surface,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(
-          color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Rules',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.inversePrimary,
-                  ),
-                ),
-                if (_isUserAdmin)
-                  IconButton(
-                    icon: Icon(
-                      Icons.edit,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: 20,
-                    ),
-                    onPressed: () => _showEditRulesDialog(context, community),
-                    tooltip: 'Edit Rules',
-                  ),
-              ],
-            ),
-            
-            // Add Rules Picture if it exists
-            if (community.rulesPictureUrl.isNotEmpty)
-              Stack(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12.0),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        community.rulesPictureUrl,
-                        height: 150,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: 150,
-                            width: double.infinity,
-                            color: Colors.grey.withOpacity(0.3),
-                            child: const Center(
-                              child: Text('Image not available'),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  // Add edit button for admin to change rules picture
-                  if (_isUserAdmin)
-                    Positioned(
-                      right: 8,
-                      bottom: 20,
-                      child: FloatingActionButton.small(
-                        onPressed: _changeRulesPicture,
-                        backgroundColor: Colors.black54,
-                        child: Icon(Icons.camera_alt),
-                      ),
-                    ),
-                ],
-              )
-            else if (_isUserAdmin)
-              // Show add rules picture button for admin
-              InkWell(
-                onTap: _changeRulesPicture,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 12.0),
-                  width: double.infinity,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.withOpacity(0.5)),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.add_photo_alternate,
-                        size: 40,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Add Rules Picture',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.inversePrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            
-            const SizedBox(height: 16.0),
-            ...community.rules.map((rule) => _buildRuleItem(context, rule)).toList(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Update the _updateCommunity method to include rulesPictureUrl
-  void _updateCommunity(
-    String name,
-    String description,
-    String category,
-    bool isPrivate,
-  ) async {
-    if (context.read<CommunityCubit>().state is CommunityDetailLoaded) {
-      final community = (context.read<CommunityCubit>().state as CommunityDetailLoaded).community;
-      
-      final updatedCommunity = CommunityModel(
-        id: community.id,
-        name: name.trim(),
-        description: description.trim(),
-        category: category,
-        iconUrl: community.iconUrl,
-        rulesPictureUrl: community.rulesPictureUrl,
-        memberCount: community.memberCount,
-        createdBy: community.createdBy,
-        isPrivate: isPrivate,
-        createdAt: community.createdAt,
-        rules: community.rules,
-      );
-      
-      context.read<CommunityCubit>().updateCommunity(updatedCommunity);
     }
   }
 }

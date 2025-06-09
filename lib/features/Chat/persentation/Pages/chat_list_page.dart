@@ -367,12 +367,13 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
       ),
       floatingActionButton: _tabController.index == 0
           ? FloatingActionButton(
-        onPressed: () {
-            Navigator.push(
-              context,
+              heroTag: 'newChatFAB',
+              onPressed: () {
+                Navigator.push(
+                  context,
                   PageTransitions.slideRightTransition(
-                page: const NewChatPage(),
-              ),
+                    page: const NewChatPage(),
+                  ),
                 ).then((_) {
                   // Reload chat rooms when returning from new chat
                   if (mounted) _loadChatRooms();
@@ -382,17 +383,18 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
               child: const Icon(Icons.chat),
             )
           : FloatingActionButton(
+              heroTag: 'createCommunityFAB',
               onPressed: () {
-            Navigator.push(
-              context,
+                Navigator.push(
+                  context,
                   PageTransitions.slideRightTransition(
-                page: const CreateCommunityPage(),
-              ),
-            );
-        },
+                    page: const CreateCommunityPage(),
+                  ),
+                );
+              },
               backgroundColor: Theme.of(context).colorScheme.inversePrimary,
               child: const Icon(Icons.group_add),
-      ),
+            ),
     );
   }
 }

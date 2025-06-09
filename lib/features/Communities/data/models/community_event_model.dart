@@ -37,14 +37,20 @@ class CommunityEventModel extends CommunityEvent {
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       startDate: json['startDate'] != null
-          ? (json['startDate'] as Timestamp).toDate()
+          ? (json['startDate'] is Timestamp 
+              ? (json['startDate'] as Timestamp).toDate() 
+              : json['startDate'])
           : DateTime.now(),
       endDate: json['endDate'] != null
-          ? (json['endDate'] as Timestamp).toDate()
+          ? (json['endDate'] is Timestamp 
+              ? (json['endDate'] as Timestamp).toDate() 
+              : json['endDate'])
           : DateTime.now().add(const Duration(hours: 1)),
       createdBy: json['createdBy'] ?? '',
       createdAt: json['createdAt'] != null
-          ? (json['createdAt'] as Timestamp).toDate()
+          ? (json['createdAt'] is Timestamp 
+              ? (json['createdAt'] as Timestamp).toDate() 
+              : json['createdAt'])
           : DateTime.now(),
       location: json['location'] ?? '',
       isOnline: json['isOnline'] ?? false,
@@ -61,10 +67,10 @@ class CommunityEventModel extends CommunityEvent {
       'communityId': communityId,
       'title': title,
       'description': description,
-      'startDate': startDate,
-      'endDate': endDate,
+      'startDate': Timestamp.fromDate(startDate),
+      'endDate': Timestamp.fromDate(endDate),
       'createdBy': createdBy,
-      'createdAt': createdAt,
+      'createdAt': Timestamp.fromDate(createdAt),
       'location': location,
       'isOnline': isOnline,
       'meetingLink': meetingLink,

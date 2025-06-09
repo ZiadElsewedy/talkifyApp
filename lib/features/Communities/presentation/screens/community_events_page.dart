@@ -303,6 +303,115 @@ class _CommunityEventsPageState extends State<CommunityEventsPage> {
     );
   }
   
+  Future<void> _deleteEvent(CommunityEvent event) async {
+    if (_currentUserId == null || _currentUserId != event.createdBy) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Only the creator can delete this event')),
+      );
+      return;
+    }
+    
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Event'),
+        content: const Text('Are you sure you want to delete this event? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed != true) return;
+    
+    // Show loading dialog that can't be dismissed
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false, // Prevent back button dismissal
+        child: const AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Deleting event...'),
+            ],
+          ),
+        ),
+      ),
+    );
+    
+    // Use a retry mechanism
+    int maxRetries = 3;
+    int currentRetry = 0;
+    bool success = false;
+    
+    while (currentRetry < maxRetries && !success) {
+      try {
+        // Attempt to delete the event
+        await _repository.deleteEvent(event.id);
+        success = true;
+      } catch (e) {
+        print("Delete attempt ${currentRetry + 1} failed: $e");
+        currentRetry++;
+        
+        // Only continue retrying if we haven't reached max retries
+        if (currentRetry < maxRetries) {
+          // Wait a bit before retrying
+          await Future.delayed(Duration(milliseconds: 500 * currentRetry));
+        } else {
+          if (mounted) {
+            // Dismiss the loading dialog
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+            
+            // Show error with retry button
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Failed to delete event after multiple attempts'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 5),
+                action: SnackBarAction(
+                  label: 'Retry',
+                  onPressed: () => _deleteEvent(event),
+                  textColor: Colors.white,
+                ),
+              ),
+            );
+          }
+          return;
+        }
+      }
+    }
+    
+    // If we got here, the operation was successful
+    if (mounted) {
+      // Dismiss the loading dialog
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      // Show a success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Event deleted successfully')),
+      );
+      
+      // Reload the events to reflect the change
+      await _loadEvents();
+    }
+  }
+  
   Future<void> _toggleAttendance(CommunityEvent event) async {
     if (_currentUserId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -311,45 +420,91 @@ class _CommunityEventsPageState extends State<CommunityEventsPage> {
       return;
     }
     
-    try {
-      setState(() {
-        _isLoading = true;
-      });
-      
-      final isAttending = event.attendees.contains(_currentUserId);
-      
-      if (isAttending) {
-        await _repository.leaveEvent(event.id, _currentUserId!);
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('You have left the event')),
-          );
+    final isAttending = event.attendees.contains(_currentUserId);
+    final String actionLabel = isAttending ? 'Leaving' : 'Joining';
+    final String completeLabel = isAttending ? 'left' : 'joined';
+    
+    // Show a loading dialog that can't be dismissed
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false, // Prevent back button dismissal
+        child: AlertDialog(
+          content: Row(
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(width: 16),
+              Text('$actionLabel event...'),
+            ],
+          ),
+        ),
+      ),
+    );
+    
+    // Use a retry mechanism
+    int maxRetries = 3;
+    int currentRetry = 0;
+    bool success = false;
+    
+    while (currentRetry < maxRetries && !success) {
+      try {
+        // Attempt to join/leave the event
+        if (isAttending) {
+          await _repository.leaveEvent(event.id, _currentUserId!);
+        } else {
+          await _repository.joinEvent(event.id, _currentUserId!);
         }
-      } else {
-        await _repository.joinEvent(event.id, _currentUserId!);
         
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('You have joined the event')),
-          );
+        success = true;
+      } catch (e) {
+        print("Attempt ${currentRetry + 1} failed: $e");
+        currentRetry++;
+        
+        // Only continue retrying if we haven't reached max retries
+        if (currentRetry < maxRetries) {
+          // Wait a bit before retrying
+          await Future.delayed(Duration(milliseconds: 500 * currentRetry));
+        } else {
+          if (mounted) {
+            // Dismiss the loading dialog
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+            
+            // Show error with retry button
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to ${isAttending ? 'leave' : 'join'} event after multiple attempts'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 5),
+                action: SnackBarAction(
+                  label: 'Retry',
+                  onPressed: () => _toggleAttendance(event),
+                  textColor: Colors.white,
+                ),
+              ),
+            );
+          }
+          return;
         }
       }
+    }
+    
+    // If we got here, the operation was successful
+    if (mounted) {
+      // Dismiss the loading dialog
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
       
-      // Reload events
-      if (mounted) {
-        await _loadEvents();
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update attendance: $e')),
-        );
-      }
+      // Show a success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('You have $completeLabel the event')),
+      );
+      
+      // Reload the events to reflect the change
+      await _loadEvents();
     }
   }
   
@@ -404,6 +559,7 @@ class _CommunityEventsPageState extends State<CommunityEventsPage> {
                   itemBuilder: (context, index) {
                     final event = _events[index];
                     final isAttending = event.attendees.contains(_currentUserId);
+                    final isCreator = _currentUserId == event.createdBy;
                     
                     return Card(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -516,15 +672,31 @@ class _CommunityEventsPageState extends State<CommunityEventsPage> {
                                     ),
                                   ],
                                 ),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: isAttending 
-                                        ? Colors.red 
-                                        : Theme.of(context).colorScheme.primary,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  onPressed: () => _toggleAttendance(event),
-                                  child: Text(isAttending ? 'Leave' : 'Join'),
+                                Row(
+                                  children: [
+                                    if (isCreator) ...[
+                                      ElevatedButton.icon(
+                                        icon: const Icon(Icons.delete),
+                                        label: const Text('Remove'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red,
+                                          foregroundColor: Colors.white,
+                                        ),
+                                        onPressed: () => _deleteEvent(event),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: isAttending 
+                                            ? Colors.red 
+                                            : Theme.of(context).colorScheme.primary,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      onPressed: () => _toggleAttendance(event),
+                                      child: Text(isAttending ? 'Leave' : 'Join'),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -535,6 +707,7 @@ class _CommunityEventsPageState extends State<CommunityEventsPage> {
                   },
                 ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'createEventFAB',
         onPressed: _showCreateEventDialog,
         child: const Icon(Icons.add),
       ),
