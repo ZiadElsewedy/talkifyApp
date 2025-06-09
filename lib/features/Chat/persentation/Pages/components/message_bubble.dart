@@ -25,6 +25,9 @@ class MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isFromCurrentUser 
+        ? Colors.white 
+        : (isDarkMode ? Colors.white : Colors.black87);
     
     // Special handling for system messages
     if (message.isSystemMessage) {
@@ -77,7 +80,7 @@ class MessageBubble extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isFromCurrentUser
                       ? (isDarkMode ? Colors.blue.shade800 : Colors.black)
-                      : (isDarkMode ? Colors.grey[800] : Colors.grey[100]),
+                      : (isDarkMode ? Colors.grey[800] : Colors.grey[300]),
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(16),
                     topRight: const Radius.circular(16),
@@ -110,7 +113,7 @@ class MessageBubble extends StatelessWidget {
                       const SizedBox(height: 4),
                     
                     // Message content
-                    _buildMessageContent(context),
+                    _buildMessageContent(context, textColor),
                     
                     // Timestamp and status
                     const SizedBox(height: 4),
@@ -343,7 +346,7 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildMessageContent(BuildContext context) {
+  Widget _buildMessageContent(BuildContext context, Color textColor) {
     // Check if this is a shared post message
     bool isSharedPost = message.replyToMessageId != null && 
                         message.replyToMessageId!.startsWith("post:") &&
@@ -362,7 +365,7 @@ class MessageBubble extends StatelessWidget {
                 message.content,
                 style: TextStyle(
                   fontSize: 16,
-                  color: isFromCurrentUser ? Colors.white : Colors.black87,
+                  color: textColor,
                 ),
               ),
             ),
@@ -421,7 +424,7 @@ class MessageBubble extends StatelessWidget {
                 message.content,
                 style: TextStyle(
                   fontSize: 16,
-                  color: isFromCurrentUser ? Colors.white : Colors.black87,
+                  color: textColor,
                 ),
               ),
             ),
@@ -501,9 +504,7 @@ class MessageBubble extends StatelessWidget {
             message.content,
             style: TextStyle(
               fontSize: 16,
-              color: isFromCurrentUser
-                  ? Colors.white
-                  : Colors.black87,
+              color: textColor,
             ),
           ),
           
@@ -544,32 +545,28 @@ class MessageBubble extends StatelessWidget {
           message.content,
           style: TextStyle(
             fontSize: 16,
-            color: isFromCurrentUser
-                ? Colors.white
-                : Colors.black87,
+            color: textColor,
           ),
         );
       
       case MessageType.image:
-        return _buildImageMessage(context);
+        return _buildImageMessage(context, textColor);
       
       case MessageType.video:
-        return _buildVideoMessage(context);
+        return _buildVideoMessage(context, textColor);
       
       case MessageType.audio:
-        return _buildAudioMessage(context);
+        return _buildAudioMessage(context, textColor);
       
       case MessageType.file:
-        return _buildFileMessage(context);
+        return _buildFileMessage(context, textColor);
       
       default:
         return Text(
           message.content,
           style: TextStyle(
             fontSize: 16,
-            color: isFromCurrentUser
-                ? Colors.white
-                : Colors.black87,
+            color: textColor,
           ),
         );
     }
@@ -627,7 +624,7 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildImageMessage(BuildContext context) {
+  Widget _buildImageMessage(BuildContext context, Color textColor) {
     // Check if this is a shared post image
     bool isSharedPost = message.metadata != null && message.metadata!['sharedType'] == 'post';
     
@@ -696,9 +693,7 @@ class MessageBubble extends StatelessWidget {
               message.content,
               style: TextStyle(
                 fontSize: 14,
-                color: isFromCurrentUser
-                    ? Colors.white
-                    : Colors.black87,
+                color: textColor,
               ),
             ),
           ),
@@ -717,7 +712,7 @@ class MessageBubble extends StatelessWidget {
     );
   }
   
-  Widget _buildVideoMessage(BuildContext context) {
+  Widget _buildVideoMessage(BuildContext context, Color textColor) {
     // Check if video URL is available
     if (message.fileUrl != null) {
       return GestureDetector(
@@ -800,7 +795,7 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildAudioMessage(BuildContext context) {
+  Widget _buildAudioMessage(BuildContext context, Color textColor) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -850,7 +845,7 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildFileMessage(BuildContext context) {
+  Widget _buildFileMessage(BuildContext context, Color textColor) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(

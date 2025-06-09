@@ -100,7 +100,8 @@ enum NotificationType {
   like,
   comment,
   follow,
-  message
+  message,
+
 }
 
 /// The actual notification widget that appears on screen
@@ -169,15 +170,17 @@ class _InAppNotificationState extends State<_InAppNotification> with SingleTicke
   
   // Get the color based on notification type
   Color _getColor() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     switch (widget.type) {
       case NotificationType.like:
-        return Colors.red.shade400;
+        return isDarkMode ? Colors.redAccent.shade400 : Colors.red.shade400;
       case NotificationType.comment:
-        return Colors.blue.shade400;
+        return isDarkMode ? Colors.blueAccent.shade400 : Colors.blue.shade400;
       case NotificationType.follow:
-        return Colors.purple.shade400;
+        return isDarkMode ? Colors.purpleAccent.shade400 : Colors.purple.shade400;
       case NotificationType.message:
-        return Colors.green.shade400;
+        return isDarkMode ? Colors.greenAccent.shade400 : Colors.green.shade400;
     }
   }
   
@@ -215,6 +218,8 @@ class _InAppNotificationState extends State<_InAppNotification> with SingleTicke
   Widget build(BuildContext context) {
     // Calculate status bar height
     final statusBarHeight = MediaQuery.of(context).padding.top;
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
     
     return Positioned(
       top: 0,
@@ -230,33 +235,50 @@ class _InAppNotificationState extends State<_InAppNotification> with SingleTicke
               onVerticalDragEnd: (_) => widget.onDismiss(),
               child: Center(
                 child: Container(
-                  margin: EdgeInsets.symmetric(horizontal: 30),  // Narrow width with margins
+                  margin: const EdgeInsets.symmetric(horizontal: 30),  // Narrow width with margins
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    color: isDarkMode ? Colors.black : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 6,
-                        offset: Offset(0, 2),
+                        color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
                       ),
                     ],
+                    border: Border.all(
+                      color: isDarkMode 
+                          ? Colors.grey.shade800
+                          : Colors.grey.shade200,
+                      width: 0.5,
+                    ),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),  // More padding
                     child: Row(
                       children: [
+                        // Left color indicator bar for notification type
+                        Container(
+                          width: 4,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: _getColor(),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        
                         // Profile picture
                         if (widget.userAvatar != null && widget.userAvatar!.isNotEmpty)
                           CircleAvatar(
                             radius: 18,
-                            backgroundColor: Colors.grey.shade200,
+                            backgroundColor: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade200,
                             backgroundImage: CachedNetworkImageProvider(widget.userAvatar!),
                           )
                         else
                           CircleAvatar(
                             radius: 18,
-                            backgroundColor: Colors.grey.shade300,
+                            backgroundColor: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300,
                             child: Icon(
                               widget.type == NotificationType.like
                                   ? Icons.favorite
@@ -265,7 +287,7 @@ class _InAppNotificationState extends State<_InAppNotification> with SingleTicke
                                       : widget.type == NotificationType.message
                                           ? Icons.chat_bubble_outline
                                           : Icons.person,
-                              color: Colors.black87,  // Black color
+                              color: isDarkMode ? Colors.white : Colors.black87,
                               size: 18,
                             ),
                           ),
@@ -282,28 +304,33 @@ class _InAppNotificationState extends State<_InAppNotification> with SingleTicke
                                 widget.title,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black87,  // Black color
-                                  fontSize: 12,
+                                  color: theme.colorScheme.onSurface,
+                                  fontSize: 13,
                                 ),
                               ),
                               Text(
                                 widget.message,
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.black87,
+                                  color: theme.colorScheme.onSurface.withOpacity(0.8),
                                 ),
-                                maxLines: 1,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
                         
-                        // Arrow indicator
-                        Icon(
-                          Icons.chevron_right,
-                          size: 18,
-                          color: Colors.black54,  // Darker color
+                        // Close button
+                        IconButton(
+                          icon: Icon(
+                            Icons.close,
+                            size: 16,
+                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: widget.onDismiss,
                         ),
                       ],
                     ),

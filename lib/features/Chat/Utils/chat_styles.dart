@@ -38,9 +38,13 @@ class ChatStyles {
   );
   
   // Decoration
-  static BoxDecoration messageBubbleDecoration({required bool isFromCurrentUser}) {
+  static BoxDecoration messageBubbleDecoration({required bool isFromCurrentUser, BuildContext? context}) {
+    final isDarkMode = context != null && Theme.of(context).brightness == Brightness.dark;
+    
     return BoxDecoration(
-      color: isFromCurrentUser ? primaryColor : subtleGreyColor,
+      color: isFromCurrentUser
+          ? primaryColor  // Current user - same color in both modes
+          : (isDarkMode ? Colors.grey.shade800 : Colors.white),  // Other users - grey in dark, white in light
       borderRadius: BorderRadius.only(
         topLeft: const Radius.circular(16),
         topRight: const Radius.circular(16),

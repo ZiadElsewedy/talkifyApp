@@ -90,6 +90,9 @@ class _NotificationItemState extends State<NotificationItem> {
     // Store a reference to the cubit
     final notificationCubit = context.read<NotificationCubit>();
     final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final backgroundColor = _getBackgroundColor(context);
     
     return Dismissible(
       key: Key(widget.notification.id),
@@ -135,7 +138,7 @@ class _NotificationItemState extends State<NotificationItem> {
       },
       background: Container(
         alignment: AlignmentDirectional.centerEnd,
-        color: Colors.red,
+        color: theme.colorScheme.error,
         padding: const EdgeInsets.only(right: 20),
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -167,7 +170,7 @@ class _NotificationItemState extends State<NotificationItem> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           decoration: BoxDecoration(
-            color: _getBackgroundColor(context),
+            color: backgroundColor,
             border: Border(
               bottom: BorderSide(
                 color: Theme.of(context).brightness == Brightness.dark 
@@ -405,13 +408,20 @@ class _NotificationItemState extends State<NotificationItem> {
     }
   }
   
+  // Get the notification background color based on read status and theme
   Color _getBackgroundColor(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
-    if (widget.notification.isRead) {
-      return isDarkMode ? Colors.transparent : Colors.transparent;
+    if (!widget.notification.isRead) {
+      // Unread notification
+      return isDarkMode 
+          ? Colors.black.withOpacity(0.6)  // Dark mode: black background
+          : Colors.blue[50]!.withOpacity(0.5);  // Light mode: light blue tint
     } else {
-      return isDarkMode ? Colors.grey.shade900 : Colors.grey.shade100;
+      // Read notification
+      return isDarkMode 
+          ? Colors.black  // Dark mode: black background
+          : Colors.white;  // Light mode: white background
     }
   }
 } 
