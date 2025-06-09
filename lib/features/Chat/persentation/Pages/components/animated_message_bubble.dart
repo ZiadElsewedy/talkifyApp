@@ -141,7 +141,8 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: ChatStyles.messageBubbleDecoration(
-                      isFromCurrentUser: widget.isFromCurrentUser
+                      isFromCurrentUser: widget.isFromCurrentUser,
+                      context: context
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -417,88 +418,132 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
   }
 
   Widget _buildMessageContent(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final textColor = widget.isFromCurrentUser 
+        ? Colors.white 
+        : (isDarkMode ? Colors.white : Colors.black);
+    
+    // Special handling for system messages
+    if (widget.message.isSystemMessage) {
+      return Text(
+        widget.message.content,
+        style: TextStyle(
+          fontSize: 16,
+          color: textColor,
+          fontStyle: FontStyle.italic,
+        ),
+      );
+    }
+    
     switch (widget.message.type) {
       case MessageType.text:
         return Text(
           widget.message.content,
-          style: widget.isFromCurrentUser
-              ? ChatStyles.messageSentTextStyle
-              : ChatStyles.messageTextStyle,
+          style: TextStyle(
+            fontSize: 14,
+            color: textColor,
+          ),
         );
       
       case MessageType.image:
-        return _buildImageMessage(context);
+        return _buildImageMessage(context, textColor);
       
       case MessageType.video:
-        return _buildVideoMessage(context);
+        return _buildVideoMessage(context, textColor);
       
       case MessageType.audio:
-        return _buildAudioMessage(context);
+        return _buildAudioMessage(context, textColor);
       
-      case MessageType.document:
-        return _buildDocumentMessage(context);
-        
       case MessageType.file:
-        return _buildFileMessage(context);
+        return _buildFileMessage(context, textColor);
       
       default:
         return Text(
           widget.message.content,
-          style: widget.isFromCurrentUser
-              ? ChatStyles.messageSentTextStyle
-              : ChatStyles.messageTextStyle,
+          style: TextStyle(
+            fontSize: 14,
+            color: textColor,
+          ),
         );
     }
   }
 
-  Widget _buildImageMessage(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (widget.message.fileUrl != null)
-          GestureDetector(
-            onTap: () => _showFullScreenImage(context, widget.message.fileUrl!),
-            child: Hero(
-              tag: widget.message.id,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: CachedNetworkImage(
-                  imageUrl: widget.message.fileUrl!,
-                  placeholder: (context, url) => Container(
-                    height: 200,
-                    width: 200,
-                    color: Colors.grey[300],
-                    child: const Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    height: 200,
-                    width: 200,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.error),
-                  ),
-                  fit: BoxFit.cover,
+  Widget _buildImageMessage(BuildContext context, Color textColor) {
+    // Check if this is a shared post image
+    bool isSharedPost = widget.message.metadata != null && widget.message.metadata!['sharedType'] == 'post';
+    
+    // Image implementation
+    if (widget.message.fileUrl != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Caption above image (if any)
+          if (widget.message.content.isNotEmpty && widget.message.content != widget.message.fileName)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                widget.message.content,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: textColor,
                 ),
               ),
             ),
-          ),
-        
-        if (widget.message.content.isNotEmpty && widget.message.content != widget.message.fileName)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              widget.message.content,
-              style: widget.isFromCurrentUser
-                  ? ChatStyles.messageSentTextStyle
-                  : ChatStyles.messageTextStyle,
+          if (widget.message.fileUrl != null)
+            GestureDetector(
+              onTap: () => _showFullScreenImage(context, widget.message.fileUrl!),
+              child: Hero(
+                tag: widget.message.id,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: CachedNetworkImage(
+                    imageUrl: widget.message.fileUrl!,
+                    placeholder: (context, url) => Container(
+                      height: 200,
+                      width: 200,
+                      color: Colors.grey[300],
+                      child: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      height: 200,
+                      width: 200,
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.error),
+                    ),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
             ),
-          ),
-      ],
+          
+          if (widget.message.content.isNotEmpty && widget.message.content != widget.message.fileName)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                widget.message.content,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: textColor,
+                ),
+              ),
+            ),
+        ],
+      );
+    }
+    
+    // Fallback if no image URL is available
+    return Text(
+      widget.message.content,
+      style: TextStyle(
+        fontSize: 14,
+        color: textColor,
+      ),
     );
   }
 
-  Widget _buildVideoMessage(BuildContext context) {
+  Widget _buildVideoMessage(BuildContext context, Color textColor) {
     // Check if video URL is available
     if (widget.message.fileUrl != null) {
       return GestureDetector(
@@ -529,7 +574,7 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
             children: [
               Icon(
                 Icons.play_circle_filled,
-                color: widget.isFromCurrentUser ? Colors.white : Colors.black,
+                color: textColor,
                 size: 32,
               ),
               const SizedBox(width: 8),
@@ -542,9 +587,7 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: widget.isFromCurrentUser
-                            ? Colors.white
-                            : Colors.black87,
+                        color: textColor,
                       ),
                     ),
                     if (widget.message.fileSize != null)
@@ -581,14 +624,14 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
     );
   }
 
-  Widget _buildAudioMessage(BuildContext context) {
+  Widget _buildAudioMessage(BuildContext context, Color textColor) {
     return AudioMessagePlayer(
       message: widget.message,
       isCurrentUser: widget.isFromCurrentUser,
     );
   }
 
-  Widget _buildFileMessage(BuildContext context) {
+  Widget _buildFileMessage(BuildContext context, Color textColor) {
     // File message implementation (unchanged but styled)
     return Container(
       padding: const EdgeInsets.all(12),
@@ -635,151 +678,6 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildDocumentMessage(BuildContext context) {
-    // Get document type from metadata
-    final String documentType = widget.message.metadata?['documentType'] ?? 'generic';
-    final String? fileExtension = widget.message.metadata?['fileExtension'] ?? '';
-    
-    // Choose icon based on document type
-    IconData documentIcon;
-    Color iconColor;
-    
-    switch (documentType) {
-      case 'pdf':
-        documentIcon = Icons.picture_as_pdf;
-        iconColor = Colors.red;
-        break;
-      case 'word':
-        documentIcon = Icons.description;
-        iconColor = Colors.blue;
-        break;
-      case 'excel':
-        documentIcon = Icons.table_chart;
-        iconColor = Colors.green;
-        break;
-      case 'powerpoint':
-        documentIcon = Icons.slideshow;
-        iconColor = Colors.orange;
-        break;
-      case 'text':
-        documentIcon = Icons.text_snippet;
-        iconColor = Colors.grey;
-        break;
-      default:
-        documentIcon = Icons.insert_drive_file;
-        iconColor = Colors.grey;
-    }
-    
-    return GestureDetector(
-      onTap: () {
-        if (widget.message.fileUrl != null) {
-          _openDocument(context, widget.message.fileUrl!, widget.message.fileName ?? 'Document');
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: widget.isFromCurrentUser 
-              ? Colors.black.withOpacity(0.2)
-              : Colors.grey.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                documentIcon,
-                color: iconColor,
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.message.fileName ?? 'Document',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: widget.isFromCurrentUser
-                          ? Colors.white
-                          : Colors.black87,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      if (fileExtension != null && fileExtension.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: iconColor.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            fileExtension.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: iconColor,
-                            ),
-                          ),
-                        ),
-                      const SizedBox(width: 8),
-                      if (widget.message.fileSize != null)
-                        Text(
-                          _formatFileSize(widget.message.fileSize!),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: widget.isFromCurrentUser
-                                ? Colors.white.withOpacity(0.7)
-                                : Colors.grey[600],
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.download,
-                        size: 12,
-                        color: widget.isFromCurrentUser
-                            ? Colors.white.withOpacity(0.6)
-                            : Colors.grey[600],
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Tap to view or download',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontStyle: FontStyle.italic,
-                          color: widget.isFromCurrentUser
-                              ? Colors.white.withOpacity(0.6)
-                              : Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

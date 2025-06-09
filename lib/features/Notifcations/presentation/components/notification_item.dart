@@ -90,6 +90,9 @@ class _NotificationItemState extends State<NotificationItem> {
     // Store a reference to the cubit
     final notificationCubit = context.read<NotificationCubit>();
     final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final backgroundColor = _getBackgroundColor(context);
     
     return Dismissible(
       key: Key(widget.notification.id),
@@ -135,7 +138,7 @@ class _NotificationItemState extends State<NotificationItem> {
       },
       background: Container(
         alignment: AlignmentDirectional.centerEnd,
-        color: Colors.red,
+        color: theme.colorScheme.error,
         padding: const EdgeInsets.only(right: 20),
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -167,10 +170,12 @@ class _NotificationItemState extends State<NotificationItem> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           decoration: BoxDecoration(
-            color: widget.notification.isRead ? Colors.transparent : Colors.grey.shade100,
+            color: backgroundColor,
             border: Border(
               bottom: BorderSide(
-                color: Colors.grey.withOpacity(0.15),
+                color: Theme.of(context).brightness == Brightness.dark 
+                    ? Colors.grey.withOpacity(0.15) 
+                    : Colors.grey.withOpacity(0.15),
                 width: 1.0,
               ),
             ),
@@ -206,7 +211,12 @@ class _NotificationItemState extends State<NotificationItem> {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             text: TextSpan(
-                              style: TextStyle(fontSize: 14, color: Colors.black87),
+                              style: TextStyle(
+                                fontSize: 14, 
+                                color: Theme.of(context).brightness == Brightness.dark 
+                                    ? Colors.grey[200] 
+                                    : Colors.black87
+                              ),
                               children: [
                                 // Username (no longer directly in TextSpan)
                                 WidgetSpan(
@@ -214,9 +224,11 @@ class _NotificationItemState extends State<NotificationItem> {
                                     onTap: () => _navigateToUserProfile(context, widget.notification.triggerUserId),
                                     child: Text(
                                       widget.notification.triggerUserName,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.black87,
+                                        color: Theme.of(context).brightness == Brightness.dark 
+                                            ? Colors.white 
+                                            : Colors.black87,
                                       ),
                                     ),
                                   ),
@@ -235,7 +247,9 @@ class _NotificationItemState extends State<NotificationItem> {
                       timeago.format(widget.notification.timestamp),
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade500,
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? Colors.grey.shade400 
+                            : Colors.grey.shade500,
                       ),
                     ),
                   ],
@@ -269,7 +283,12 @@ class _NotificationItemState extends State<NotificationItem> {
                         margin: const EdgeInsets.only(left: 8),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.grey.shade300, width: 1),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark 
+                                ? Colors.grey.shade700 
+                                : Colors.grey.shade300, 
+                            width: 1
+                          ),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(3),
@@ -386,6 +405,23 @@ class _NotificationItemState extends State<NotificationItem> {
         return 'mentioned you in a post';
       case app_notification.NotificationType.message:
         return 'sent you a message';
+    }
+  }
+  
+  // Get the notification background color based on read status and theme
+  Color _getBackgroundColor(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    if (!widget.notification.isRead) {
+      // Unread notification
+      return isDarkMode 
+          ? Colors.black.withOpacity(0.6)  // Dark mode: black background
+          : Colors.blue[50]!.withOpacity(0.5);  // Light mode: light blue tint
+    } else {
+      // Read notification
+      return isDarkMode 
+          ? Colors.black  // Dark mode: black background
+          : Colors.white;  // Light mode: white background
     }
   }
 } 

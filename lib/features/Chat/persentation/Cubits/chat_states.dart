@@ -1,8 +1,14 @@
+import 'package:equatable/equatable.dart';
 import 'package:talkifyapp/features/Chat/domain/entite/message.dart';
 import 'package:talkifyapp/features/Chat/domain/entite/chat_room.dart';
 
 // Base Chat State
-abstract class ChatState {}
+abstract class ChatState extends Equatable {
+  const ChatState();
+
+  @override
+  List<Object?> get props => [];
+}
 
 // Initial state
 class ChatInitial extends ChatState {}
@@ -17,71 +23,103 @@ class SendingMessage extends ChatState {}
 class ChatRoomsLoaded extends ChatState {
   final List<ChatRoom> chatRooms;
   
-  ChatRoomsLoaded(this.chatRooms);
+  const ChatRoomsLoaded(this.chatRooms);
+
+  @override
+  List<Object?> get props => [chatRooms];
 }
 
 class MessagesLoaded extends ChatState {
   final List<Message> messages;
-  final String chatRoomId;
-  
-  MessagesLoaded(this.messages, this.chatRoomId);
+
+  const MessagesLoaded(this.messages);
+
+  @override
+  List<Object?> get props => [messages];
 }
 
 class MessageSent extends ChatState {
-  final Message message;
+  final List<Message> messages;
   
-  MessageSent(this.message);
+  const MessageSent(this.messages);
+
+  @override
+  List<Object?> get props => [messages];
 }
 
 class ChatRoomCreated extends ChatState {
   final ChatRoom chatRoom;
   
-  ChatRoomCreated(this.chatRoom);
+  const ChatRoomCreated(this.chatRoom);
+
+  @override
+  List<Object?> get props => [chatRoom];
 }
 
 class ChatRoomDeleted extends ChatState {
   final String chatRoomId;
   
-  ChatRoomDeleted(this.chatRoomId);
+  const ChatRoomDeleted(this.chatRoomId);
+
+  @override
+  List<Object?> get props => [chatRoomId];
 }
 
 class MessageUpdated extends ChatState {
   final Message message;
   
-  MessageUpdated(this.message);
+  const MessageUpdated(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class MessageDeleted extends ChatState {
-  final String messageId;
+  final List<Message> messages;
   
-  MessageDeleted(this.messageId);
+  const MessageDeleted(this.messages);
+
+  @override
+  List<Object?> get props => [messages];
 }
 
 class MessagesMarkedAsRead extends ChatState {
   final String chatRoomId;
   
-  MessagesMarkedAsRead(this.chatRoomId);
+  const MessagesMarkedAsRead(this.chatRoomId);
+
+  @override
+  List<Object?> get props => [chatRoomId];
 }
 
 // Group chat states
 class GroupChatLeft extends ChatState {
   final String chatRoomId;
   
-  GroupChatLeft(this.chatRoomId);
+  const GroupChatLeft(this.chatRoomId);
+
+  @override
+  List<Object?> get props => [chatRoomId];
 }
 
 // Hidden chat state
 class ChatHiddenForUser extends ChatState {
   final String chatRoomId;
   
-  ChatHiddenForUser(this.chatRoomId);
+  const ChatHiddenForUser(this.chatRoomId);
+
+  @override
+  List<Object?> get props => [chatRoomId];
 }
 
 // Chat history deleted for user state
 class ChatHistoryDeletedForUser extends ChatState {
   final String chatRoomId;
   
-  ChatHistoryDeletedForUser(this.chatRoomId);
+  const ChatHistoryDeletedForUser(this.chatRoomId);
+
+  @override
+  List<Object?> get props => [chatRoomId];
 }
 
 // Message deleted for user state
@@ -89,21 +127,30 @@ class MessageDeletedForUser extends ChatState {
   final String messageId;
   final String userId;
   
-  MessageDeletedForUser(this.messageId, this.userId);
+  const MessageDeletedForUser(this.messageId, this.userId);
+
+  @override
+  List<Object?> get props => [messageId, userId];
 }
 
 class GroupAdminAdded extends ChatState {
   final String chatRoomId;
   final String userId;
   
-  GroupAdminAdded(this.chatRoomId, this.userId);
+  const GroupAdminAdded(this.chatRoomId, this.userId);
+
+  @override
+  List<Object?> get props => [chatRoomId, userId];
 }
 
 class GroupAdminRemoved extends ChatState {
   final String chatRoomId;
   final String userId;
   
-  GroupAdminRemoved(this.chatRoomId, this.userId);
+  const GroupAdminRemoved(this.chatRoomId, this.userId);
+
+  @override
+  List<Object?> get props => [chatRoomId, userId];
 }
 
 // Typing states
@@ -111,32 +158,47 @@ class TypingStatusUpdated extends ChatState {
   final String chatRoomId;
   final Map<String, bool> typingStatus;
   
-  TypingStatusUpdated(this.chatRoomId, this.typingStatus);
+  const TypingStatusUpdated(this.chatRoomId, this.typingStatus);
+
+  @override
+  List<Object?> get props => [chatRoomId, typingStatus];
 }
 
 // Error states
 class ChatError extends ChatState {
   final String message;
   
-  ChatError(this.message);
+  const ChatError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class ChatRoomsError extends ChatState {
   final String message;
   
-  ChatRoomsError(this.message);
+  const ChatRoomsError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class MessagesError extends ChatState {
   final String message;
-  
-  MessagesError(this.message);
+
+  const MessagesError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class SendMessageError extends ChatState {
   final String message;
   
-  SendMessageError(this.message);
+  const SendMessageError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 // Media upload states
@@ -150,7 +212,7 @@ class UploadingMediaProgress extends ChatState {
   final String? caption;
   final bool isFromCurrentUser;
   
-  UploadingMediaProgress({
+  const UploadingMediaProgress({
     required this.progress,
     required this.localFilePath,
     required this.messageId,
@@ -158,6 +220,9 @@ class UploadingMediaProgress extends ChatState {
     required this.isFromCurrentUser,
     this.caption,
   });
+
+  @override
+  List<Object?> get props => [progress, localFilePath, messageId, type, isFromCurrentUser, caption];
 }
 
 class MediaUploaded extends ChatState {
@@ -165,7 +230,10 @@ class MediaUploaded extends ChatState {
   final String fileName;
   final String messageId;
   
-  MediaUploaded(this.fileUrl, this.fileName, this.messageId);
+  const MediaUploaded(this.fileUrl, this.fileName, this.messageId);
+
+  @override
+  List<Object?> get props => [fileUrl, fileName, messageId];
 }
 
 class MediaUploadError extends ChatState {
@@ -173,7 +241,10 @@ class MediaUploadError extends ChatState {
   final String messageId;
   final String localFilePath;
   
-  MediaUploadError(this.message, this.messageId, this.localFilePath);
+  const MediaUploadError(this.message, this.messageId, this.localFilePath);
+
+  @override
+  List<Object?> get props => [message, messageId, localFilePath];
 }
 
 // Search states
@@ -183,11 +254,67 @@ class MessagesSearchResult extends ChatState {
   final List<Message> searchResults;
   final String query;
   
-  MessagesSearchResult(this.searchResults, this.query);
+  const MessagesSearchResult(this.searchResults, this.query);
+
+  @override
+  List<Object?> get props => [searchResults, query];
 }
 
 class MessageSearchError extends ChatState {
   final String message;
   
-  MessageSearchError(this.message);
+  const MessageSearchError(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+// New states for Communities integration
+class ChatRoomForCommunityLoading extends ChatState {}
+
+class ChatRoomForCommunityLoaded extends ChatState {
+  final ChatRoom chatRoom;
+  
+  const ChatRoomForCommunityLoaded(this.chatRoom);
+
+  @override
+  List<Object?> get props => [chatRoom];
+}
+
+class ChatRoomForCommunityNotFound extends ChatState {
+  final String communityId;
+  
+  const ChatRoomForCommunityNotFound(this.communityId);
+
+  @override
+  List<Object?> get props => [communityId];
+}
+
+class ChatRoomForCommunityError extends ChatState {
+  final String message;
+  
+  const ChatRoomForCommunityError(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class ChatRoomCreating extends ChatState {}
+
+class ChatRoomCreationError extends ChatState {
+  final String message;
+  
+  const ChatRoomCreationError(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class MessageSending extends ChatState {
+  final List<Message> messages;
+
+  const MessageSending(this.messages);
+
+  @override
+  List<Object?> get props => [messages];
 } 

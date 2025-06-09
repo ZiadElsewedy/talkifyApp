@@ -9,7 +9,6 @@ import 'package:talkifyapp/features/Profile/presentation/Cubits/ProfileCubit.dar
 import 'package:talkifyapp/features/auth/Presentation/Cubits/AuthStates.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/AuthPage.dart';
-import 'package:talkifyapp/features/Posts/presentation/HomePage.dart';
 import 'package:talkifyapp/features/auth/Presentation/screens/Auth_screens/VerificationEmail.dart';
 import 'package:talkifyapp/features/Posts/data/firebase_post_repo.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
@@ -17,6 +16,11 @@ import 'package:talkifyapp/features/auth/data/FireBase_Auth_repo.dart';
 import 'package:talkifyapp/features/Chat/Data/firebase_chat_repo.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
+import 'package:talkifyapp/features/Communities/presentation/cubit/community_cubit.dart';
+import 'package:talkifyapp/features/Communities/presentation/cubit/community_member_cubit.dart';
+import 'package:talkifyapp/features/Communities/presentation/cubit/community_message_cubit.dart';
+import 'package:talkifyapp/features/Communities/data/repositories/community_repository_impl.dart';
+import 'package:talkifyapp/features/Communities/domain/repo/community_repository.dart';
 
 import 'package:talkifyapp/features/Welcome/welcome_page.dart';
 import 'package:talkifyapp/theme/Cubits/theme_cubit.dart';
@@ -49,6 +53,7 @@ class _MyAppState extends State<MyApp> {
   final _firebasePostRepo = FirebasePostRepo();
   // Repository instances
   final _firebaseProfileRepo = FirebaseProfileRepo();
+  final _communityRepositoryImpl = CommunityRepositoryImpl();
 
   final _firebaseSearchRepo = FirebaseSearchRepo();
   final _firebaseStorageRepo = FirebaseStorageRepo();
@@ -127,6 +132,21 @@ class _MyAppState extends State<MyApp> {
             notificationRepository: _notificationRepositoryImpl,
           ),
         ),
+        BlocProvider<CommunityCubit>(
+          create: (context) => CommunityCubit(
+            repository: _communityRepositoryImpl,
+          ),
+        ),
+        BlocProvider<CommunityMemberCubit>(
+          create: (context) => CommunityMemberCubit(
+            repository: _communityRepositoryImpl,
+          ),
+        ),
+        BlocProvider<CommunityMessageCubit>(
+          create: (context) => CommunityMessageCubit(
+            repository: _communityRepositoryImpl,
+          ),
+        ),
       ],
     
 
@@ -166,7 +186,7 @@ class _MyAppState extends State<MyApp> {
                 },
                 builder: (context, state) {
                   if (state is Authanticated) {
-                    return HomePage();
+                    return const WelcomePage(); // Show welcome page instead of directly going to HomePage
                   } else if (state is UnverifiedState || state is EmailVerificationState) {
                     return const VerificationEmail();
                   } else if (state is UnAuthanticated || state is AuthErrorState) {

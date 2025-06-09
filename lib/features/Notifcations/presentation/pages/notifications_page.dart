@@ -35,23 +35,20 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         elevation: 0,
         centerTitle: false,
-        backgroundColor: Colors.white,
-        title: const Text(
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        title: Text(
           'Notifications',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 22,
+          style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           BlocBuilder<NotificationCubit, NotificationState>(
@@ -59,12 +56,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
               // Only show the "Mark all as read" button if there are unread notifications
               if (state.unreadCount > 0) {
                 return IconButton(
-                  icon: const Icon(Icons.done_all, color: Colors.black),
+                  icon: Icon(Icons.done_all, color: theme.colorScheme.onSurface),
                   onPressed: () {
                     final notificationCubit = context.read<NotificationCubit>();
                     notificationCubit.markAllNotificationsAsRead(_currentUserId);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
                         content: Text('All notifications marked as read'),
                         behavior: SnackBarBehavior.floating,
                         duration: Duration(seconds: 2),
@@ -82,9 +79,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
       body: BlocBuilder<NotificationCubit, NotificationState>(
         builder: (context, state) {
           if (state.status == NotificationStatus.loading && state.notifications.isEmpty) {
-            return const Center(
+            return Center(
               child: CircularProgressIndicator(
-                color: Colors.black,
+                color: theme.colorScheme.primary,
               ),
             );
           } else if (state.status == NotificationStatus.error) {
@@ -92,15 +89,15 @@ class _NotificationsPageState extends State<NotificationsPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.error_outline,
                     size: 60,
-                    color: Colors.grey,
+                    color: theme.colorScheme.error.withOpacity(0.7),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Error: ${state.errorMessage}',
-                    style: const TextStyle(color: Colors.grey),
+                    style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7)),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
@@ -109,8 +106,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       context.read<NotificationCubit>().loadNotifications(_currentUserId);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -128,16 +125,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   Icon(
                     Icons.notifications_off_outlined,
                     size: 70,
-                    color: Colors.grey.shade400,
+                    color: theme.colorScheme.onSurface.withOpacity(0.4),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'No notifications yet',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade800,
-                    ),
+                    style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
                   Padding(
@@ -145,7 +138,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     child: Text(
                       'You will see notifications when someone interacts with your posts or comments',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade600),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      ),
                     ),
                   ),
                 ],
@@ -173,16 +168,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       Icon(
                         Icons.notifications_off_outlined,
                         size: 70,
-                        color: Colors.grey.shade400,
+                        color: theme.colorScheme.onSurface.withOpacity(0.4),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'No activity notifications',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade800,
-                        ),
+                        style: theme.textTheme.titleMedium,
                       ),
                     ],
                   ),

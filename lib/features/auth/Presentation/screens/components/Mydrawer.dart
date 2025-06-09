@@ -1,6 +1,7 @@
 // this code for drawer 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talkifyapp/features/Communities/community_main.dart';
 import 'package:talkifyapp/features/News/Data/news_repository_impl.dart';
 import 'package:talkifyapp/features/News/Presentation/Cubit/news_cubit.dart';
 import 'package:talkifyapp/features/News/Presentation/pages/news_page.dart';
@@ -149,9 +150,21 @@ class _MyDrawerState extends State<MyDrawer> {
                       title: 'C H A T S',
                       onTap: () {
                         Navigator.of(context).pop();
-                        Navigator.of(context).pushReplacement(
+                        Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (context) => const ChatListPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    MyDrawerTile(
+                      icon: Icons.people,
+                      title: 'C O M M U N I T I E S',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const CommunityMain(),
                           ),
                         );
                       },
@@ -160,6 +173,7 @@ class _MyDrawerState extends State<MyDrawer> {
                       icon: Icons.search,
                       title: 'S E A R C H',
                       onTap: () {
+                        Navigator.of(context).pop();
                         Navigator.of(context).push(
                           MaterialPageRoute(builder: (context) => SearchPage()),
                         ).then((_) {
@@ -183,6 +197,7 @@ class _MyDrawerState extends State<MyDrawer> {
                       icon: Icons.info_outline,
                       title: 'A B O U T',
                       onTap: () {
+                        Navigator.of(context).pop();
                         Navigator.push(
                           context,
                           MaterialPageRoute(

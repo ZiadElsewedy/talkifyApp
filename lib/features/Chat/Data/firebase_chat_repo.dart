@@ -28,48 +28,91 @@ class FirebaseChatRepo implements ChatRepo {
     required Map<String, String> participantNames,
     required Map<String, String> participantAvatars,
     List<String>? adminIds,
+    Map<String, int>? unreadCount,
+    String? communityId,
   }) async {
     try {
-      // Initialize unreadCount for all participants to 0
-      Map<String, int> unreadCount = {};
-      for (final userId in participantIds) {
-        unreadCount[userId] = 0;
-      }
-
-      // Create initial admins list - by default, first user is admin
-      List<String> finalAdminIds = adminIds ?? [participantIds.first];
-
-      // Create new chat room document
-      final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc();
-      final now = DateTime.now();
+      print('DEBUG: FirebaseChatRepo: Creating chat room with communityId: $communityId');
       
+      // Initialize unread count if not provided
+      final Map<String, int> initialUnreadCount = unreadCount ?? {};
+      
+      // Ensure all participants have an unread count entry
+      for (final userId in participantIds) {
+        if (!initialUnreadCount.containsKey(userId)) {
+          initialUnreadCount[userId] = 0;
+        }
+      }
+      
+      // Create a new chat room document
+      final chatRoomRef = _firestore.collection('chatRooms').doc();
+      final chatRoomId = chatRoomRef.id;
+      
+      print('DEBUG: FirebaseChatRepo: Generated new chat room ID: $chatRoomId');
+      
+      // Initialize left participants map
+      final Map<String, bool> leftParticipants = {};
+      
+      // Create chat room object with communityId included directly in constructor
       final chatRoom = ChatRoom(
-        id: chatRoomRef.id,
+        id: chatRoomId,
         participants: participantIds,
         participantNames: participantNames,
         participantAvatars: participantAvatars,
-        unreadCount: unreadCount,
-        createdAt: now,
-        updatedAt: now,
-        admins: finalAdminIds,
-        leftParticipants: {},
+        unreadCount: initialUnreadCount,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        admins: adminIds ?? [],
+        leftParticipants: leftParticipants,
+        communityId: communityId, // Pass directly to constructor
       );
       
-      // Save to Firestore
-      await chatRoomRef.set(chatRoom.toJson());
+      // Convert to JSON
+      final chatRoomData = chatRoom.toJson();
       
-      // If this is a group chat, send a system message about creation
-      if (participantIds.length > 2) {
-        final creatorName = participantNames[participantIds.first] ?? 'Someone';
-        await sendSystemMessage(
-          chatRoomId: chatRoomRef.id,
-          content: '$creatorName created this group',
-        );
+      // IMPORTANT: Double-check that communityId is in the data
+      if (communityId != null && !chatRoomData.containsKey('communityId')) {
+        print('DEBUG: WARNING: communityId missing from chatRoomData, adding it explicitly');
+        chatRoomData['communityId'] = communityId;
       }
       
-      return chatRoom;
+      print('DEBUG: FirebaseChatRepo: Saving chat room data to Firestore with fields: ${chatRoomData.keys.toList()}');
+      
+      // Store the chat room in Firestore
+      await chatRoomRef.set(chatRoomData);
+      
+      // Verify the chat room was created properly with communityId
+      final verificationDoc = await chatRoomRef.get();
+      if (verificationDoc.exists) {
+        final data = verificationDoc.data();
+        if (communityId != null && data?['communityId'] != communityId) {
+          print('DEBUG: ERROR: communityId not saved correctly. Attempting fix...');
+          await chatRoomRef.update({'communityId': communityId});
+        }
+      }
+      
+      // Create a system message
+      String systemMessage;
+      if (communityId != null) {
+        systemMessage = "Community chat created";
+      } else if (participantIds.length > 2) {
+        systemMessage = "Group chat created";
+      } else {
+        systemMessage = "Chat started";
+      }
+      
+      await sendSystemMessage(
+        chatRoomId: chatRoomId,
+        content: systemMessage,
+      );
+      
+      print('DEBUG: FirebaseChatRepo: Chat room created successfully');
+      
+      // Return the chat room with guaranteed communityId
+      return chatRoom.copyWith(communityId: communityId);
     } catch (e) {
-      throw Exception('Failed to create chat room: $e');
+      print("DEBUG: Error creating chat room: $e");
+      rethrow;
     }
   }
 
@@ -256,6 +299,21 @@ class FirebaseChatRepo implements ChatRepo {
     Map<String, dynamic>? metadata,
   }) async {
     try {
+      // First, always get the latest profile picture from users collection
+      String updatedAvatar = senderAvatar;
+      try {
+        final userDoc = await _firestore.collection('users').doc(senderId).get();
+        if (userDoc.exists && userDoc.data()!.containsKey('profilePictureUrl')) {
+          final profilePicture = userDoc.data()!['profilePictureUrl'] as String?;
+          if (profilePicture != null && profilePicture.isNotEmpty) {
+            updatedAvatar = profilePicture;
+            print("DEBUG: Using updated avatar URL from users collection: $updatedAvatar");
+          }
+        }
+      } catch (e) {
+        print("DEBUG: Error fetching user profile: $e - will use provided avatar");
+      }
+      
       final messageRef = _firestore
           .collection(_chatRoomsCollection)
           .doc(chatRoomId)
@@ -269,7 +327,7 @@ class FirebaseChatRepo implements ChatRepo {
         chatRoomId: chatRoomId,
         senderId: senderId,
         senderName: senderName,
-        senderAvatar: senderAvatar,
+        senderAvatar: updatedAvatar, // Use the updated avatar
         content: content,
         type: type,
         status: MessageStatus.sent,
@@ -297,6 +355,13 @@ class FirebaseChatRepo implements ChatRepo {
         final batch = _firestore.batch();
         final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc(chatRoomId);
         
+        // Also update the participant avatar in the chat room
+        if (updatedAvatar != senderAvatar) {
+          batch.update(chatRoomRef, {
+            'participantAvatars.$senderId': updatedAvatar
+          });
+        }
+        
         for (final participantId in chatRoom.participants) {
           if (participantId != senderId) {
             final currentUnread = chatRoom.unreadCount[participantId] ?? 0;
@@ -320,15 +385,15 @@ class FirebaseChatRepo implements ChatRepo {
         .collection(_chatRoomsCollection)
         .doc(chatRoomId)
         .collection(_messagesCollection)
-        .orderBy('timestamp', descending: true)
+        .orderBy('timestamp', descending: false)  // Changed to ascending order
         .snapshots()
         .map((snapshot) {
       final messages = snapshot.docs
           .map((doc) => Message.fromJson(doc.data()))
           .toList();
       
-      // Reverse the messages to get ascending order (oldest to newest)
-      return messages.reversed.toList();
+      // Messages are already in timestamp order (oldest to newest)
+      return messages;
     });
   }
 
@@ -352,7 +417,7 @@ class FirebaseChatRepo implements ChatRepo {
               .collection(_chatRoomsCollection)
               .doc(chatRoomId)
               .collection(_messagesCollection)
-              .orderBy('timestamp', descending: true);
+              .orderBy('timestamp', descending: false);  // Changed to ascending order
               
           // If user has deleted history, only get messages after that time
           if (deletedAt != null) {
@@ -367,8 +432,8 @@ class FirebaseChatRepo implements ChatRepo {
               .where((message) => !message.deletedForUsers.contains(userId))
               .toList();
           
-          // Reverse the messages to get ascending order (oldest to newest)
-          return messages.reversed.toList();
+          // Messages are already in timestamp order (oldest to newest)
+          return messages;
         });
   }
 
@@ -489,6 +554,7 @@ class FirebaseChatRepo implements ChatRepo {
           // If this was the last message, update the chat room's last message
           if (isLastMessage) {
             // Get the previous message (now the latest message)
+            // We still need descending order here to get the latest message
             final latestMessagesQuery = await chatRoomDoc.reference
                 .collection(_messagesCollection)
                 .orderBy('timestamp', descending: true)
@@ -1149,6 +1215,45 @@ class FirebaseChatRepo implements ChatRepo {
       }
     } catch (e) {
       throw Exception('Failed to delete message for user: $e');
+    }
+  }
+
+  @override
+  Future<ChatRoom?> getChatRoomForCommunity(String communityId) async {
+    try {
+      print("DEBUG: FirebaseChatRepo.getChatRoomForCommunity called with ID: $communityId");
+      print("DEBUG: Querying Firestore collection 'chatRooms' with filter communityId == $communityId");
+      
+      final querySnapshot = await _firestore
+          .collection('chatRooms')
+          .where('communityId', isEqualTo: communityId)
+          .limit(1)
+          .get();
+      
+      print("DEBUG: Query completed. Found ${querySnapshot.docs.length} matching documents");
+      
+      if (querySnapshot.docs.isNotEmpty) {
+        final doc = querySnapshot.docs.first;
+        final data = doc.data();
+        print("DEBUG: Document found with ID: ${doc.id}");
+        print("DEBUG: Document data: $data");
+        
+        // Check if communityId is correctly stored in the document
+        if (data['communityId'] == null) {
+          print("DEBUG: WARNING - communityId is null in the found document");
+        } else {
+          print("DEBUG: communityId in document: ${data['communityId']}");
+        }
+        
+        return ChatRoom.fromJson(data);
+      }
+      
+      print("DEBUG: No chat room found for community: $communityId");
+      return null;
+    } catch (e, stackTrace) {
+      print("DEBUG: Error getting chat room for community: $e");
+      print("DEBUG: Stack trace: $stackTrace");
+      rethrow;
     }
   }
 }
