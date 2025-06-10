@@ -29,14 +29,33 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
         }
       }
       
+      // FIX: Get the latest user profile picture from user document
+      String userProfilePic = post.UserProfilePic;
+      try {
+        final userDoc = await firestore.collection('users').doc(post.UserId).get();
+        if (userDoc.exists) {
+          final userData = userDoc.data();
+          if (userData != null && userData.containsKey('profilePictureUrl')) {
+            final latestProfilePic = userData['profilePictureUrl'] as String?;
+            if (latestProfilePic != null && latestProfilePic.isNotEmpty) {
+              userProfilePic = latestProfilePic;
+              print('Updated profile picture URL for post: $latestProfilePic');
+            }
+          }
+        }
+      } catch (e) {
+        print('Error fetching latest profile picture: $e');
+        // Continue with the existing profile picture if there's an error
+      }
+      
       // Create a new document reference
       final docRef = postsCollection.doc();
-      // Create a new post with the document ID
+      // Create a new post with the document ID and updated profile picture
       final postWithId = Post(
         id: docRef.id,
         UserId: post.UserId,
         UserName: post.UserName,
-        UserProfilePic: post.UserProfilePic,
+        UserProfilePic: userProfilePic, // Use the latest profile picture
         Text: post.Text,
         imageUrl: post.imageUrl,
         timestamp: post.timestamp,
