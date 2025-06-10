@@ -390,10 +390,10 @@ class _InAppNotificationState extends State<_InAppNotification> with SingleTicke
                                         size: 10,
                                       ),
                                     ),
-                                  ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
+                        ),
                         
                         // Close button
                         IconButton(

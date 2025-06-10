@@ -171,7 +171,7 @@ class _NotificationItemState extends State<NotificationItem> {
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           decoration: BoxDecoration(
             color: backgroundColor,
-            // No border here
+            // No border here - removed the vertical line decoration
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -181,12 +181,12 @@ class _NotificationItemState extends State<NotificationItem> {
                 onTap: () => _navigateToUserProfile(context, widget.notification.triggerUserId),
                 child: CircleAvatar(
                   radius: 20,
-                  backgroundColor: Colors.grey.shade200,
+                  backgroundColor: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200,
                   backgroundImage: widget.notification.triggerUserProfilePic.isNotEmpty
                       ? CachedNetworkImageProvider(widget.notification.triggerUserProfilePic)
                       : null,
                   child: widget.notification.triggerUserProfilePic.isEmpty
-                      ? const Icon(Icons.person, size: 20, color: Colors.grey)
+                      ? Icon(Icons.person, size: 20, color: isDarkMode ? Colors.grey.shade400 : Colors.grey)
                       : null,
                 ),
               ),
@@ -262,25 +262,23 @@ class _NotificationItemState extends State<NotificationItem> {
               // Post thumbnail (if available)
               if (widget.notification.postImageUrl != null && 
                  widget.notification.postImageUrl!.isNotEmpty)
-                Builder(builder: (context) {
+              Builder(builder: (context) {
                   // Enhanced debug logging
                   print('NOTIFICATION ITEM: Displaying thumbnail');
                   print('  - URL: ${widget.notification.postImageUrl}');
                   print('  - Is video: ${widget.notification.isVideoPost}');
 
                   return Container(
-                    width: 50,
-                    height: 50,
-                    margin: const EdgeInsets.only(left: 8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: Theme.of(context).brightness == Brightness.dark 
-                            ? Colors.grey.shade700 
-                            : Colors.grey.shade300, 
-                        width: 1
-                      ),
-                    ),
+                        width: 50,
+                        height: 50,
+                        margin: const EdgeInsets.only(left: 8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                        color: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300, 
+                            width: 1
+                          ),
+                        ),
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -297,14 +295,14 @@ class _NotificationItemState extends State<NotificationItem> {
                               print('Failed image URL: ${widget.notification.postImageUrl}');
                             },
                             placeholder: (context, url) => Container(
-                              color: Colors.grey.shade200,
-                              child: const Center(
+                              color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200,
+                              child: Center(
                                 child: SizedBox(
                                   width: 15,
                                   height: 15,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Colors.grey,
+                                    color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade400,
                                   ),
                                 ),
                               ),
@@ -315,14 +313,20 @@ class _NotificationItemState extends State<NotificationItem> {
                               // For video posts with error loading the thumbnail, show a video placeholder
                               if (widget.notification.isVideoPost) {
                                 return Container(
-                                  color: Colors.grey.shade800,
-                                  child: const Icon(Icons.videocam, size: 20, color: Colors.white),
+                                  color: isDarkMode ? Colors.grey.shade900 : Colors.grey.shade800,
+                                  child: const Center(
+                                    child: Icon(Icons.videocam, size: 20, color: Colors.white),
+                                  ),
                                 );
                               }
                               
                               return Container(
-                                color: Colors.grey.shade200,
-                                child: const Icon(Icons.image_not_supported, size: 20, color: Colors.grey),
+                                color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200,
+                                child: Icon(
+                                  Icons.image_not_supported, 
+                                  size: 20, 
+                                  color: isDarkMode ? Colors.grey.shade500 : Colors.grey.shade400
+                                ),
                               );
                             },
                           ),
@@ -348,7 +352,7 @@ class _NotificationItemState extends State<NotificationItem> {
                       ],
                     ),
                   );
-                }),
+              }),
               
               // Notification type icon - only show if post thumbnail is not available
               if ((widget.notification.postImageUrl == null || widget.notification.postImageUrl!.isEmpty) &&

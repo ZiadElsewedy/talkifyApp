@@ -4,6 +4,7 @@ import 'package:talkifyapp/features/Notifcations/Domain/Entite/Notification.dart
 import 'package:talkifyapp/features/Notifcations/data/notification_repository_impl.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
+import 'package:talkifyapp/features/Posts/data/video_thumbnail_service.dart';
 
 class NotificationService {
   final NotificationRepositoryImpl _notificationRepository;
@@ -151,7 +152,7 @@ class NotificationService {
           // For video posts without thumbnails, try to use a default video thumbnail
           print('Video post without thumbnail detected');
           imageUrl = await _generateVideoThumbnail(postId);
-        }
+          }
         
         // Verify URL format
         if (imageUrl != null && imageUrl.isNotEmpty) {
@@ -181,7 +182,7 @@ class NotificationService {
   Future<String?> _generateVideoThumbnail(String postId) async {
     try {
       print('Generating video thumbnail for post: $postId');
-      
+          
       // First check if the post exists and is actually a video
       final postDoc = await _firestore.collection('posts').doc(postId).get();
       if (!postDoc.exists) {
@@ -197,19 +198,34 @@ class NotificationService {
         return null;
       }
       
-      // Get the video URL from the post
-      final String videoUrl = postData['imageurl'] as String? ?? '';
+      // Get the video URL from the post - check both imageUrl and imageurl fields
+      String videoUrl = '';
+      
+      // Check all possible field names for video URL
+      if (postData['imageUrl'] != null) {
+        if (postData['imageUrl'] is List && (postData['imageUrl'] as List).isNotEmpty) {
+          videoUrl = (postData['imageUrl'] as List)[0]?.toString() ?? '';
+        } else if (postData['imageUrl'] is String) {
+          videoUrl = postData['imageUrl'] as String;
+        }
+      } else if (postData['imageurl'] != null && postData['imageurl'] is String) {
+        videoUrl = postData['imageurl'] as String;
+      }
+      
       if (videoUrl.isEmpty) {
         print('Video URL is empty for post: $postId');
         return 'https://firebasestorage.googleapis.com/v0/b/talkify-12.appspot.com/o/default_video_thumbnail.png?alt=media';
       }
       
-      print('Using video URL as thumbnail: $videoUrl');
-      return videoUrl;
+      // Use the VideoThumbnailService to generate a thumbnail
+      final thumbnailUrl = await VideoThumbnailService.generateThumbnailForPost(postId, videoUrl);
+      print('Generated thumbnail URL: $thumbnailUrl');
+      
+      return thumbnailUrl;
     } catch (e) {
       print('Error generating video thumbnail: $e');
       return 'https://firebasestorage.googleapis.com/v0/b/talkify-12.appspot.com/o/default_video_thumbnail.png?alt=media';
-    }
+          }
   }
 
   // Check if a post is a video post and get its data
@@ -224,11 +240,28 @@ class NotificationService {
         
         // Extract video info
         isVideo = data['isVideo'] as bool? ?? false;
-        imageUrl = data['imageurl'] as String? ?? '';
         
+        // Handle different image URL field formats
+        if (data.containsKey('imageurl') && data['imageurl'] is String) {
+          imageUrl = data['imageurl'] as String;
+        } else if (data.containsKey('imageUrl')) {
+          if (data['imageUrl'] is List && (data['imageUrl'] as List).isNotEmpty) {
+            imageUrl = (data['imageUrl'] as List)[0]?.toString();
+          } else if (data['imageUrl'] is String) {
+            imageUrl = data['imageUrl'] as String;
+        }
+        }
+        
+        // Debug logging
         print('NOTIFICATION DEBUG - Post $postId data:');
         print('  - Is video: $isVideo');
         print('  - Image URL: $imageUrl');
+        
+        // For video posts without a proper thumbnail, generate one
+        if (isVideo && (imageUrl == null || imageUrl.isEmpty)) {
+          imageUrl = await _generateVideoThumbnail(postId);
+          print('  - Generated video thumbnail: $imageUrl');
+        }
       }
     } catch (e) {
       print('Error getting post data: $e');
@@ -296,10 +329,14 @@ class NotificationService {
       // For video posts, ensure we have a thumbnail
       if (isVideoPost && (postImageUrl == null || postImageUrl.isEmpty)) {
         postImageUrl = await _generateVideoThumbnail(postId);
-        print('Generated video thumbnail: $postImageUrl');
-      }
+        print('Generated video thumbnail for notification: $postImageUrl');
+          }
       
-      print('Final notification data - Post: $postId, Image URL: $postImageUrl, Is Video: $isVideoPost');
+      // Additional log to track image URLs
+      print('LIKE NOTIFICATION DEBUG:');
+      print('  - Post ID: $postId');
+      print('  - Is Video: $isVideoPost');
+      print('  - Image URL: $postImageUrl');
       
       // Create the notification object
       final notification = Notification(

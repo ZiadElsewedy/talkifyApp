@@ -101,10 +101,13 @@ class FirebaseChatRepo implements ChatRepo {
         systemMessage = "Chat started";
       }
       
-      await sendSystemMessage(
-        chatRoomId: chatRoomId,
-        content: systemMessage,
-      );
+      // Only send system message for group chats or community chats, not for 1-to-1 chats
+      if (communityId != null || participantIds.length > 2) {
+        await sendSystemMessage(
+          chatRoomId: chatRoomId,
+          content: systemMessage,
+        );
+      }
       
       print('DEBUG: FirebaseChatRepo: Chat room created successfully');
       

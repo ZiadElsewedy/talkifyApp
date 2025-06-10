@@ -25,7 +25,7 @@ dependencies:
   rename: ^3.0.1
   permission_handler: ^12.0.0+1
   uuid: ^4.2.2
-  image_picker: ^1.0.5
+  image_picker: ^1.1.2
   intl: ^0.20.2
   pie_chart: ^5.4.0
   audioplayers: ^6.4.0
@@ -63,6 +63,7 @@ dependencies:
   percent_indicator: ^4.2.3
   image_cropper: ^9.1.0
   video_player: ^2.8.1
+  video_thumbnail: ^0.5.6
   flutter_downloader: ^1.11.6
   flutter_pdfview: ^1.4.0+1
   timeago: ^3.6.0

@@ -38,4 +38,7 @@ abstract class NotificationRepository {
   
   /// Update a notification with post information (thumbnail URL and isVideo flag)
   Future<void> updateNotificationPostInfo(String notificationId, String? postImageUrl, bool isVideoPost);
+  
+  /// Fix video thumbnails for existing notifications that are missing them
+  Future<void> fixVideoThumbnailsForExistingNotifications(String userId);
 } 

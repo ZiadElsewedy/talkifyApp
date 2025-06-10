@@ -86,62 +86,76 @@ class _SinglePostViewState extends State<SinglePostView> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color bgColor = isDarkMode ? Colors.black : Colors.white;
+    final Color textColor = isDarkMode ? Colors.white : Colors.black;
+    final Color iconColor = isDarkMode ? Colors.white : Colors.black;
+    final Color errorColor = isDarkMode ? Colors.grey[400]! : Colors.grey;
+    final Color errorTextColor = isDarkMode ? Colors.grey[300]! : Colors.grey.shade700;
+    
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: bgColor,
         elevation: 0,
         title: Text(
           'Post',
-          style: TextStyle(color: Colors.black),
+          style: TextStyle(color: textColor),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: iconColor),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: _isLoading
-          ? _buildLoadingState()
+          ? _buildLoadingState(isDarkMode)
           : _error != null
-              ? _buildErrorState()
+              ? _buildErrorState(isDarkMode, errorColor, errorTextColor)
               : _post != null
                   ? _buildPostContent()
-                  : _buildEmptyState(),
+                  : _buildEmptyState(isDarkMode, errorColor),
     );
   }
 
-  Widget _buildLoadingState() {
+  Widget _buildLoadingState(bool isDarkMode) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircularProgressIndicator(color: Colors.black),
+          CircularProgressIndicator(
+            color: isDarkMode ? Colors.white : Colors.black
+          ),
           SizedBox(height: 16),
-          Text('Loading post...'),
+          Text(
+            'Loading post...',
+            style: TextStyle(
+              color: isDarkMode ? Colors.grey[300] : Colors.grey[800]
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildErrorState() {
+  Widget _buildErrorState(bool isDarkMode, Color errorColor, Color errorTextColor) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 60, color: Colors.grey),
+            Icon(Icons.error_outline, size: 60, color: errorColor),
             SizedBox(height: 16),
             Text(
               _error ?? 'An unknown error occurred',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade700),
+              style: TextStyle(color: errorTextColor),
             ),
             SizedBox(height: 24),
             ElevatedButton(
               onPressed: _loadPost,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
+                backgroundColor: isDarkMode ? Colors.blue[700] : Colors.black,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -155,19 +169,19 @@ class _SinglePostViewState extends State<SinglePostView> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isDarkMode, Color iconColor) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.post_add, size: 60, color: Colors.grey),
+          Icon(Icons.post_add, size: 60, color: iconColor),
           SizedBox(height: 16),
           Text(
             'Post not found',
             style: TextStyle(
               fontSize: 18, 
               fontWeight: FontWeight.w500,
-              color: Colors.grey.shade800,
+              color: isDarkMode ? Colors.grey[300] : Colors.grey.shade800,
             ),
           ),
         ],
@@ -176,9 +190,12 @@ class _SinglePostViewState extends State<SinglePostView> {
   }
 
   Widget _buildPostContent() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color errorColor = isDarkMode ? Colors.grey[400]! : Colors.grey;
+    
     // Check if post is actually not null before rendering
     if (_post == null) {
-      return _buildEmptyState();
+      return _buildEmptyState(isDarkMode, errorColor);
     }
     
     try {

@@ -255,11 +255,10 @@ class _AnimatedTextFieldState extends State<AnimatedTextField>
             builder: (context, child) {
               return Transform.scale(
                 scale: _scaleAnimation.value,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOutCubic,
+                child: Container(
+                  height: 56,
                   decoration: BoxDecoration(
-                    color: _getBackgroundColor(),
+                    color: Colors.grey[900],
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: _getBorderColor(),
@@ -267,43 +266,50 @@ class _AnimatedTextFieldState extends State<AnimatedTextField>
                     ),
                     boxShadow: _getBoxShadow(),
                   ),
-                  child: TextFormField(
-                    controller: widget.controller,
-                    focusNode: widget.focusNode,
-                    obscureText: widget.obscureText,
-                    keyboardType: widget.keyboardType,
-                    enabled: widget.enabled,
-                    autofocus: widget.autofocus,
-                    textInputAction: widget.textInputAction,
-                    textCapitalization: widget.textCapitalization,
-                    inputFormatters: widget.inputFormatters,
-                    maxLength: widget.maxLength,
-                    maxLines: widget.maxLines,
-                    onFieldSubmitted: widget.onFieldSubmitted,
-                    style: TextStyle(
-                      color: widget.enabled ? Colors.white : Colors.grey[500],
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      height: 1.2,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: widget.hint,
-                      hintStyle: TextStyle(
-                        color: Colors.grey[400],
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(15),
+                    child: TextFormField(
+                      controller: widget.controller,
+                      focusNode: widget.focusNode,
+                      obscureText: widget.obscureText,
+                      keyboardType: widget.keyboardType,
+                      enabled: widget.enabled,
+                      autofocus: widget.autofocus,
+                      textInputAction: widget.textInputAction,
+                      textCapitalization: widget.textCapitalization,
+                      inputFormatters: widget.inputFormatters,
+                      maxLength: widget.maxLength,
+                      maxLines: widget.maxLines,
+                      onFieldSubmitted: widget.onFieldSubmitted,
+                      style: TextStyle(
+                        color: widget.enabled ? Colors.white : Colors.grey[500],
                         fontSize: 16,
-                        fontWeight: FontWeight.w400,
+                        fontWeight: FontWeight.w500,
+                        height: 1.2,
                       ),
-                      prefixIcon: _buildPrefixIcon(),
-                      suffixIcon: _buildSuffixIcon(),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20, 
-                        vertical: 18,
+                      decoration: InputDecoration(
+                        hintText: widget.hint,
+                        hintStyle: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        prefixIcon: _buildPrefixIcon(),
+                        suffixIcon: _buildSuffixIcon(),
+                        filled: true,
+                        fillColor: _isFocused ? 
+                          Colors.black.withOpacity(0.3) : 
+                          Colors.black.withOpacity(0.2),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20, 
+                          vertical: 18,
+                        ),
+                        counterText: '', // Hide character counter
+                        errorStyle: const TextStyle(height: 0), // Hide default error
                       ),
-                      counterText: '', // Hide character counter
-                      errorStyle: const TextStyle(height: 0), // Hide default error
+                      validator: widget.validator,
                     ),
-                    validator: widget.validator,
                   ),
                 ),
               );
@@ -341,8 +347,7 @@ class _AnimatedTextFieldState extends State<AnimatedTextField>
   }
 
   Widget _buildPrefixIcon() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
+    return Padding(
       padding: const EdgeInsets.only(left: 4, right: 8),
       child: Icon(
         widget.icon,
@@ -408,36 +413,22 @@ class _AnimatedTextFieldState extends State<AnimatedTextField>
     );
   }
 
-  // Helper methods for styling
-  Color _getBackgroundColor() {
-    if (!widget.enabled) {
-      return Colors.white.withOpacity(0.03);
-    }
-    if (_hasError) {
-      return Colors.red.withOpacity(0.08);
-    }
-    if (_isFocused) {
-      return Colors.white.withOpacity(0.12);
-    }
-    return Colors.white.withOpacity(0.06);
-  }
-
   Color _getBorderColor() {
     if (!widget.enabled) {
-      return Colors.grey.withOpacity(0.2);
+      return Colors.grey.withOpacity(0.3);
     }
     if (_hasError) {
-      return Colors.red.withOpacity(0.6);
+      return Colors.red.withOpacity(0.7);
     }
     if (_isFocused) {
-      return Colors.white.withOpacity(0.4);
+      return Colors.white.withOpacity(0.5);
     }
-    return Colors.white.withOpacity(0.15);
+    return Colors.grey.withOpacity(0.3);
   }
 
   double _getBorderWidth() {
     if (_hasError || _isFocused) {
-      return 2.0;
+      return 1.5;
     }
     return 1.0;
   }
@@ -449,9 +440,9 @@ class _AnimatedTextFieldState extends State<AnimatedTextField>
       return [
         BoxShadow(
           color: Colors.red.withOpacity(0.2),
-          blurRadius: 12,
+          blurRadius: 8,
           spreadRadius: 0,
-          offset: const Offset(0, 4),
+          offset: const Offset(0, 2),
         ),
       ];
     }
@@ -459,28 +450,15 @@ class _AnimatedTextFieldState extends State<AnimatedTextField>
     if (_isFocused) {
       return [
         BoxShadow(
-          color: Colors.white.withOpacity(0.1),
-          blurRadius: 20,
-          spreadRadius: 0,
-          offset: const Offset(0, 8),
-        ),
-        BoxShadow(
-          color: Colors.white.withOpacity(0.05),
-          blurRadius: 4,
+          color: Colors.white.withOpacity(0.08),
+          blurRadius: 8,
           spreadRadius: 0,
           offset: const Offset(0, 2),
         ),
       ];
     }
     
-    return [
-      BoxShadow(
-        color: Colors.black.withOpacity(0.1),
-        blurRadius: 8,
-        spreadRadius: 0,
-        offset: const Offset(0, 2),
-      ),
-    ];
+    return [];
   }
 
   Color _getIconColor() {

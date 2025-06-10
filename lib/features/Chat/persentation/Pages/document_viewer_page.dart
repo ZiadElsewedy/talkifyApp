@@ -31,6 +31,8 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
   int _currentPage = 0;
   bool _isPdf = false;
   double _downloadProgress = 0.0;
+  int _downloadRetries = 0;
+  final int _maxRetries = 3;
   
   @override
   void initState() {
@@ -55,38 +57,81 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         return;
       }
       
-      // Download the file
-      final response = await http.get(Uri.parse(widget.documentUrl));
-      
-      if (response.statusCode == 200) {
-        // Get temp directory
-        final dir = await getTemporaryDirectory();
-        final filePath = '${dir.path}/${widget.fileName}';
-        
-        // Save file
-        final file = File(filePath);
-        await file.writeAsBytes(response.bodyBytes);
-        
-        if (mounted) {
-          setState(() {
-            _localFilePath = filePath;
-            _isLoading = false;
-          });
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _errorMessage = 'Failed to download document: HTTP ${response.statusCode}';
-            _isLoading = false;
-          });
-        }
+      // Clean up URL (remove any query parameters)
+      String cleanUrl = widget.documentUrl;
+      if (cleanUrl.contains('?')) {
+        cleanUrl = cleanUrl.split('?')[0];
       }
+      
+      // Download the file with retry mechanism
+      await _downloadWithRetry(cleanUrl);
+      
     } catch (e) {
       if (mounted) {
         setState(() {
           _errorMessage = 'Error loading document: $e';
           _isLoading = false;
         });
+      }
+    }
+  }
+  
+  Future<void> _downloadWithRetry(String url) async {
+    while (_downloadRetries < _maxRetries) {
+      try {
+        final response = await http.get(Uri.parse(url)).timeout(
+          const Duration(seconds: 30),
+          onTimeout: () {
+            throw TimeoutException('Connection timed out');
+          },
+        );
+        
+        if (response.statusCode == 200) {
+          // Get temp directory
+          final dir = await getTemporaryDirectory();
+          
+          // Create a safe filename
+          final safeName = widget.fileName.replaceAll(RegExp(r'[^\w\s\.\-]'), '_');
+          final filePath = '${dir.path}/$safeName';
+          
+          // Save file
+          final file = File(filePath);
+          await file.writeAsBytes(response.bodyBytes);
+          
+          if (mounted) {
+            setState(() {
+              _localFilePath = filePath;
+              _isLoading = false;
+            });
+          }
+          return; // Success
+        } else {
+          // Increment retry counter
+          _downloadRetries++;
+          if (_downloadRetries >= _maxRetries || !mounted) {
+            setState(() {
+              _errorMessage = 'Failed to download document: HTTP ${response.statusCode}';
+              _isLoading = false;
+            });
+            return;
+          }
+          
+          // Wait before retrying
+          await Future.delayed(Duration(seconds: 2));
+        }
+      } catch (e) {
+        // Increment retry counter
+        _downloadRetries++;
+        if (_downloadRetries >= _maxRetries || !mounted) {
+          setState(() {
+            _errorMessage = 'Error downloading document: $e';
+            _isLoading = false;
+          });
+          return;
+        }
+        
+        // Wait before retrying
+        await Future.delayed(Duration(seconds: 2));
       }
     }
   }
@@ -277,7 +322,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         ],
       ),
       body: _buildBody(),
-      bottomNavigationBar: _buildBottomBar(),
+      bottomNavigationBar: _isPdf ? _buildBottomBar() : null,
     );
   }
 
@@ -290,48 +335,6 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
             PercentCircleIndicator(),
             SizedBox(height: 16),
             Text('Loading document...'),
-          ],
-        ),
-      );
-    }
-
-    if (_isDownloading) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 80,
-                  height: 80,
-                  child: CircularProgressIndicator(
-                    value: _downloadProgress,
-                    backgroundColor: Colors.grey[300],
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                    strokeWidth: 8,
-                  ),
-                ),
-                Text(
-                  '${(_downloadProgress * 100).toStringAsFixed(0)}%',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Downloading document...',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Please wait',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
           ],
         ),
       );
@@ -396,29 +399,37 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         pageSnap: true,
         defaultPage: _currentPage,
         onRender: (pages) {
-          setState(() {
-            _totalPages = pages!;
-          });
+          if (mounted) {
+            setState(() {
+              _totalPages = pages ?? 0;
+            });
+          }
         },
         onError: (error) {
-          setState(() {
-            _errorMessage = error.toString();
-          });
+          if (mounted) {
+            setState(() {
+              _errorMessage = error.toString();
+            });
+          }
         },
         onPageError: (page, error) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error loading page $page: $error')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error loading page $page: $error')),
+            );
+          }
         },
         onPageChanged: (page, _) {
-          setState(() {
-            _currentPage = page!;
-          });
+          if (mounted) {
+            setState(() {
+              _currentPage = page ?? 0;
+            });
+          }
         },
       );
     }
 
-    // Fallback
+    // Fallback for non-PDF files
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -460,33 +471,54 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
   }
 
   Widget _buildBottomBar() {
-    if (!_isLoading && _localFilePath != null && _isPdf && _totalPages > 0) {
-      return Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Page ${_currentPage + 1} of $_totalPages',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      );
+    if (!_isPdf || _totalPages == 0 || _localFilePath == null) {
+      return SizedBox.shrink();
     }
-    return const SizedBox.shrink();
+    
+    return Container(
+      height: 50,
+      color: Colors.black,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: Icon(Icons.keyboard_arrow_left, color: Colors.white),
+            onPressed: _currentPage > 0 
+                ? () => _jumpToPage(_currentPage - 1) 
+                : null,
+          ),
+          Text(
+            'Page ${_currentPage + 1} of $_totalPages',
+            style: TextStyle(color: Colors.white),
+          ),
+          IconButton(
+            icon: Icon(Icons.keyboard_arrow_right, color: Colors.white),
+            onPressed: _currentPage < _totalPages - 1 
+                ? () => _jumpToPage(_currentPage + 1) 
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _jumpToPage(int page) {
+    PDFView(
+      filePath: _localFilePath!,
+      defaultPage: page,
+    );
+    setState(() {
+      _currentPage = page;
+    });
+  }
+}
+
+class TimeoutException implements Exception {
+  final String message;
+  TimeoutException(this.message);
+  
+  @override
+  String toString() {
+    return message;
   }
 } 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:talkifyapp/features/Chat/domain/entite/message.dart';
 import 'package:talkifyapp/features/Chat/domain/entite/chat_room.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
@@ -1262,10 +1263,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                   color: Colors.red,
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: Implement camera capture
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Camera feature coming soon')),
-                    );
+                    _showCameraOptions();
                   },
                 ),
                 _buildAttachmentOption(
@@ -1360,5 +1358,115 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
         ],
       ),
     );
+  }
+
+  // Show camera options (take photo or record video)
+  void _showCameraOptions() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color bottomSheetBackgroundColor = colorScheme.surface;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: bottomSheetBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildAttachmentOption(
+                  icon: Icons.photo_camera,
+                  label: 'Take Photo',
+                  color: Colors.red,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _takePicture();
+                  },
+                ),
+                _buildAttachmentOption(
+                  icon: Icons.videocam,
+                  label: 'Record Video',
+                  color: Colors.purple,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _recordVideo();
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Take a picture using camera
+  Future<void> _takePicture() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? photo = await picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.rear,
+        imageQuality: 80,
+      );
+      
+      if (photo != null) {
+        final user = context.read<AuthCubit>().GetCurrentUser();
+        if (user != null) {
+          context.read<ChatCubit>().sendMediaMessage(
+            chatRoomId: widget.chatRoom.id,
+            senderId: user.id,
+            senderName: user.name,
+            senderAvatar: user.profilePictureUrl,
+            filePath: photo.path,
+            fileName: 'Photo_${DateTime.now().millisecondsSinceEpoch}.jpg',
+            type: MessageType.image,
+            metadata: {},
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error taking picture: $e')),
+      );
+    }
+  }
+  
+  // Record a video using camera
+  Future<void> _recordVideo() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? video = await picker.pickVideo(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.rear,
+        maxDuration: const Duration(minutes: 2),
+      );
+      
+      if (video != null) {
+        final user = context.read<AuthCubit>().GetCurrentUser();
+        if (user != null) {
+          context.read<ChatCubit>().sendMediaMessage(
+            chatRoomId: widget.chatRoom.id,
+            senderId: user.id,
+            senderName: user.name,
+            senderAvatar: user.profilePictureUrl,
+            filePath: video.path,
+            fileName: 'Video_${DateTime.now().millisecondsSinceEpoch}.mp4',
+            type: MessageType.video,
+            metadata: {},
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error recording video: $e')),
+      );
+    }
   }
 } 

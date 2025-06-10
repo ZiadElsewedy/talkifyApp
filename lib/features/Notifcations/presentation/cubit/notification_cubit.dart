@@ -149,6 +149,28 @@ class NotificationCubit extends Cubit<NotificationState> {
     }
   }
   
+  // Fix video thumbnails for existing notifications
+  Future<void> fixVideoThumbnails(String userId) async {
+    try {
+      print('Fixing video thumbnails for user $userId');
+      emit(state.copyWith(status: NotificationStatus.loading));
+      
+      // Call the repository method to fix video thumbnails
+      await notificationRepository.fixVideoThumbnailsForExistingNotifications(userId);
+      
+      // Reload notifications to get the updated thumbnails
+      await loadNotifications(userId);
+      
+      print('Video thumbnails fixed successfully');
+    } catch (e) {
+      print('Error fixing video thumbnails: $e');
+      emit(state.copyWith(
+        status: NotificationStatus.error,
+        errorMessage: 'Failed to fix video thumbnails: ${e.toString()}',
+      ));
+    }
+  }
+  
   Future<int> getUnreadNotificationCount(String userId) async {
     try {
       final count = await notificationRepository.getUnreadNotificationCount(userId);
@@ -263,8 +285,8 @@ class NotificationCubit extends Cubit<NotificationState> {
     print('NotificationCubit: Starting notification stream for user $userId');
     
     // Cancel any existing subscription
-    _notificationSubscription?.cancel();
-    
+      _notificationSubscription?.cancel();
+      
     // Start the subscription
     _notificationSubscription = notificationRepository
         .getNotificationsStream(userId)
@@ -274,7 +296,7 @@ class NotificationCubit extends Cubit<NotificationState> {
   }
   
   // Helper method to fix video thumbnails in notifications
-  Future<void> fixVideoThumbnails(String userId) async {
+  Future<void> checkAndFixVideoThumbnails(String userId) async {
     try {
       print('Checking for video notifications that need thumbnail fixes');
       
@@ -286,8 +308,8 @@ class NotificationCubit extends Cubit<NotificationState> {
          notification.type == app_notification.NotificationType.comment) &&
         !notification.isVideoPost && // Not already marked as video
         (notification.postImageUrl == null || notification.postImageUrl!.isEmpty) // No thumbnail
-      ).toList();
-      
+          ).toList();
+
       if (potentialVideoNotifications.isEmpty) {
         print('No video notifications need fixing');
         return;
@@ -353,13 +375,13 @@ class NotificationCubit extends Cubit<NotificationState> {
     try {
       // Filter out chat notifications from the main notifications list
       final regularNotifications = notifications.where((n) => n is! ChatNotification).toList();
-      
+              
       // Extract chat notifications and store them separately
       final chatNotifs = notifications
-          .where((n) => n is ChatNotification)
-          .map((n) => n as ChatNotification)
-          .toList();
-      
+              .where((n) => n is ChatNotification)
+              .map((n) => n as ChatNotification)
+              .toList();
+          
       _chatNotifications.clear();
       _chatNotifications.addAll(chatNotifs);
       
@@ -375,9 +397,9 @@ class NotificationCubit extends Cubit<NotificationState> {
         notifications: regularNotifications,
         unreadCount: unreadCount,
       ));
-      
+
       // Fix video thumbnails in the background
-      fixVideoThumbnails(userId);
+      checkAndFixVideoThumbnails(userId);
     } catch (e) {
       print('Error handling new notifications: $e');
     }
@@ -394,19 +416,19 @@ class NotificationCubit extends Cubit<NotificationState> {
     }
     
     // Show in-app notifications for new ones
-    for (final notification in newNotifications) {
+            for (final notification in newNotifications) {
       // Add to processed set
       _processedNotificationIds.add(notification.id);
       
       // Add a small delay to space out multiple notifications
-      Future.delayed(Duration(milliseconds: 300 * newNotifications.indexOf(notification)), () {
-        if (_context != null) {
-          NotificationDispatcher.showFromNotification(
-            context: _context!,
-            notification: notification,
-          );
-        }
-      });
+              Future.delayed(Duration(milliseconds: 300 * newNotifications.indexOf(notification)), () {
+                if (_context != null) {
+                  NotificationDispatcher.showFromNotification(
+                    context: _context!,
+                    notification: notification,
+                  );
+                }
+              });
     }
   }
   

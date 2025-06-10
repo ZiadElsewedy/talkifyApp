@@ -95,11 +95,11 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
             if (_isOtherUserOnline != isOnline) {
               SchedulerBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
-                  setState(() {
+            setState(() {
                     _isOtherUserOnline = isOnline;
                   });
                 }
-              });
+            });
             }
           }
         });
@@ -245,13 +245,13 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
             
             // Online status indicator
             if (_isOtherUserOnline)
-              Positioned(
+            Positioned(
                 right: 0,
-                bottom: 0,
-                child: Container(
+              bottom: 0,
+              child: Container(
                   width: 14,
                   height: 14,
-                  decoration: BoxDecoration(
+                decoration: BoxDecoration(
                     color: const Color(0xFF4CAF50),
                     shape: BoxShape.circle,
                     border: Border.all(
@@ -263,31 +263,31 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
                         color: Colors.black.withOpacity(0.1),
                         blurRadius: 2,
                         offset: const Offset(0, 1),
-                      ),
+                    ),
                     ],
-                  ),
                 ),
               ),
+            ),
           ],
         ),
       );
     } else {
       // Group chat avatar
       return Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
               color: isDarkMode
                   ? Colors.black.withOpacity(0.2)
                   : Colors.black.withOpacity(0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: CircleAvatar(
-          radius: 28,
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: CircleAvatar(
+            radius: 28,
           backgroundColor: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFF7F7F7),
           child: Icon(
             Icons.group,
@@ -333,7 +333,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-        ),
+          ),
       ],
     );
   }
@@ -367,15 +367,15 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
         Expanded(
           child: Text(
             displayText,
-            style: TextStyle(
+      style: TextStyle(
               fontSize: 13,
               color: isDarkMode
                   ? (hasUnread ? const Color(0xFFBDBDBD) : const Color(0xFF757575))
                   : (hasUnread ? const Color(0xFF505050) : const Color(0xFF757575)),
-              fontWeight: hasUnread ? FontWeight.w500 : FontWeight.normal,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+        fontWeight: hasUnread ? FontWeight.w500 : FontWeight.normal,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -392,16 +392,16 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(
+          Text(
           timeText,
-          style: TextStyle(
+            style: TextStyle(
             fontSize: 11,
             color: isDarkMode
                 ? (hasUnread ? const Color(0xFFBDBDBD) : const Color(0xFF757575))
                 : (hasUnread ? const Color(0xFF505050) : const Color(0xFF757575)),
             fontWeight: hasUnread ? FontWeight.w500 : FontWeight.normal,
+            ),
           ),
-        ),
         const SizedBox(height: 4),
         if (hasUnread)
           Container(
@@ -469,46 +469,46 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
               margin: const EdgeInsets.only(top: 12, bottom: 16),
-              decoration: BoxDecoration(
-                color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
+                decoration: BoxDecoration(
+                  color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
             _buildOptionTile(
               context,
               icon: Icons.visibility_off,
               title: 'Hide chat',
-              onTap: () {
+                onTap: () {
                 Navigator.pop(context);
                 // Hide chat functionality
               },
               isDarkMode: isDarkMode,
-            ),
+                      ),
             _buildOptionTile(
               context,
               icon: Icons.delete_outline,
               title: 'Delete chat',
-              onTap: () {
+                onTap: () {
                 Navigator.pop(context);
                 // Delete chat functionality
               },
               isDarkMode: isDarkMode,
               isDestructive: true,
-            ),
+                    ),
             const SizedBox(height: 12),
-          ],
+            ],
         ),
       ),
     );
   }
-  
+
   Widget _buildOptionTile(
     BuildContext context, {
     required IconData icon,

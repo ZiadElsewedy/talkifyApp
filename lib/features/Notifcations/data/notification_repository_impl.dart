@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:talkifyapp/features/Notifcations/Domain/Entite/Notification.dart';
 import 'package:talkifyapp/features/Notifcations/Domain/repo/notification_repository.dart';
+import 'package:talkifyapp/features/Posts/data/video_thumbnail_service.dart';
 
 class NotificationRepositoryImpl implements NotificationRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -198,8 +199,90 @@ class NotificationRepositoryImpl implements NotificationRepository {
           
       print('Successfully updated notification with video info');
     } catch (e) {
-      print('Error updating notification with post info: $e');
-      throw Exception('Failed to update notification with post info: $e');
+      print('Error updating notification post info: $e');
+      throw Exception('Failed to update notification post info: $e');
+    }
+  }
+
+  @override
+  Future<void> fixVideoThumbnailsForExistingNotifications(String userId) async {
+    try {
+      print('Starting fix for video thumbnails in notifications for user: $userId');
+      
+      // Get all notifications for this user
+      final querySnapshot = await _firestore
+          .collection('notifications')
+          .where('recipientId', isEqualTo: userId)
+          .get();
+          
+      if (querySnapshot.docs.isEmpty) {
+        print('No notifications found for user $userId');
+        return;
+      }
+      
+      print('Found ${querySnapshot.docs.length} notifications to check');
+      
+      int fixCount = 0;
+      // Go through each notification
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
+        final notificationId = doc.id;
+        
+        // Check if this is a notification about a post (has a targetId that's not a user ID)
+        if (data['type'] == 'like' || data['type'] == 'comment') {
+          final postId = data['targetId'] as String;
+          final isVideoPost = data['isVideoPost'] as bool? ?? false;
+          final postImageUrl = data['postImageUrl'] as String?;
+          
+          // If this is a video post but has no thumbnail, or has an empty thumbnail, fix it
+          if (isVideoPost && (postImageUrl == null || postImageUrl.isEmpty)) {
+            print('Fixing thumbnail for video notification: $notificationId');
+            
+            // Get the post document to find the video URL
+            final postDoc = await _firestore.collection('posts').doc(postId).get();
+            
+            if (postDoc.exists) {
+              final postData = postDoc.data()!;
+              
+              // Get the video URL
+              String videoUrl = '';
+              if (postData['imageUrl'] != null) {
+                if (postData['imageUrl'] is List && (postData['imageUrl'] as List).isNotEmpty) {
+                  videoUrl = (postData['imageUrl'] as List)[0]?.toString() ?? '';
+                } else if (postData['imageUrl'] is String) {
+                  videoUrl = postData['imageUrl'] as String;
+                }
+              } else if (postData['imageurl'] != null && postData['imageurl'] is String) {
+                videoUrl = postData['imageurl'] as String;
+              }
+              
+              if (videoUrl.isNotEmpty) {
+                // Generate a thumbnail for the video
+                final thumbnailUrl = await VideoThumbnailService.generateThumbnailForPost(postId, videoUrl);
+                
+                if (thumbnailUrl != null) {
+                  // Update the notification with the thumbnail URL
+                  await _firestore
+                      .collection('notifications')
+                      .doc(notificationId)
+                      .update({
+                        'postImageUrl': thumbnailUrl,
+                        'isVideoPost': true,
+                      });
+                      
+                  fixCount++;
+                  print('Fixed thumbnail for notification $notificationId with thumbnail: $thumbnailUrl');
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      print('Finished fixing video thumbnails. Fixed $fixCount notifications.');
+    } catch (e) {
+      print('Error fixing video thumbnails: $e');
+      throw Exception('Failed to fix video thumbnails: $e');
     }
   }
 } 

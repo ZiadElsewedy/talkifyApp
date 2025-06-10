@@ -241,6 +241,9 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    
     return BlocListener<ChatCubit, ChatState>(
       listener: (context, state) {
         if (state is MessageSent) {
@@ -260,24 +263,24 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder> with SingleTicker
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDarkMode ? colorScheme.surface : Colors.white,
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: colorScheme.shadow.withOpacity(0.1),
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
           ],
         ),
         child: _isSending 
-            ? _buildSendingUI() 
-            : _buildRecordingUI(),
+            ? _buildSendingUI(isDarkMode, colorScheme) 
+            : _buildRecordingUI(isDarkMode, colorScheme),
       ),
     );
   }
   
-  Widget _buildRecordingUI() {
+  Widget _buildRecordingUI(bool isDarkMode, ColorScheme colorScheme) {
     return Row(
       children: [
         ScaleTransition(
@@ -285,7 +288,7 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder> with SingleTicker
           child: Container(
             width: 24,
             height: 24,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.red,
             ),
@@ -295,14 +298,18 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder> with SingleTicker
         Expanded(
           child: Text(
             'Recording... ${_formatDuration(_recordDuration)}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
+              color: isDarkMode ? colorScheme.onSurface : Colors.black,
             ),
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.send, color: Colors.black),
+          icon: Icon(
+            Icons.send, 
+            color: isDarkMode ? colorScheme.primary : Colors.black,
+          ),
           onPressed: _stopRecording,
         ),
         IconButton(
@@ -313,7 +320,13 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder> with SingleTicker
     );
   }
   
-  Widget _buildSendingUI() {
+  Widget _buildSendingUI(bool isDarkMode, ColorScheme colorScheme) {
+    final progressColor = isDarkMode ? colorScheme.primary : Colors.black;
+    final backgroundColor = isDarkMode 
+        ? colorScheme.surfaceVariant 
+        : Colors.grey.shade300;
+    final textColor = isDarkMode ? colorScheme.onSurface : Colors.black;
+    
     return Row(
       children: [
         CircularPercentIndicator(
@@ -322,21 +335,23 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder> with SingleTicker
           percent: _uploadProgress,
           center: Text(
             '${(_uploadProgress * 100).toInt()}%',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.bold,
+              color: textColor,
             ),
           ),
-          progressColor: Colors.black,
-          backgroundColor: Colors.grey.shade300,
+          progressColor: progressColor,
+          backgroundColor: backgroundColor,
         ),
         const SizedBox(width: 16),
-        const Expanded(
+        Expanded(
           child: Text(
             'Sending voice note...',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
+              color: textColor,
             ),
           ),
         ),

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Storage/Domain/Storage_repo.dart';
 import 'package:talkifyapp/features/Posts/domain/Entite/Posts.dart';
+import 'package:talkifyapp/features/Posts/data/video_thumbnail_service.dart';
 
 import 'package:talkifyapp/features/Posts/domain/repos/Post_repo.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_states.dart';
@@ -78,6 +79,26 @@ class PostCubit extends Cubit<PostState> {
         _uploadProgressSubscription = null;
         
         print('Media uploaded successfully, URL: $mediaUrl');
+        
+        // If this is a video, generate a thumbnail
+        String? thumbnailUrl;
+        if (isVideo && mediaUrl != null) {
+          print('Generating thumbnail for video: $mediaUrl');
+          try {
+            thumbnailUrl = await VideoThumbnailService.generateThumbnail(mediaUrl);
+            print('Generated thumbnail URL: $thumbnailUrl');
+            
+            // If thumbnail generation failed, use the video URL as the thumbnail
+            if (thumbnailUrl == null) {
+              print('Thumbnail generation failed, using video URL as thumbnail');
+              thumbnailUrl = mediaUrl;
+            }
+          } catch (e) {
+            print('Error generating thumbnail: $e');
+            // Use video URL as thumbnail if generation fails
+            thumbnailUrl = mediaUrl;
+          }
+        }
       }
       
       // Create updated post with media URL
@@ -376,6 +397,42 @@ class PostCubit extends Cubit<PostState> {
       print('Error fetching user posts: $e');
       emit(PostsError(e.toString()));
       return [];
+    }
+  }
+
+  // Generate thumbnails for existing video posts
+  Future<void> generateThumbnailsForVideoPosts() async {
+    try {
+      print('Generating thumbnails for video posts');
+      
+      // Get all posts
+      final posts = await _postRepo.fetechAllPosts();
+      
+      // Filter for video posts
+      final videoPosts = posts.where((post) => post.isVideo).toList();
+      print('Found ${videoPosts.length} video posts');
+      
+      // Generate thumbnails for each video post
+      int successCount = 0;
+      for (final post in videoPosts) {
+        if (post.imageUrl.isNotEmpty) {
+          try {
+            print('Generating thumbnail for video post: ${post.id}');
+            final thumbnailUrl = await VideoThumbnailService.generateThumbnailForPost(post.id, post.imageUrl);
+            
+            if (thumbnailUrl != null) {
+              print('Generated thumbnail URL: $thumbnailUrl');
+              successCount++;
+            }
+          } catch (e) {
+            print('Error generating thumbnail for post ${post.id}: $e');
+          }
+        }
+      }
+      
+      print('Successfully generated $successCount thumbnails for ${videoPosts.length} video posts');
+    } catch (e) {
+      print('Error generating thumbnails for video posts: $e');
     }
   }
 }
