@@ -470,6 +470,14 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
 
   void _showOptionsDialog(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final bool isGroupChat = widget.chatRoom.isGroupChat;
+    final bool isAdmin = isGroupChat && widget.chatRoom.admins.contains(widget.currentUserId);
+    
+    // Check if user is the creator (first admin or first participant)
+    final bool isCreator = isGroupChat && (
+      (widget.chatRoom.admins.isNotEmpty && widget.chatRoom.admins[0] == widget.currentUserId) ||
+      (widget.chatRoom.admins.isEmpty && widget.chatRoom.participants[0] == widget.currentUserId)
+    );
     
     showModalBottomSheet(
       context: context,
@@ -490,28 +498,83 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            _buildOptionTile(
-              context,
-              icon: Icons.visibility_off,
-              title: 'Hide chat',
-                onTap: () {
-                Navigator.pop(context);
-                // Hide chat functionality
-              },
-              isDarkMode: isDarkMode,
-                      ),
-            _buildOptionTile(
-              context,
-              icon: Icons.delete_outline,
-              title: 'Delete chat',
-                onTap: () {
-                Navigator.pop(context);
-                // Delete chat functionality
-              },
-              isDarkMode: isDarkMode,
-              isDestructive: true,
-                    ),
-            const SizedBox(height: 12),
+              // Different options based on chat type
+              if (isGroupChat) ...[
+                // Group chat options
+                if (isAdmin) ...[
+                  // Admin options
+                  _buildOptionTile(
+                    context,
+                    icon: Icons.edit,
+                    title: 'Edit group',
+                    onTap: () {
+                      Navigator.pop(context);
+                      // Show a dialog to edit the group name
+                      _showEditGroupDialog();
+                    },
+                    isDarkMode: isDarkMode,
+                  ),
+                ],
+                _buildOptionTile(
+                  context,
+                  icon: Icons.exit_to_app,
+                  title: 'Leave group',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showLeaveGroupConfirmation();
+                  },
+                  isDarkMode: isDarkMode,
+                ),
+                if (isCreator) ...[
+                  // Only creator can delete the group for everyone
+                  _buildOptionTile(
+                    context,
+                    icon: Icons.delete_outline,
+                    title: 'Delete group for everyone',
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showDeleteForEveryoneConfirmation();
+                    },
+                    isDarkMode: isDarkMode,
+                    isDestructive: true,
+                  ),
+                ],
+                // Everyone can delete the group chat for themselves
+                _buildOptionTile(
+                  context,
+                  icon: Icons.visibility_off,
+                  title: 'Delete for me',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _hideChatAndDeleteHistory();
+                  },
+                  isDarkMode: isDarkMode,
+                ),
+              ] else ...[
+                // Regular chat options
+                _buildOptionTile(
+                  context,
+                  icon: Icons.visibility_off,
+                  title: 'Hide chat',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _hideChatForUser();
+                  },
+                  isDarkMode: isDarkMode,
+                ),
+                _buildOptionTile(
+                  context,
+                  icon: Icons.delete_outline,
+                  title: 'Delete chat for me',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _hideChatAndDeleteHistory();
+                  },
+                  isDarkMode: isDarkMode,
+                  isDestructive: true,
+                ),
+              ],
+              const SizedBox(height: 12),
             ],
         ),
       ),
@@ -545,5 +608,421 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
     );
+  }
+
+  void _hideChatForUser() {
+    final chatCubit = context.read<ChatCubit>();
+    
+    chatCubit.hideChatForUser(
+      chatRoomId: widget.chatRoom.id,
+      userId: widget.currentUserId,
+    ).then((_) {
+      // Show success snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Chat hidden successfully'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }).catchError((error) {
+      // Show error snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to hide chat: $error'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.red,
+        ),
+      );
+    });
+  }
+
+  void _showDeleteForEveryoneConfirmation() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        title: Text(
+          'Delete Group',
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This will permanently delete the group and all messages for EVERYONE.',
+              style: TextStyle(
+                color: isDarkMode ? Colors.grey[300] : Colors.grey[800],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'This action cannot be undone.',
+              style: TextStyle(
+                color: isDarkMode ? Colors.red[400] : Colors.red[700],
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: isDarkMode ? Colors.grey[300] : Colors.grey[800],
+            ),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteGroupForEveryone();
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Delete For Everyone'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _deleteGroupForEveryone() {
+    final chatCubit = context.read<ChatCubit>();
+    
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+    
+    chatCubit.deleteChatRoom(widget.chatRoom.id).then((_) {
+      // Always check if mounted before using context
+      if (!mounted) return;
+      
+      // Close loading indicator
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      // Show success snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Group deleted for everyone'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }).catchError((error) {
+      // Always check if mounted before using context
+      if (!mounted) return;
+      
+      // Close loading indicator
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      // Show error snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete group: $error'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.red,
+        ),
+      );
+    });
+  }
+
+  void _hideChatAndDeleteHistory() {
+    final chatCubit = context.read<ChatCubit>();
+    
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+    
+    chatCubit.hideChatAndDeleteHistoryForUser(
+      chatRoomId: widget.chatRoom.id,
+      userId: widget.currentUserId,
+    ).then((_) {
+      // Always check if mounted before using context
+      if (!mounted) return;
+      
+      // Close loading indicator
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      // Show success snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Chat deleted for you'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      // Don't navigate away, just let the UI refresh on its own
+    }).catchError((error) {
+      // Always check if mounted before using context
+      if (!mounted) return;
+      
+      // Close loading indicator
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      // Show error snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete chat: $error'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.red,
+        ),
+      );
+    });
+  }
+
+  void _showLeaveGroupConfirmation() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        title: Text(
+          'Leave Group',
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to leave this group chat?',
+              style: TextStyle(
+                color: isDarkMode ? Colors.grey[300] : Colors.grey[800],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: isDarkMode ? Colors.grey[300] : Colors.grey[800],
+            ),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _leaveGroupChat();
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.orange,
+            ),
+            child: const Text('Leave Group'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _leaveGroupChat() {
+    final chatCubit = context.read<ChatCubit>();
+    final String userName = widget.chatRoom.participantNames[widget.currentUserId] ?? 'User';
+    
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+    
+    chatCubit.leaveGroupChat(
+      chatRoomId: widget.chatRoom.id,
+      userId: widget.currentUserId,
+      userName: userName,
+    ).then((_) {
+      // Always check if mounted before using context
+      if (!mounted) return;
+      
+      // Close loading indicator
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      // Show success snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You left the group'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      // Don't navigate away, just go back to chat list
+      // Stay on the current page (we're already on chat list page)
+    }).catchError((error) {
+      // Always check if mounted before using context
+      if (!mounted) return;
+      
+      // Close loading indicator
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      // Show error snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to leave group: $error'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.red,
+        ),
+      );
+    });
+  }
+
+  // Add this method to show a dialog for editing the group
+  void _showEditGroupDialog() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final TextEditingController _groupNameController = TextEditingController(
+      text: widget.chatRoom.participantNames['groupName'] ?? '',
+    );
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        title: Text(
+          'Edit Group',
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _groupNameController,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black,
+              ),
+              decoration: InputDecoration(
+                labelText: 'Group Name',
+                labelStyle: TextStyle(
+                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                ),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(
+                    color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+                  ),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: isDarkMode ? Colors.grey[300] : Colors.grey[800],
+            ),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              // Get the updated group name
+              final String newGroupName = _groupNameController.text.trim();
+              if (newGroupName.isNotEmpty) {
+                // Close the dialog
+                Navigator.pop(context);
+                
+                // Update the group name
+                _updateGroupName(newGroupName);
+              }
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: isDarkMode ? Colors.white : Colors.black,
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _updateGroupName(String groupName) {
+    final chatCubit = context.read<ChatCubit>();
+    
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+    
+    chatCubit.updateChatRoomMetadata(
+      chatRoomId: widget.chatRoom.id,
+      metadata: {'groupName': groupName},
+    ).then((_) {
+      // Always check if mounted before using context
+      if (!mounted) return;
+      
+      // Close loading indicator
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      // Show success snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Group name updated successfully'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }).catchError((error) {
+      // Always check if mounted before using context
+      if (!mounted) return;
+      
+      // Close loading indicator
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      // Show error snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update group name: $error'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.red,
+        ),
+      );
+    });
   }
 } 

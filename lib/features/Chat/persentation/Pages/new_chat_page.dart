@@ -190,300 +190,256 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
           ),
           elevation: 8,
           backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Create Group',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Give your group a name and start chatting',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                
-                // Group photo selector
-                Center(
-                  child: StatefulBuilder(
-                    builder: (context, setState) {
-                      return Stack(
-                        children: [
-                          GestureDetector(
-                            onTap: () async {
-                              final pickedImage = await _pickImage();
-                              if (pickedImage != null) {
-                                setState(() {
-                                  if (kIsWeb) {
-                                    _groupPhotoBytes = pickedImage['bytes'];
-                                  } else {
-                                    _groupPhotoFile = File(pickedImage['path']);
+          // Use ConstrainedBox to limit the dialog size
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.9,
+              maxHeight: MediaQuery.of(context).size.height * 0.7,
+            ),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Create Group',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Give your group a name and start chatting',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Group photo selector
+                    Center(
+                      child: StatefulBuilder(
+                        builder: (context, setState) {
+                          return Stack(
+                            children: [
+                              GestureDetector(
+                                onTap: () async {
+                                  final pickedImage = await _pickImage();
+                                  if (pickedImage != null) {
+                                    setState(() {
+                                      if (kIsWeb) {
+                                        _groupPhotoBytes = pickedImage['bytes'];
+                                      } else {
+                                        _groupPhotoFile = File(pickedImage['path']);
+                                      }
+                                    });
                                   }
-                                });
-                              }
-                            },
-                            child: Container(
-                              width: 100,
-                              height: 100,
-                              decoration: BoxDecoration(
-                                color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
-                                  width: 1,
+                                },
+                                child: Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: _groupPhotoBytes != null || _groupPhotoFile != null
+                                    ? ClipOval(
+                                        child: _groupPhotoBytes != null
+                                          ? Image.memory(
+                                              _groupPhotoBytes!,
+                                              fit: BoxFit.cover,
+                                              width: 100,
+                                              height: 100,
+                                            )
+                                          : Image.file(
+                                              _groupPhotoFile!,
+                                              fit: BoxFit.cover,
+                                              width: 100,
+                                              height: 100,
+                                            ),
+                                      )
+                                    : Icon(
+                                        Icons.add_a_photo,
+                                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                        size: 40,
+                                      ),
                                 ),
                               ),
-                              child: _groupPhotoBytes != null || _groupPhotoFile != null
-                                ? ClipOval(
-                                    child: _groupPhotoBytes != null
-                                      ? Image.memory(
-                                          _groupPhotoBytes!,
-                                          fit: BoxFit.cover,
-                                          width: 100,
-                                          height: 100,
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Group members preview with animation
+                    SizedBox(
+                      height: 50,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _selectedUsers.length > 5 ? 5 : _selectedUsers.length,
+                        itemBuilder: (context, index) {
+                          final user = _selectedUsers[index];
+                          final bool isLast = index == 4 && _selectedUsers.length > 5;
+                          
+                          return Align(
+                            widthFactor: 0.7,
+                            child: CircleAvatar(
+                              backgroundColor: isLast ? Colors.grey[800] : Colors.grey[200],
+                              backgroundImage: !isLast && user.profilePictureUrl.isNotEmpty
+                                  ? CachedNetworkImageProvider(user.profilePictureUrl)
+                                  : null,
+                              radius: 22,
+                              child: isLast
+                                  ? Text(
+                                      '+${_selectedUsers.length - 4}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
+                                  : (user.profilePictureUrl.isEmpty
+                                      ? Text(
+                                          user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
                                         )
-                                      : Image.file(
-                                          _groupPhotoFile!,
-                                          fit: BoxFit.cover,
-                                          width: 100,
-                                          height: 100,
-                                        ),
-                                  )
-                                : Icon(
-                                    Icons.add_a_photo,
-                                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                                    size: 40,
-                                  ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                // Group members preview with animation
-                SizedBox(
-                  height: 50,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _selectedUsers.length > 5 ? 5 : _selectedUsers.length,
-                    itemBuilder: (context, index) {
-                      final user = _selectedUsers[index];
-                      final bool isLast = index == 4 && _selectedUsers.length > 5;
-                      
-                      // Add staggered animation effect
-                      return TweenAnimationBuilder<double>(
-                        tween: Tween<double>(begin: 0.0, end: 1.0),
-                        duration: Duration(milliseconds: 400 + (index * 100)),
-                        curve: Curves.elasticOut,
-                        builder: (context, value, child) {
-                          return Transform.scale(
-                            scale: value,
-                            child: Opacity(
-                              opacity: value.clamp(0.0, 1.0),
-                              child: child,
+                                      : null),
                             ),
                           );
                         },
-                        child: Align(
-                          widthFactor: 0.7,
-                          child: CircleAvatar(
-                            backgroundColor: isLast ? Colors.grey[800] : Colors.grey[200],
-                            backgroundImage: !isLast && user.profilePictureUrl.isNotEmpty
-                                ? CachedNetworkImageProvider(user.profilePictureUrl)
-                                : null,
-                            radius: 22,
-                            child: isLast
-                                ? Text(
-                                    '+${_selectedUsers.length - 4}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  )
-                                : (user.profilePictureUrl.isEmpty
-                                    ? Text(
-                                        user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black,
-                                        ),
-                                      )
-                                    : null),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                // Unique group name hint with animation
-                TweenAnimationBuilder<double>(
-                  tween: Tween<double>(begin: 0.0, end: 1.0),
-                  duration: const Duration(milliseconds: 600),
-                  curve: Curves.easeOut,
-                  builder: (context, value, child) {
-                    return Opacity(
-                      opacity: value.clamp(0.0, 1.0),
-                      child: Transform.translate(
-                        offset: Offset(0, 10 * (1 - value)),
-                        child: child,
                       ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: isDarkMode ? Colors.grey[900] : Colors.grey[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: isDarkMode ? Colors.grey[800]! : Colors.grey.shade200),
                     ),
-                    child: Row(
+                    const SizedBox(height: 16),
+                    
+                    // Unique group name hint
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isDarkMode ? Colors.grey[900] : Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: isDarkMode ? Colors.grey[800]! : Colors.grey.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, size: 16, color: isDarkMode ? Colors.grey[400] : Colors.grey[700]),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Each group with a unique name creates a separate chat',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Group name input
+                    TextField(
+                      controller: _groupNameController,
+                      decoration: InputDecoration(
+                        labelText: 'Group Name',
+                        labelStyle: TextStyle(
+                          color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                        ),
+                        hintText: 'Enter a name for this group',
+                        hintStyle: TextStyle(
+                          color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: isDarkMode ? Colors.grey[700]! : Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: isDarkMode ? Colors.grey[700]! : Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: isDarkMode ? Colors.white : Colors.black, width: 1.5),
+                        ),
+                        prefixIcon: Icon(Icons.group, color: isDarkMode ? Colors.grey[400] : Colors.black),
+                        floatingLabelStyle: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+                        fillColor: isDarkMode ? Colors.grey[900] : Colors.white,
+                        filled: true,
+                        // Removed maxLength to avoid overflow
+                        counterText: "",
+                      ),
+                      maxLength: 30,
+                      autofocus: true,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // Buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Icon(Icons.info_outline, size: 16, color: isDarkMode ? Colors.grey[400] : Colors.grey[700]),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                            _createGroupChat(null);
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor: isDarkMode ? Colors.grey[300] : Colors.black54,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          ),
+                          child: const Text('Skip'),
+                        ),
                         const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Each group with a unique name creates a separate chat',
+                        ElevatedButton(
+                          onPressed: () {
+                            final groupName = _groupNameController.text.trim();
+                            if (groupName.isEmpty) {
+                              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                const SnackBar(content: Text('Please enter a group name'))
+                              );
+                              return;
+                            }
+                            Navigator.of(dialogContext).pop();
+                            _createGroupChat(groupName);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isDarkMode ? Colors.white : Colors.black,
+                            foregroundColor: isDarkMode ? Colors.black : Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Create',
                             style: TextStyle(
-                              fontSize: 12,
-                              color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
-                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                
-                // Group name input with animation
-                TweenAnimationBuilder<double>(
-                  tween: Tween<double>(begin: 0.0, end: 1.0),
-                  duration: const Duration(milliseconds: 700),
-                  curve: Curves.easeOut,
-                  builder: (context, value, child) {
-                    return Opacity(
-                      opacity: value.clamp(0.0, 1.0),
-                      child: Transform.translate(
-                        offset: Offset(0, 20 * (1 - value)),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: TextField(
-                    controller: _groupNameController,
-                    decoration: InputDecoration(
-                      labelText: 'Group Name',
-                      labelStyle: TextStyle(
-                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                      ),
-                      hintText: 'Enter a name for this group',
-                      hintStyle: TextStyle(
-                        color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: isDarkMode ? Colors.grey[700]! : Colors.grey.shade300),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: isDarkMode ? Colors.grey[700]! : Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: isDarkMode ? Colors.white : Colors.black, width: 1.5),
-                      ),
-                      prefixIcon: Icon(Icons.group, color: isDarkMode ? Colors.grey[400] : Colors.black),
-                      floatingLabelStyle: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
-                      fillColor: isDarkMode ? Colors.grey[900] : Colors.white,
-                      filled: true,
-                    ),
-                    maxLength: 30,
-                    autofocus: true,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: isDarkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                // Buttons with animation
-                TweenAnimationBuilder<double>(
-                  tween: Tween<double>(begin: 0.0, end: 1.0),
-                  duration: const Duration(milliseconds: 800),
-                  curve: Curves.easeOut,
-                  builder: (context, value, child) {
-                    return Opacity(
-                      opacity: value.clamp(0.0, 1.0),
-                      child: child,
-                    );
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(dialogContext).pop();
-                          _createGroupChat(null);
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: isDarkMode ? Colors.grey[300] : Colors.black54,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        ),
-                        child: const Text('Skip'),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: () {
-                          final groupName = _groupNameController.text.trim();
-                          if (groupName.isEmpty) {
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              const SnackBar(content: Text('Please enter a group name'))
-                            );
-                            return;
-                          }
-                          Navigator.of(dialogContext).pop();
-                          _createGroupChat(groupName);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isDarkMode ? Colors.white : Colors.black,
-                          foregroundColor: isDarkMode ? Colors.black : Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          'Create',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: isDarkMode ? Colors.black : Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

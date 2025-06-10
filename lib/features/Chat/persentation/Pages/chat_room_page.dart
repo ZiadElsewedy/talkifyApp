@@ -772,6 +772,12 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                           duration: const Duration(seconds: 2),
                         ),
                       );
+                      
+                      // If we deleted the last message, ensure the UI stays in a valid state
+                      if (_messages.isEmpty) {
+                        // Load messages again to ensure proper state
+                        context.read<ChatCubit>().loadMessages(widget.chatRoom.id);
+                      }
                     }
                   } else if (state is SendMessageError) {
                     ScaffoldMessenger.of(context).showSnackBar(

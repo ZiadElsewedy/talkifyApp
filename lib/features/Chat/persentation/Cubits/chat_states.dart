@@ -317,4 +317,13 @@ class MessageSending extends ChatState {
 
   @override
   List<Object?> get props => [messages];
+}
+
+class ChatRoomUpdated extends ChatState {
+  final String chatRoomId;
+  
+  const ChatRoomUpdated(this.chatRoomId);
+
+  @override
+  List<Object?> get props => [chatRoomId];
 } 

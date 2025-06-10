@@ -16,8 +16,9 @@ import 'community_info_page.dart';
 import 'community_events_page.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/components/percent_circle_indicator.dart' as chat_indicator;
 import 'package:file_picker/file_picker.dart';
-import 'package:talkifyapp/features/Communities/domain/entites/Community.dart';
+import 'package:talkifyapp/features/Communities/domain/Entites/community.dart';
 import 'package:talkifyapp/features/Communities/presentation/cubit/community_cubit.dart';
+import 'package:talkifyapp/features/Communities/presentation/cubit/community_state.dart';
 import 'community_details_page.dart';
 
 class CommunityChatPage extends StatefulWidget {
@@ -38,6 +39,7 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _messageController = TextEditingController();
   ChatRoom? _chatRoom;
+  Community? _community;
   bool _isLoading = true;
   bool _isRecordingVoice = false;
   List<Message> _messages = [];
@@ -46,6 +48,7 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
   void initState() {
     super.initState();
     _loadCommunityChat();
+    _loadCommunityDetails();
   }
   
   @override
@@ -61,6 +64,11 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
     
     // Check if a chat room already exists for this community
     context.read<ChatCubit>().getChatRoomForCommunity(widget.communityId);
+  }
+  
+  void _loadCommunityDetails() {
+    // Load community details
+    context.read<CommunityCubit>().getCommunityById(widget.communityId);
   }
   
   void _scrollToBottom() {
@@ -397,7 +405,14 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
       appBar: AppBar(
         backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        title: _buildChatRoomTitle(context),
+        title: BlocBuilder<CommunityCubit, CommunityState>(
+          builder: (context, state) {
+            if (state is CommunityDetailLoaded) {
+              _community = state.community;
+            }
+            return _buildChatRoomTitle(context);
+          },
+        ),
         actions: [
           IconButton(
             icon: Icon(
@@ -410,7 +425,7 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
                 MaterialPageRoute(
                   builder: (context) => CommunityEventsPage(
                     communityId: widget.communityId,
-                    communityName: widget.communityName ?? 'Community Chat',
+                    communityName: _community?.name ?? widget.communityName ?? 'Community Chat',
                   ),
                 ),
               );
@@ -429,7 +444,7 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
                     builder: (context) => CommunityInfoPage(
                       chatRoom: _chatRoom!,
                       communityId: widget.communityId,
-                      communityName: widget.communityName,
+                      communityName: _community?.name ?? widget.communityName,
                     ),
                   ),
                 );
@@ -618,7 +633,8 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
     final theme = Theme.of(context);
     
     if (_chatRoom != null) {
-      final String name = widget.communityName ?? 'Community Chat';
+      final String name = _community?.name ?? widget.communityName ?? 'Community Chat';
+      final int memberCount = _community?.memberCount ?? _chatRoom!.participants.length;
       
       return Row(
         children: [
@@ -627,19 +643,40 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.2),
+              color: _community?.iconUrl.isNotEmpty == true ? null : theme.colorScheme.primary.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: Center(
-              child: Icon(
-                Icons.group,
-                color: theme.colorScheme.primary,
-                size: 20,
-              ),
-            ),
+            child: _community?.iconUrl.isNotEmpty == true
+              ? ClipOval(
+                  child: CachedNetworkImage(
+                    imageUrl: _community!.iconUrl,
+                    placeholder: (context, url) => Center(
+                      child: Icon(
+                        Icons.group,
+                        color: theme.colorScheme.primary,
+                        size: 20,
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Center(
+                      child: Icon(
+                        Icons.group,
+                        color: theme.colorScheme.primary,
+                        size: 20,
+                      ),
+                    ),
+                    fit: BoxFit.cover,
+                  ),
+                )
+              : Center(
+                  child: Icon(
+                    Icons.group,
+                    color: theme.colorScheme.primary,
+                    size: 20,
+                  ),
+                ),
           ),
           const SizedBox(width: 12),
-          // Community name
+          // Community name and member count
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -648,24 +685,24 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
                 Text(
                   name,
                   style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                    fontWeight: FontWeight.bold,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-          Text(
-                  '${_chatRoom!.participants.length} members',
+                Text(
+                  '$memberCount members',
                   style: theme.textTheme.bodySmall,
                 ),
               ],
             ),
           ),
         ],
-    );
+      );
     } else {
       return Row(
         children: [
-          // Community icon
+          // Community icon placeholder
           Container(
             width: 36,
             height: 36,
@@ -694,7 +731,7 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
             ),
           ),
         ],
-    );
+      );
     }
   }
 } 

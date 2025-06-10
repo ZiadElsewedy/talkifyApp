@@ -97,6 +97,23 @@ class ChatMessageListener {
       // Skip if empty or if the user is already viewing this chat room
       if (snapshot.docs.isEmpty || chatRoomId == _currentChatRoomId) return;
       
+      // Get chat room details first to check if user has left
+      final chatRoomDoc = await FirebaseFirestore.instance
+          .collection('chatRooms')
+          .doc(chatRoomId)
+          .get();
+          
+      if (!chatRoomDoc.exists) return;
+      
+      final chatRoom = ChatRoom.fromJson(chatRoomDoc.data()!);
+      
+      // Skip if the user has left this chat room
+      if (chatRoom.leftParticipants.containsKey(_currentUserId) && 
+          chatRoom.leftParticipants[_currentUserId] == true) {
+        // User has left this chat, don't show notifications
+        return;
+      }
+      
       final messageData = snapshot.docs.first.data();
       final message = Message.fromJson(messageData);
       
@@ -110,9 +127,7 @@ class ChatMessageListener {
       // Only show notification for recent messages (within last 30 seconds)
       if (difference > 30) return;
       
-      // Get chat room details
-      final chatRoom = await _chatRepo.getChatRoom(chatRoomId);
-      if (chatRoom == null || _context == null) return;
+      if (_context == null) return;
       
       // Show notification
       ChatNotificationService.showChatMessageNotification(

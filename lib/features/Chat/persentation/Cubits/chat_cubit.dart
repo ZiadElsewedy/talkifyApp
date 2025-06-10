@@ -7,12 +7,14 @@ import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_states.dart';
 import 'package:talkifyapp/features/Chat/Data/firebase_chat_repo.dart';
 import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
 import 'package:talkifyapp/features/Chat/Utils/message_type_helper.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChatCubit extends Cubit<ChatState> {
   final ChatRepo chatRepo;
   StreamSubscription<List<ChatRoom>>? _chatRoomsSubscription;
   StreamSubscription<List<Message>>? _messagesSubscription;
   StreamSubscription<Map<String, bool>>? _typingSubscription;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   ChatCubit({required this.chatRepo}) : super(ChatInitial());
 
@@ -397,7 +399,14 @@ class ChatCubit extends Cubit<ChatState> {
           ..removeWhere((m) => m.id == messageId);
       }
       
+      // Emit the updated message list with the deleted message removed
       emit(MessageDeleted(currentMessages));
+      
+      // If chat is now empty, ensure we keep the MessagesLoaded state with an empty list
+      // This prevents the UI from disappearing
+      if (currentMessages.isEmpty) {
+        emit(MessagesLoaded([]));
+      }
       
       // Get the audio handler and clean up after message deletion is complete
       // Use microtask to ensure this happens after the current execution
@@ -412,21 +421,20 @@ class ChatCubit extends Cubit<ChatState> {
 
   // Delete chat room
   Future<void> deleteChatRoom(String chatRoomId) async {
+    if (isClosed) return; // Don't proceed if cubit is closed
     emit(ChatLoading());
+    
     try {
       await chatRepo.deleteChatRoom(chatRoomId);
       
       // Emit the deleted state after successful deletion
-      emit(ChatRoomDeleted(chatRoomId));
-      
-      // After a short delay, refresh the chat rooms list
-      await Future.delayed(const Duration(milliseconds: 300));
-      final currentState = state;
-      if (currentState is ChatRoomDeleted) {
-        emit(ChatRoomsLoading());
+      if (!isClosed) {
+        emit(ChatRoomDeleted(chatRoomId));
       }
     } catch (e) {
-      emit(ChatError('Failed to delete chat room: $e'));
+      if (!isClosed) {
+        emit(ChatError('Failed to delete chat room: $e'));
+      }
     }
   }
   
@@ -436,7 +444,9 @@ class ChatCubit extends Cubit<ChatState> {
     required String userId,
     required String userName,
   }) async {
+    if (isClosed) return; // Don't proceed if cubit is closed
     emit(ChatLoading());
+    
     try {
       await chatRepo.leaveGroupChat(
         chatRoomId: chatRoomId,
@@ -444,17 +454,14 @@ class ChatCubit extends Cubit<ChatState> {
         userName: userName,
       );
       
-      // Emit the left group state
-      emit(GroupChatLeft(chatRoomId));
-      
-      // After a short delay, refresh the chat rooms list
-      await Future.delayed(const Duration(milliseconds: 300));
-      final currentState = state;
-      if (currentState is GroupChatLeft) {
-        emit(ChatRoomsLoading());
+      // Emit the left group state if cubit is still active
+      if (!isClosed) {
+        emit(GroupChatLeft(chatRoomId));
       }
     } catch (e) {
-      emit(ChatError('Failed to leave group chat: $e'));
+      if (!isClosed) {
+        emit(ChatError('Failed to leave group chat: $e'));
+      }
     }
   }
   
@@ -463,7 +470,9 @@ class ChatCubit extends Cubit<ChatState> {
     required String chatRoomId,
     required String userId,
   }) async {
+    if (isClosed) return; // Don't proceed if cubit is closed
     emit(ChatLoading());
+    
     try {
       await chatRepo.hideChatForUser(
         chatRoomId: chatRoomId,
@@ -471,16 +480,13 @@ class ChatCubit extends Cubit<ChatState> {
       );
       
       // Emit the hidden chat state
-      emit(ChatHiddenForUser(chatRoomId));
-      
-      // After a short delay, refresh the chat rooms list
-      await Future.delayed(const Duration(milliseconds: 300));
-      final currentState = state;
-      if (currentState is ChatHiddenForUser) {
-        emit(ChatRoomsLoading());
+      if (!isClosed) {
+        emit(ChatHiddenForUser(chatRoomId));
       }
     } catch (e) {
-      emit(ChatError('Failed to hide chat: $e'));
+      if (!isClosed) {
+        emit(ChatError('Failed to hide chat: $e'));
+      }
     }
   }
   
@@ -489,7 +495,9 @@ class ChatCubit extends Cubit<ChatState> {
     required String chatRoomId,
     required String userId,
   }) async {
+    if (isClosed) return; // Don't proceed if cubit is closed
     emit(ChatLoading());
+    
     try {
       await chatRepo.hideChatAndDeleteHistoryForUser(
         chatRoomId: chatRoomId,
@@ -497,16 +505,13 @@ class ChatCubit extends Cubit<ChatState> {
       );
       
       // Emit the hidden chat state
-      emit(ChatHistoryDeletedForUser(chatRoomId));
-      
-      // After a short delay, refresh the chat rooms list
-      await Future.delayed(const Duration(milliseconds: 300));
-      final currentState = state;
-      if (currentState is ChatHistoryDeletedForUser) {
-        emit(ChatRoomsLoading());
+      if (!isClosed) {
+        emit(ChatHistoryDeletedForUser(chatRoomId));
       }
     } catch (e) {
-      emit(ChatError('Failed to hide chat and delete history: $e'));
+      if (!isClosed) {
+        emit(ChatError('Failed to hide chat and delete history: $e'));
+      }
     }
   }
   
@@ -709,6 +714,56 @@ class ChatCubit extends Cubit<ChatState> {
       print('Error creating group chat room: $e');
       print('Stack trace: $stackTrace');
       emit(ChatRoomCreationError('Failed to create group: $e'));
+    }
+  }
+
+  // Update chat room metadata (e.g., group name)
+  Future<void> updateChatRoomMetadata({
+    required String chatRoomId,
+    required Map<String, dynamic> metadata,
+  }) async {
+    if (isClosed) return; // Don't proceed if cubit is closed
+    
+    try {
+      // Get the current chat room
+      final chatRoomRef = _firestore.collection('chatRooms').doc(chatRoomId);
+      final chatRoomDoc = await chatRoomRef.get();
+      
+      if (!chatRoomDoc.exists) {
+        throw Exception('Chat room does not exist');
+      }
+      
+      // Prepare updates - focus on updating the participantNames map
+      Map<String, dynamic> updates = {};
+      
+      // Handle updating group name
+      if (metadata.containsKey('groupName')) {
+        final String groupName = metadata['groupName'];
+        
+        // Update in participantNames map
+        updates['participantNames.groupName'] = groupName;
+        
+        // Also update the lastUpdated timestamp
+        updates['updatedAt'] = FieldValue.serverTimestamp();
+        
+        // Apply the updates
+        await chatRoomRef.update(updates);
+        
+        // Notify all users with a system message
+        await chatRepo.sendSystemMessage(
+          chatRoomId: chatRoomId,
+          content: 'Group name changed to "$groupName"',
+        );
+      }
+      
+      // Emit a success state
+      if (!isClosed) {
+        emit(ChatRoomUpdated(chatRoomId));
+      }
+    } catch (e) {
+      if (!isClosed) {
+        emit(ChatError('Failed to update chat room: $e'));
+      }
     }
   }
 } 

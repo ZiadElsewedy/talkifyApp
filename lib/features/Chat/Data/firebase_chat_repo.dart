@@ -413,6 +413,15 @@ class FirebaseChatRepo implements ChatRepo {
           }
           
           final chatRoom = ChatRoom.fromJson(chatRoomSnapshot.data()!);
+          
+          // If user has left this chat room, don't show any messages
+          if (chatRoom.leftParticipants.containsKey(userId) && 
+              chatRoom.leftParticipants[userId] == true) {
+            // User has left this chat but is somehow viewing it
+            // This is a safety check - return empty list
+            return <Message>[];
+          }
+          
           DateTime? deletedAt = chatRoom.messageHistoryDeletedAt[userId];
           
           // Get messages, potentially filtered by deletion timestamp
@@ -916,11 +925,16 @@ class FirebaseChatRepo implements ChatRepo {
       // Update the chat room document
       await chatRoomRef.update(updates);
       
-      // Send system message about user leaving
-      await sendSystemMessage(
+      // Send system message about user leaving - but don't await it
+      // This prevents it from blocking the UI and causing navigation issues
+      sendSystemMessage(
         chatRoomId: chatRoomId,
         content: '$userName left the group',
-      );
+        excludeUserId: userId,  // Exclude the leaving user from seeing this message
+      ).catchError((e) {
+        // Just log errors with system message, don't fail the whole operation
+        print('Error sending system message when leaving group: $e');
+      });
       
       print('User $userId (${userName}) left group chat: $chatRoomId');
     } catch (e) {
@@ -1106,6 +1120,7 @@ class FirebaseChatRepo implements ChatRepo {
     required String chatRoomId,
     required String content,
     Map<String, dynamic>? metadata,
+    String? excludeUserId,
   }) async {
     try {
       final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc(chatRoomId);
@@ -1132,6 +1147,8 @@ class FirebaseChatRepo implements ChatRepo {
         status: MessageStatus.sent,
         readBy: [],
         metadata: metadata ?? {},
+        // If we need to exclude a specific user (like someone who left), add them to deletedForUsers
+        deletedForUsers: excludeUserId != null ? [excludeUserId] : [],
       );
       
       // Save message to Firestore

@@ -374,6 +374,18 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                               });
                             }
                         });
+                      } else if (state is ChatRoomDeleted || state is GroupChatLeft || 
+                                state is ChatHiddenForUser || state is ChatHistoryDeletedForUser || 
+                                state is ChatRoomUpdated) {
+                        // When a chat is deleted/left/hidden/updated, reload the chat rooms
+                        SchedulerBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) {
+                            final currentUser = context.read<AuthCubit>().GetCurrentUser();
+                            if (currentUser != null) {
+                              context.read<ChatCubit>().loadUserChatRooms(currentUser.id);
+                            }
+                          }
+                        });
                       }
                     },
                     builder: (context, state) {

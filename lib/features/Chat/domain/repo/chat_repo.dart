@@ -70,6 +70,7 @@ abstract class ChatRepo {
     required String chatRoomId,
     required String content,
     Map<String, dynamic>? metadata,
+    String? excludeUserId,
   });
   
   // Message operations
