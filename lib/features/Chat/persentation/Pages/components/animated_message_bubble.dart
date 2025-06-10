@@ -258,9 +258,14 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
   }
 
   void _showMessageOptions(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color backgroundColor = isDarkMode ? Colors.black : Colors.white;
+    final Color handleColor = isDarkMode ? Colors.grey[700]! : Colors.grey[300]!;
+    final Color textColor = isDarkMode ? Colors.white : Colors.black;
+    
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -275,7 +280,7 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: handleColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -284,7 +289,11 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Text(
                   'Message options',
-                  style: ChatStyles.titleStyle,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: textColor,
+                  ),
                 ),
               ),
               
@@ -293,8 +302,9 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
               if (widget.isFromCurrentUser)
                 ListTile(
                   leading: const Icon(Icons.delete_outline, color: ChatStyles.errorColor),
-                  title: const Text('Delete message'),
-                  subtitle: const Text('Removes from database permanently'),
+                  title: Text('Delete message', style: TextStyle(color: textColor)),
+                  subtitle: Text('Removes from database permanently', 
+                    style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[600])),
                   onTap: () {
                     Navigator.of(context).pop();
                     _confirmDeleteMessage(context);
@@ -303,8 +313,9 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
               
               if (widget.message.type == MessageType.image)
                 ListTile(
-                  leading: const Icon(Icons.photo_library_outlined),
-                  title: const Text('View image'),
+                  leading: Icon(Icons.photo_library_outlined, 
+                    color: isDarkMode ? Colors.white : Colors.black87),
+                  title: Text('View image', style: TextStyle(color: textColor)),
                   onTap: () {
                     Navigator.of(context).pop();
                     if (widget.message.fileUrl != null) {
@@ -315,8 +326,9 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
                 
               if (widget.message.type == MessageType.video)
                 ListTile(
-                  leading: const Icon(Icons.video_library_outlined),
-                  title: const Text('Watch video'),
+                  leading: Icon(Icons.video_library_outlined,
+                    color: isDarkMode ? Colors.white : Colors.black87),
+                  title: Text('Watch video', style: TextStyle(color: textColor)),
                   onTap: () {
                     Navigator.of(context).pop();
                     if (widget.message.fileUrl != null) {
@@ -327,8 +339,9 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
               
               if (widget.message.type == MessageType.document)
                 ListTile(
-                  leading: const Icon(Icons.description_outlined),
-                  title: const Text('Open document'),
+                  leading: Icon(Icons.description_outlined,
+                    color: isDarkMode ? Colors.white : Colors.black87),
+                  title: Text('Open document', style: TextStyle(color: textColor)),
                   onTap: () {
                     Navigator.of(context).pop();
                     if (widget.message.fileUrl != null) {
@@ -339,8 +352,9 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
               
               if (widget.message.type == MessageType.text)
                 ListTile(
-                  leading: const Icon(Icons.copy),
-                  title: const Text('Copy text'),
+                  leading: Icon(Icons.copy,
+                    color: isDarkMode ? Colors.white : Colors.black87),
+                  title: Text('Copy text', style: TextStyle(color: textColor)),
                   onTap: () {
                     Navigator.of(context).pop();
                     // Copy functionality would go here
@@ -360,17 +374,31 @@ class _AnimatedMessageBubbleState extends State<AnimatedMessageBubble>
     // Store a reference to the cubit to avoid context issues later
     final chatCubit = context.read<ChatCubit>();
     
+    // Get theme info
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color backgroundColor = isDarkMode ? Colors.black : Colors.white;
+    final Color textColor = isDarkMode ? Colors.white : Colors.black;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Message', style: ChatStyles.titleStyle),
-        content: const Text(
+        backgroundColor: backgroundColor,
+        title: Text(
+          'Delete Message', 
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: textColor,
+          ),
+        ),
+        content: Text(
           'Are you sure you want to delete this message? It will be permanently removed for everyone and cannot be recovered.',
+          style: TextStyle(color: textColor),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text('Cancel', style: TextStyle(color: isDarkMode ? Colors.grey[300] : Colors.grey[700])),
           ),
           TextButton(
             onPressed: () {

@@ -231,7 +231,7 @@ class _MessageBubbleState extends State<MessageBubble> {
 
   void _showMessageOptions(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDarkMode ? Colors.grey[850] : Colors.white;
+    final backgroundColor = isDarkMode ? Colors.black : Colors.white;
     final textColor = isDarkMode ? Colors.white : Colors.black87;
     
     showModalBottomSheet(
