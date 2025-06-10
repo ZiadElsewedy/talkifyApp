@@ -161,7 +161,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
   }
 
   // create & upload post
-  void uploadPost() {
+  void uploadPost() async {
     if (pickedFile == null || TextController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Both media and caption are required'))
@@ -172,7 +172,32 @@ class _UploadPostPageState extends State<UploadPostPage> {
     // Get the local file path for images or videos
     final String? localFilePath = isVideo || !kIsWeb ? pickedFile?.path : null;
 
-    // create a new post
+    // IMPORTANT FIX: Fetch fresh user data to ensure the latest profile picture is used
+    try {
+      // Get the auth cubit to access the latest user data
+      final authCubit = context.read<AuthCubit>();
+      
+      // Refresh current user from Firebase
+      authCubit.checkAuth();
+      
+      // Wait a moment for the auth check to complete
+      await Future.delayed(Duration(milliseconds: 300));
+      
+      // Get the updated user after refresh
+      currentUser = authCubit.GetCurrentUser();
+      
+      if (currentUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to retrieve user data. Please try again.'))
+        );
+        return;
+      }
+    } catch (e) {
+      print("Error refreshing user data: $e");
+      // Continue with existing user data if refresh fails
+    }
+
+    // create a new post with the latest user data
     final newPost = Post(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         UserId: currentUser!.id,

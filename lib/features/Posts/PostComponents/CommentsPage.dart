@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:math';
 import 'package:talkifyapp/features/Posts/domain/Entite/Comments.dart';
 import 'package:talkifyapp/features/Posts/PostComponents/commentTile.dart';
 import 'package:talkifyapp/features/Posts/presentation/cubits/post_cubit.dart';
@@ -439,13 +440,12 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
   /// Builds the comment input field at the bottom
   Widget _buildCommentInput(PostState state) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final Color cardColor = isDarkMode ? Colors.grey[900]! : Colors.white;
-    final Color textColor = isDarkMode ? Colors.grey[200]! : Colors.black87;
-    final Color subTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
-    final Color iconColor = isDarkMode ? Colors.grey[400]! : Colors.black54;
-    final Color inputBg = isDarkMode ? Colors.grey[800]! : Colors.white;
-    final Color borderColor = isDarkMode ? Colors.grey[700]! : Colors.grey[200]!;
-    final Color sendButtonBg = isDarkMode ? Colors.blue[700]! : Colors.black;
+    final Color cardColor = isDarkMode ? Colors.black : Colors.white;
+    final Color textColor = isDarkMode ? Colors.white : Colors.black87;
+    final Color hintTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[500]!;
+    final Color inputFillColor = isDarkMode ? Color(0xFF1E1E1E) : Colors.grey[100]!;
+    final Color borderColor = isDarkMode ? Colors.grey[700]! : Colors.grey[300]!;
+    final Color sendButtonBg = const Color.fromARGB(255, 93, 94, 95);
     final Color sendButtonFg = Colors.white;
     final bool isSubmitEnabled = !_isSubmitting && !(state is PostsLoading);
     
@@ -454,58 +454,51 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
         color: cardColor,
         boxShadow: [
           BoxShadow(
-            color: isDarkMode ? Colors.black.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, -3),
           ),
         ],
-        border: Border(
-          top: BorderSide(
-            color: borderColor,
-            width: 1.0,
-          ),
-        ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(16),
       child: SafeArea(
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: inputBg,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: borderColor),
-                ),
-                child: TextField(
-                  controller: _commentController,
-                  maxLines: 4,
-                  minLines: 1,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    hintText: 'Share your thoughts...',
-                    hintStyle: TextStyle(
-                      color: subTextColor,
-                      fontSize: 16,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    prefixIcon: Padding(
-                      padding: const EdgeInsets.only(left: 12.0, right: 8.0),
-                      child: Icon(
-                        Icons.chat_bubble_outline_rounded,
-                        color: iconColor,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                  style: TextStyle(
+              child: TextField(
+                controller: _commentController,
+                maxLines: 4,
+                minLines: 1,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  hintText: 'Share your thoughts...',
+                  hintStyle: TextStyle(
+                    color: hintTextColor,
                     fontSize: 16,
-                    color: textColor,
                   ),
-                  cursorColor: sendButtonBg,
+                  filled: true,
+                  fillColor: inputFillColor,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(25),
+                    borderSide: BorderSide(color: borderColor, width: 0.5),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(25),
+                    borderSide: BorderSide(color: const Color.fromARGB(255, 94, 94, 95), width: 1.5),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(25),
+                    borderSide: BorderSide(color: borderColor, width: 0.5),
+                  ),
                 ),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: textColor,
+                ),
+                cursorColor: Colors.blueAccent,
+                cursorWidth: 2,
               ),
             ),
             const SizedBox(width: 12),
@@ -518,15 +511,23 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
 
   /// Builds the send button with loading indicator
   Widget _buildSendButton(bool isEnabled, Color buttonColor, Color fgColor) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+    return Container(
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
-        color: buttonColor,
-        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [
+            buttonColor,
+            buttonColor.withBlue(min(buttonColor.blue + 30, 255)),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: isEnabled
             ? [
                 BoxShadow(
-                  color: buttonColor.withOpacity(0.2),
+                  color: buttonColor.withOpacity(0.4),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -538,8 +539,7 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
         child: InkWell(
           onTap: isEnabled ? _addComment : null,
           borderRadius: BorderRadius.circular(24),
-          child: Container(
-            padding: const EdgeInsets.all(14),
+          child: Center(
             child: _isSubmitting
                 ? SizedBox(
                     width: 24,
@@ -552,7 +552,7 @@ class _CommentsPageState extends State<CommentsPage> with SingleTickerProviderSt
                 : Icon(
                     Icons.send_rounded,
                     color: fgColor,
-                    size: 22,
+                    size: 24,
                   ),
           ),
         ),
