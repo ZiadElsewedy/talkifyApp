@@ -9,6 +9,11 @@ import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Chat/Utils/chat_styles.dart';
 import 'package:talkifyapp/features/Chat/Utils/page_transitions.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 
 class GroupInfoPage extends StatefulWidget {
   final ChatRoom chatRoom;
@@ -146,35 +151,71 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Group Avatar with animated shadow
-                  TweenAnimationBuilder<double>(
-                    tween: Tween<double>(begin: 0, end: 15),
-                    duration: const Duration(seconds: 1),
-                    builder: (context, value, child) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: value,
-                              spreadRadius: value / 8,
+                  Stack(
+                    children: [
+                      TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0, end: 15),
+                        duration: const Duration(seconds: 1),
+                        builder: (context, value, child) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: value,
+                                  spreadRadius: value / 8,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: child,
-                      );
-                    },
-                    child: Hero(
-                      tag: 'group_${widget.chatRoom.id}',
-                      child: CircleAvatar(
-                        radius: 60,
-                        backgroundColor: Colors.grey[200],
-                        child: Text(
-                          _getGroupNameAbbreviation(),
-                          style: TextStyle(fontSize: 40, color: isDarkMode ? Colors.white70 : Colors.black54),
+                            child: child,
+                          );
+                        },
+                        child: Hero(
+                          tag: 'group_${widget.chatRoom.id}',
+                          child: CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.grey[200],
+                            backgroundImage: widget.chatRoom.participantAvatars.containsKey('groupAvatar') && 
+                                            widget.chatRoom.participantAvatars['groupAvatar']!.isNotEmpty 
+                                ? CachedNetworkImageProvider(widget.chatRoom.participantAvatars['groupAvatar']!)
+                                : null,
+                            child: (widget.chatRoom.participantAvatars['groupAvatar'] == null ||
+                                    widget.chatRoom.participantAvatars['groupAvatar']!.isEmpty)
+                                ? Text(
+                                    _getGroupNameAbbreviation(),
+                                    style: TextStyle(fontSize: 40, color: isDarkMode ? Colors.white70 : Colors.black54),
+                                  )
+                                : null,
+                          ),
                         ),
                       ),
-                    ),
+                      // Add Change Photo Button if user is an admin
+                      if (widget.chatRoom.isUserAdmin(_currentUserId))
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: _changeGroupPhoto,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isDarkMode ? Colors.grey[900]! : Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   
@@ -631,38 +672,110 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
       return widget.chatRoom.participantNames['groupName']!;
     }
     
-    // Fallback to participant names
-    final currentUser = context.read<AuthCubit>().GetCurrentUser();
-    final names = widget.chatRoom.participantNames.entries
-        .where((entry) => 
-            entry.key != 'groupName' && 
-            entry.key != (currentUser?.id ?? '') && 
-            entry.value.isNotEmpty)
-        .map((entry) => entry.value)
-        .take(3)
-        .join(', ');
-    
-    return names.isNotEmpty 
-        ? names + (widget.chatRoom.participants.length > 4 ? ' +${widget.chatRoom.participants.length - 4}' : '')
-        : 'Group Chat';
+    // Fallback to generic group chat name
+    return 'Group Chat';
   }
 
   String _getGroupNameAbbreviation() {
     final groupName = _getGroupName();
     if (groupName.isEmpty) return 'GC';
     
-    // If it's a list of names, get initials of first 2-3 names
-    if (groupName.contains(',')) {
-      return groupName
-          .split(',')
-          .take(3)
-          .map((name) => name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '')
-          .join('');
-    }
-    
-    // Otherwise use the first 2 letters of the group name
+    // Get first 2 letters of group name 
+    // (we don't have comma-separated names anymore)
     return groupName.length > 1 
         ? groupName.substring(0, 2).toUpperCase()
         : '${groupName[0].toUpperCase()}G';
+  }
+
+  Future<void> _changeGroupPhoto() async {
+    try {
+      // Pick image
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        withData: kIsWeb, // Get bytes for web
+      );
+      
+      if (result != null && result.files.isNotEmpty) {
+        // Show loading
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+        
+        String? photoUrl;
+        
+        // Upload image based on platform
+        if (kIsWeb) {
+          // Web upload
+          final bytes = result.files.first.bytes;
+          if (bytes != null) {
+            final ref = FirebaseStorage.instance
+                .ref()
+                .child('group_avatars')
+                .child('${widget.chatRoom.id}.jpg');
+                
+            final task = ref.putData(
+              bytes,
+              SettableMetadata(contentType: 'image/jpeg'),
+            );
+            
+            await task;
+            photoUrl = await ref.getDownloadURL();
+          }
+        } else {
+          // Mobile upload
+          final path = result.files.first.path;
+          if (path != null) {
+            final file = File(path);
+            final ref = FirebaseStorage.instance
+                .ref()
+                .child('group_avatars')
+                .child('${widget.chatRoom.id}.jpg');
+                
+            final task = ref.putFile(file);
+            await task;
+            photoUrl = await ref.getDownloadURL();
+          }
+        }
+        
+        // Close loading dialog
+        if (context.mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+        
+        if (photoUrl != null) {
+          // Update the chat room document
+          await FirebaseFirestore.instance
+              .collection('chatRooms')
+              .doc(widget.chatRoom.id)
+              .update({
+            'participantAvatars.groupAvatar': photoUrl,
+          });
+          
+          // Show success message
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Group photo updated')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      // Close loading dialog if still showing
+      if (context.mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      // Show error
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update group photo: $e')),
+        );
+      }
+    }
   }
 } 

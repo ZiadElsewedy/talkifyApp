@@ -139,14 +139,8 @@ class ChatMessageListener {
       return chatRoom.participantNames['groupName']!;
     }
     
-    // Otherwise, use participant names
-    final names = chatRoom.participantNames.entries
-        .where((entry) => entry.key != 'groupName' && entry.value.isNotEmpty)
-        .map((entry) => entry.value)
-        .take(3)
-        .join(', ');
-    
-    return names.isNotEmpty ? names : 'Group Chat';
+    // Otherwise return generic group chat name
+    return 'Group Chat';
   }
   
   /// Clean up resources
