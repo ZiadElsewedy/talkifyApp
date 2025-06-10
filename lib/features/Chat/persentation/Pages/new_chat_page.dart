@@ -8,6 +8,11 @@ import 'package:talkifyapp/features/Search/Presentation/Cubit/Searchstates.dart'
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 
 class NewChatPage extends StatefulWidget {
   const NewChatPage({super.key});
@@ -21,6 +26,11 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
   final TextEditingController _groupNameController = TextEditingController();
   List<ProfileUser> _selectedUsers = [];
   bool _isCreatingGroup = false;
+  
+  // Group photo variables
+  File? _groupPhotoFile;
+  Uint8List? _groupPhotoBytes;
+  String? _groupPhotoUrl;
   
   // Animation controllers
   late AnimationController _searchBarController;
@@ -152,6 +162,11 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
   void _showGroupNameDialog() {
     if (!mounted) return;
     
+    // Reset group photo variables
+    _groupPhotoFile = null;
+    _groupPhotoBytes = null;
+    _groupPhotoUrl = null;
+    
     // Store a local reference to avoid context being captured in closures
     final BuildContext localContext = context;
     final bool isDarkMode = Theme.of(localContext).brightness == Brightness.dark;
@@ -198,6 +213,66 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                   ),
                 ),
                 const SizedBox(height: 24),
+                
+                // Group photo selector
+                Center(
+                  child: StatefulBuilder(
+                    builder: (context, setState) {
+                      return Stack(
+                        children: [
+                          GestureDetector(
+                            onTap: () async {
+                              final pickedImage = await _pickImage();
+                              if (pickedImage != null) {
+                                setState(() {
+                                  if (kIsWeb) {
+                                    _groupPhotoBytes = pickedImage['bytes'];
+                                  } else {
+                                    _groupPhotoFile = File(pickedImage['path']);
+                                  }
+                                });
+                              }
+                            },
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+                                  width: 1,
+                                ),
+                              ),
+                              child: _groupPhotoBytes != null || _groupPhotoFile != null
+                                ? ClipOval(
+                                    child: _groupPhotoBytes != null
+                                      ? Image.memory(
+                                          _groupPhotoBytes!,
+                                          fit: BoxFit.cover,
+                                          width: 100,
+                                          height: 100,
+                                        )
+                                      : Image.file(
+                                          _groupPhotoFile!,
+                                          fit: BoxFit.cover,
+                                          width: 100,
+                                          height: 100,
+                                        ),
+                                  )
+                                : Icon(
+                                    Icons.add_a_photo,
+                                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                    size: 40,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
                 
                 // Group members preview with animation
                 SizedBox(
@@ -316,7 +391,7 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
                     decoration: InputDecoration(
                       labelText: 'Group Name',
                       labelStyle: TextStyle(
-                        color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                       ),
                       hintText: 'Enter a name for this group',
                       hintStyle: TextStyle(
@@ -441,8 +516,49 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
       currentUser.id: currentUser.profilePictureUrl,
       for (var user in _selectedUsers) user.id: user.profilePictureUrl,
     };
-
+    
+    // Show loading indicator if uploading photo
+    if (_groupPhotoBytes != null || _groupPhotoFile != null) {
+      showDialog(
+        context: localContext,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    
     try {
+      // Upload group photo if selected
+      if (_groupPhotoBytes != null || _groupPhotoFile != null) {
+        final String groupId = DateTime.now().millisecondsSinceEpoch.toString();
+        final ref = FirebaseStorage.instance.ref().child('group_avatars').child('$groupId.jpg');
+        
+        if (kIsWeb && _groupPhotoBytes != null) {
+          // Web upload
+          await ref.putData(
+            _groupPhotoBytes!,
+            SettableMetadata(contentType: 'image/jpeg'),
+          );
+        } else if (_groupPhotoFile != null) {
+          // Mobile upload
+          await ref.putFile(_groupPhotoFile!);
+        }
+        
+        // Get download URL
+        _groupPhotoUrl = await ref.getDownloadURL();
+        
+        // Add group photo URL to participant avatars
+        if (_groupPhotoUrl != null) {
+          participantAvatars['groupAvatar'] = _groupPhotoUrl!;
+        }
+        
+        // Close loading dialog
+        if (localContext.mounted && Navigator.canPop(localContext)) {
+          Navigator.pop(localContext);
+        }
+      }
+
       // Create the chat room
       final chatRoom = await localContext.read<ChatCubit>().findOrCreateChatRoom(
         participantIds: participantIds,
@@ -450,8 +566,11 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
         participantAvatars: participantAvatars,
       );
 
-      // Clear controllers
+      // Clear controllers and photo variables
       _groupNameController.clear();
+      _groupPhotoFile = null;
+      _groupPhotoBytes = null;
+      _groupPhotoUrl = null;
 
       if (mounted) {
         // Navigate to chat list page instead of the chat room
@@ -463,6 +582,11 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
         );
       }
     } catch (e) {
+      // Close loading dialog if still showing
+      if (localContext.mounted && Navigator.canPop(localContext)) {
+        Navigator.pop(localContext);
+      }
+      
       print('Error creating group chat: $e');
       if (mounted) {
         ScaffoldMessenger.of(localContext).showSnackBar(
@@ -470,6 +594,26 @@ class _NewChatPageState extends State<NewChatPage> with TickerProviderStateMixin
         );
       }
     }
+  }
+
+  // Helper method to pick image from device
+  Future<Map<String, dynamic>?> _pickImage() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: kIsWeb,
+      );
+      
+      if (result != null && result.files.isNotEmpty) {
+        return {
+          'path': result.files.first.path,
+          'bytes': kIsWeb ? result.files.first.bytes : null,
+        };
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+    }
+    return null;
   }
 
   @override

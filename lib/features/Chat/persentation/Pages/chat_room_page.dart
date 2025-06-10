@@ -370,18 +370,8 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
       );
       return widget.chatRoom.participantNames[otherParticipant] ?? 'Unknown User';
     } else {
-      // Group chat without custom name
-      final names = widget.chatRoom.participantNames.entries
-          .where((entry) => entry.key != 'groupName' && entry.value.isNotEmpty)
-          .map((entry) => entry.value)
-          .take(3)
-          .join(', ');
-      
-      String title = names.isNotEmpty ? names : 'Group Chat';
-      if (widget.chatRoom.participantNames.length > 3) {
-        title += ' +${widget.chatRoom.participantNames.length - 3}';
-      }
-      return title;
+      // Group chat without custom name - just return a generic name
+      return 'Group Chat';
     }
   }
 
@@ -1244,14 +1234,21 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
         child: CircleAvatar(
           radius: 18,
           backgroundColor: avatarBackgroundColor,
-          child: Text(
-            _getGroupNameAbbreviation(),
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              color: avatarTextColor,
-            ),
-          ),
+          backgroundImage: widget.chatRoom.participantAvatars.containsKey('groupAvatar') && 
+                          widget.chatRoom.participantAvatars['groupAvatar']!.isNotEmpty 
+                ? CachedNetworkImageProvider(widget.chatRoom.participantAvatars['groupAvatar']!)
+                : null,
+          child: (widget.chatRoom.participantAvatars['groupAvatar'] == null ||
+                  widget.chatRoom.participantAvatars['groupAvatar']!.isEmpty)
+                ? Text(
+                    _getGroupNameAbbreviation(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: avatarTextColor,
+                    ),
+                  )
+                : null,
         ),
       ),
     );

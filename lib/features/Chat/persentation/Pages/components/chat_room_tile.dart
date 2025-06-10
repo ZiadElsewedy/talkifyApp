@@ -121,15 +121,13 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
   
   String _getParticipantName() {
     if (widget.chatRoom.isGroupChat) {
-      // For group chats, create a name from participant names
-      final participantNames = widget.chatRoom.participantNames.values.toList();
-      if (participantNames.isEmpty) {
-        return "Group Chat";
-      } else if (participantNames.length <= 3) {
-        return participantNames.join(", ");
+      // For group chats, check if there's a dedicated group name first
+      if (widget.chatRoom.participantNames.containsKey('groupName') && 
+          widget.chatRoom.participantNames['groupName']!.isNotEmpty) {
+        return widget.chatRoom.participantNames['groupName']!;
       } else {
-        // Show first 2 names + count of others
-        return "${participantNames.take(2).join(", ")} + ${participantNames.length - 2} others";
+        // Fallback to generic group chat name
+        return "Group Chat";
       }
     } else {
       // For 1-on-1 chats, get the other participant's name
@@ -288,13 +286,20 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
           ),
           child: CircleAvatar(
             radius: 28,
-          backgroundColor: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFF7F7F7),
-          child: Icon(
-            Icons.group,
-            size: 20,
-            color: isDarkMode ? Colors.white : Colors.black87,
+            backgroundColor: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFF7F7F7),
+            backgroundImage: widget.chatRoom.participantAvatars.containsKey('groupAvatar') && 
+                            widget.chatRoom.participantAvatars['groupAvatar']!.isNotEmpty 
+                ? CachedNetworkImageProvider(widget.chatRoom.participantAvatars['groupAvatar']!)
+                : null,
+            child: (widget.chatRoom.participantAvatars['groupAvatar'] == null ||
+                    widget.chatRoom.participantAvatars['groupAvatar']!.isEmpty)
+                  ? Icon(
+                      Icons.group,
+                      size: 20,
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                    )
+                  : null,
           ),
-        ),
       );
     }
   }
@@ -303,10 +308,14 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
     String chatName = '';
     
     if (widget.chatRoom.isGroupChat) {
-      // For group chats, use the concatenated names of participants
-      chatName = widget.chatRoom.participants.length > 2
-          ? "Group: ${widget.chatRoom.participantNames.values.join(", ")}"
-          : "";
+      // For group chats, check if there's a dedicated group name first
+      if (widget.chatRoom.participantNames.containsKey('groupName') && 
+          widget.chatRoom.participantNames['groupName']!.isNotEmpty) {
+        chatName = widget.chatRoom.participantNames['groupName']!;
+      } else {
+        // Fallback to participants list if no group name is set
+        chatName = "Group Chat";
+      }
       
       // Limit the length
       if (chatName.length > 30) {
