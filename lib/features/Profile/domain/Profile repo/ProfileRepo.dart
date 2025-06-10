@@ -15,4 +15,10 @@ abstract class ProfileRepo {
 
   // Check if a user is following another user
   Future<bool> isFollowing(String currentUserId, String otherUserId);
+  
+  // Get mutual friends between two users
+  Future<List<ProfileUser>> getMutualFriends(String userId1, String userId2);
+  
+  // Get suggested users to follow based on current user's network
+  Future<List<ProfileUser>> getSuggestedUsers(String userId, {int limit = 5});
 }

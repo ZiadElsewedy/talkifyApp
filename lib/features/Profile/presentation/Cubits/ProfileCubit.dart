@@ -97,4 +97,24 @@ Future<bool> isFollowing(String currentUserId, String otherUserId) async {
     return false; // Default to not following if there's an error
   }
 }
+
+// Get mutual friends between two users
+Future<List<ProfileUser>> getMutualFriends(String currentUserId, String otherUserId) async {
+  try {
+    return await profileRepo.getMutualFriends(currentUserId, otherUserId);
+  } catch (e) {
+    print('Error getting mutual friends in cubit: $e');
+    return []; // Return empty list on error
+  }
+}
+
+// Get suggested users to follow
+Future<List<ProfileUser>> getSuggestedUsers(String userId, {int limit = 5}) async {
+  try {
+    return await profileRepo.getSuggestedUsers(userId, limit: limit);
+  } catch (e) {
+    print('Error getting suggested users in cubit: $e');
+    return []; // Return empty list on error
+  }
+}
 } 

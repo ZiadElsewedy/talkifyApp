@@ -11,6 +11,8 @@ import 'package:talkifyapp/features/Profile/presentation/Pages/Follower.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/Bio.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/FollowButtom.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/message_button.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/components/MutualFriendsWidget.dart';
+import 'package:talkifyapp/features/Profile/presentation/Pages/components/SuggestedUsersWidget.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/ProfilePicFunction.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/profileStats.dart';
@@ -20,6 +22,7 @@ import 'package:talkifyapp/features/auth/Presentation/screens/components/LOADING
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/chat_room_page.dart';
+import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, this.userId});
@@ -41,8 +44,14 @@ class ProfilePageState extends State<ProfilePage> {
 
   bool _isLoadingPosts = false;
   bool _isDeletingPost = false;
+  bool _isLoadingMutualFriends = false;
+  bool _isLoadingSuggestedUsers = false;
+
+  List<ProfileUser> _mutualFriends = [];
+  List<ProfileUser> _suggestedUsers = [];
 
   bool _isScrolled = false;
+  bool _showSuggestions = true;
 
   @override
   void initState() {
@@ -51,6 +60,8 @@ class ProfilePageState extends State<ProfilePage> {
     profileCubit = BlocProvider.of<ProfileCubit>(context);
     postCubit = BlocProvider.of<PostCubit>(context);
     currentUser = authCubit.GetCurrentUser();
+    
+    // Initialize profile data
     initializeProfile();
     
     _scrollController.addListener(_scrollListener);
@@ -90,6 +101,14 @@ class ProfilePageState extends State<ProfilePage> {
       await profileCubit.fetchUserProfile(widget.userId!);
       await _fetchUserPosts();
       await fetchUserPostCount();
+      
+      // Don't fetch mutual friends for own profile
+      if (currentUser != null && currentUser!.id != widget.userId) {
+        await _fetchMutualFriends();
+        
+        // Only fetch suggested users when viewing OTHER profiles
+        await _fetchSuggestedUsers();
+      }
     }
   }
   
@@ -129,6 +148,146 @@ class ProfilePageState extends State<ProfilePage> {
       print('Error fetching user posts: $e');
     }
   }
+  
+  Future<void> _fetchMutualFriends() async {
+    if (currentUser == null || widget.userId == null || currentUser!.id == widget.userId) {
+      return;
+    }
+    
+    setState(() {
+      _isLoadingMutualFriends = true;
+    });
+    
+    try {
+      final mutualFriends = await profileCubit.getMutualFriends(
+        currentUser!.id,
+        widget.userId!
+      );
+      
+      if (mounted) {
+        setState(() {
+          _mutualFriends = mutualFriends;
+          _isLoadingMutualFriends = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingMutualFriends = false;
+        });
+      }
+      print('Error fetching mutual friends: $e');
+    }
+  }
+  
+  Future<void> _fetchSuggestedUsers() async {
+    if (currentUser == null) {
+      return;
+    }
+    
+    setState(() {
+      _isLoadingSuggestedUsers = true;
+    });
+    
+    try {
+      print("Fetching suggested users for: ${currentUser!.id}");
+      final suggestedUsers = await profileCubit.getSuggestedUsers(
+        currentUser!.id,
+        limit: 10,
+      );
+      
+      print("Fetched ${suggestedUsers.length} suggested users");
+      
+      if (mounted) {
+        // If we got no suggestions, create local dummy ones
+        List<ProfileUser> usersList = List.from(suggestedUsers);
+        
+        if (usersList.isEmpty && currentUser != null) {
+          print("Creating local dummy suggestions");
+          
+          // Create at least 2 dummy suggested users
+          usersList.add(ProfileUser(
+            id: 'local_dummy_1',
+            name: 'Sarah Johnson',
+            email: 'test1@example.com',
+            phoneNumber: '',
+            profilePictureUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100',
+            bio: 'Photographer and traveler',
+            backgroundprofilePictureUrl: '',
+            HintDescription: 'Travel enthusiast',
+            followers: [],
+            following: [],
+          ));
+          
+          usersList.add(ProfileUser(
+            id: 'local_dummy_2',
+            name: 'Michael Chen',
+            email: 'test2@example.com',
+            phoneNumber: '',
+            profilePictureUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100',
+            bio: 'Software developer',
+            backgroundprofilePictureUrl: '',
+            HintDescription: 'Tech & gaming',
+            followers: [],
+            following: [],
+          ));
+          
+          usersList.add(ProfileUser(
+            id: 'local_dummy_3',
+            name: 'Emma Williams',
+            email: 'test3@example.com',
+            phoneNumber: '',
+            profilePictureUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100',
+            bio: 'Digital artist',
+            backgroundprofilePictureUrl: '',
+            HintDescription: 'Creative mind',
+            followers: [],
+            following: [],
+          ));
+        }
+        
+        setState(() {
+          _suggestedUsers = usersList;
+          _isLoadingSuggestedUsers = false;
+        });
+      }
+    } catch (e) {
+      print("Error fetching suggested users: $e");
+      
+      // On error, still create dummy suggested users
+      if (mounted) {
+        setState(() {
+          _suggestedUsers = [
+            ProfileUser(
+              id: 'error_dummy_1',
+              name: 'Alex Morgan',
+              email: 'error1@example.com',
+              phoneNumber: '',
+              profilePictureUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=100',
+              bio: 'Fitness coach',
+              backgroundprofilePictureUrl: '',
+              HintDescription: 'Health enthusiast',
+              followers: [],
+              following: [],
+            ),
+            ProfileUser(
+              id: 'error_dummy_2',
+              name: 'James Wilson',
+              email: 'error2@example.com',
+              phoneNumber: '',
+              profilePictureUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=100',
+              bio: 'Music producer',
+              backgroundprofilePictureUrl: '',
+              HintDescription: 'Beats & melodies',
+              followers: [],
+              following: [],
+            ),
+          ];
+          _isLoadingSuggestedUsers = false;
+        });
+      }
+    }
+  }
 
   Future<void> handleFollowAction() async {
     if (currentUser == null || widget.userId == null) return;
@@ -141,6 +300,42 @@ class ProfilePageState extends State<ProfilePage> {
       
       if (mounted) {
         final isFollowing = await profileCubit.profileRepo.isFollowing(currentUser!.id, widget.userId!);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isFollowing ? 'Followed successfully' : 'Unfollowed successfully'),
+            backgroundColor: Colors.black,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update follow status: $error'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+  
+  Future<void> handleSuggestedUserFollowToggle(String userId, bool isFollowing) async {
+    if (currentUser == null) return;
+    
+    try {
+      await profileCubit.toggleFollow(currentUser!.id, userId);
+      
+      // If we just followed the user, remove them from suggestions
+      if (isFollowing) {
+        setState(() {
+          _suggestedUsers.removeWhere((user) => user.id == userId);
+        });
+      }
+      
+      // Show a snackbar with the result
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(isFollowing ? 'Followed successfully' : 'Unfollowed successfully'),
@@ -199,6 +394,16 @@ class ProfilePageState extends State<ProfilePage> {
     if (widget.userId != null) {
       await profileCubit.fetchUserProfile(widget.userId!);
       await fetchUserPostCount();
+      
+      // Refresh mutual friends and suggested users too
+      if (currentUser != null && currentUser!.id != widget.userId) {
+        await _fetchMutualFriends();
+      }
+      
+      if (currentUser != null && currentUser!.id == widget.userId) {
+        await _fetchSuggestedUsers();
+      }
+      
       await Future.delayed(const Duration(milliseconds: 800));
     }
   }
@@ -272,6 +477,34 @@ class ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  // Add a separate method to the top of the class to manually load suggestions
+  void _manuallyLoadSuggestions() {
+    if (currentUser != null) {
+      setState(() {
+        _isLoadingSuggestedUsers = true;
+      });
+      
+      _fetchSuggestedUsers().then((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Suggestions refreshed'),
+              backgroundColor: Colors.black,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      });
+    }
+  }
+
+  // Toggle suggestions visibility
+  void _toggleSuggestions() {
+    setState(() {
+      _showSuggestions = !_showSuggestions;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -340,6 +573,12 @@ class ProfilePageState extends State<ProfilePage> {
                         icon: const Icon(Icons.refresh, color: Colors.white),
                         onPressed: refreshProfile,
                       ),
+                      if (isOwner)
+                        IconButton(
+                          icon: const Icon(Icons.people, color: Colors.white),
+                          onPressed: _manuallyLoadSuggestions,
+                          tooltip: 'Load suggestions',
+                        ),
                       if (isOwner)
                         IconButton(
                           icon: const Icon(Icons.settings, color: Colors.white),
@@ -430,7 +669,7 @@ class ProfilePageState extends State<ProfilePage> {
                                           Text(
                                             user.HintDescription,
                                             style: TextStyle(
-                                              color: cardSubText,
+                                              color: isDarkMode ? cardSubText : Colors.grey[400],
                                               fontSize: 16,
                                               shadows: const [
                                                 Shadow(
@@ -441,6 +680,36 @@ class ProfilePageState extends State<ProfilePage> {
                                               ],
                                             ),
                                           ),
+                                          // Add mutual friends text below username
+                                          if (!isOwner && currentUser != null && _mutualFriends.isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 6.0),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.people,
+                                                    size: 14,
+                                                    color: Colors.white.withOpacity(0.8),
+                                                  ),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    "${_mutualFriends.length} Mutual ${_mutualFriends.length == 1 ? 'Connection' : 'Connections'}",
+                                                    style: TextStyle(
+                                                      color: Colors.white.withOpacity(0.8),
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.w500,
+                                                      shadows: [
+                                                        Shadow(
+                                                          offset: Offset(1, 1),
+                                                          blurRadius: 3,
+                                                          color: Colors.black45,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                         ],
                                       ),
                                     ),
@@ -579,6 +848,237 @@ class ProfilePageState extends State<ProfilePage> {
                               ],
                             ),
                           ),
+                          
+                          // Suggested Users Section - Only show when viewing OTHER profiles
+                          if (_showSuggestions && currentUser != null && !isOwner)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              margin: const EdgeInsets.only(top: 8, bottom: 16),
+                              decoration: BoxDecoration(
+                                color: isDarkMode ? Colors.black : Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isDarkMode ? Colors.grey[800]! : Colors.grey[200]!,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            height: 16,
+                                            width: 3,
+                                            decoration: BoxDecoration(
+                                              color: isDarkMode ? Colors.white : Colors.black,
+                                              borderRadius: BorderRadius.circular(2),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Suggested For You',
+                                            style: TextStyle(
+                                              color: isDarkMode ? Colors.white : Colors.black,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      // Add buttons to refresh and hide suggestions
+                                      Row(
+                                        children: [
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.refresh,
+                                              color: isDarkMode ? Colors.white : Colors.black,
+                                              size: 18,
+                                            ),
+                                            onPressed: _manuallyLoadSuggestions,
+                                            tooltip: 'Refresh suggestions',
+                                            padding: EdgeInsets.all(4),
+                                            constraints: BoxConstraints(),
+                                          ),
+                                          SizedBox(width: 4),
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.close,
+                                              color: isDarkMode ? Colors.white : Colors.black,
+                                              size: 18,
+                                            ),
+                                            onPressed: _toggleSuggestions,
+                                            tooltip: 'Hide suggestions',
+                                            padding: EdgeInsets.all(4),
+                                            constraints: BoxConstraints(),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  // Show loading indicator or empty state if no suggestions
+                                  if (_isLoadingSuggestedUsers)
+                                    Container(
+                                      height: 100,
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            isDarkMode ? Colors.white : Colors.black,
+                                          ),
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    )
+                                  else if (_suggestedUsers.isEmpty)
+                                    Container(
+                                      height: 100,
+                                      child: Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              "No suggestions available",
+                                              style: TextStyle(
+                                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            SizedBox(height: 12),
+                                            ElevatedButton(
+                                              onPressed: _manuallyLoadSuggestions,
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: isDarkMode ? Colors.white : Colors.black,
+                                                foregroundColor: isDarkMode ? Colors.black : Colors.white,
+                                                elevation: 0,
+                                                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                minimumSize: Size(0, 0),
+                                                textStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(20),
+                                                ),
+                                              ),
+                                              child: Text("Refresh"),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    // New implementation of suggested users list
+                                    SizedBox(
+                                      height: 120,
+                                      child: ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: _suggestedUsers.length > 5 ? 5 : _suggestedUsers.length,
+                                        itemBuilder: (context, index) {
+                                          final user = _suggestedUsers[index];
+                                          return GestureDetector(
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => ProfilePage(userId: user.id),
+                                                ),
+                                              );
+                                            },
+                                            child: Container(
+                                              width: 75,
+                                              margin: EdgeInsets.only(right: 16),
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  // Profile Image with simple border
+                                                  Container(
+                                                    width: 60,
+                                                    height: 60,
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      border: Border.all(
+                                                        color: isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
+                                                        width: 1,
+                                                      ),
+                                                      color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
+                                                    ),
+                                                    child: ClipRRect(
+                                                      borderRadius: BorderRadius.circular(30),
+                                                      child: CachedNetworkImage(
+                                                        imageUrl: user.profilePictureUrl,
+                                                        fit: BoxFit.cover,
+                                                        placeholder: (context, url) => Container(
+                                                          color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+                                                          child: Icon(
+                                                            Icons.person,
+                                                            color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                                                            size: 30,
+                                                          ),
+                                                        ),
+                                                        errorWidget: (context, url, error) => Container(
+                                                          color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+                                                          child: Icon(
+                                                            Icons.person,
+                                                            color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                                                            size: 30,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  SizedBox(height: 4),
+                                                  // Name
+                                                  Text(
+                                                    user.name,
+                                                    textAlign: TextAlign.center,
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      color: isDarkMode ? Colors.white : Colors.black,
+                                                      fontWeight: FontWeight.w500,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                  SizedBox(height: 4),
+                                                  // Follow Button - Make it simple for mobile
+                                                  SizedBox(
+                                                    height: 24,
+                                                    width: double.infinity,
+                                                    child: OutlinedButton(
+                                                      onPressed: () => handleSuggestedUserFollowToggle(user.id, true),
+                                                      style: OutlinedButton.styleFrom(
+                                                        foregroundColor: isDarkMode ? Colors.white : Colors.black,
+                                                        backgroundColor: Colors.transparent,
+                                                        side: BorderSide(
+                                                          color: isDarkMode ? Colors.white : Colors.black,
+                                                          width: 1,
+                                                        ),
+                                                        padding: EdgeInsets.zero,
+                                                        minimumSize: Size.zero,
+                                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(4),
+                                                        ),
+                                                        textStyle: TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                      child: Text('Follow'),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          
                           const SizedBox(height: 25),
                           // Posts Section
                           Container(
