@@ -32,9 +32,12 @@ class SafePostTile extends StatelessWidget {
   }
   
   Widget _buildErrorTile(BuildContext context, String message) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Card(
       margin: const EdgeInsets.all(8.0),
       elevation: 2,
+      color: isDarkMode ? Color(0xFF121212) : Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -42,7 +45,7 @@ class SafePostTile extends StatelessWidget {
           children: [
             Icon(
               Icons.error_outline,
-              color: Colors.red[300],
+              color: isDarkMode ? Colors.red[200] : Colors.red[300],
               size: 48,
             ),
             const SizedBox(height: 16),
@@ -50,6 +53,7 @@ class SafePostTile extends StatelessWidget {
               'Unable to display this post',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
+                color: isDarkMode ? Colors.grey[200] : null,
               ),
             ),
             const SizedBox(height: 8),
@@ -57,7 +61,7 @@ class SafePostTile extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[700],
+                color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
               ),
             ),
             const SizedBox(height: 16),
@@ -66,7 +70,7 @@ class SafePostTile extends StatelessWidget {
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
+                backgroundColor: isDarkMode ? Colors.blue[700] : Colors.black,
                 foregroundColor: Colors.white,
               ),
               child: const Text('Go Back'),

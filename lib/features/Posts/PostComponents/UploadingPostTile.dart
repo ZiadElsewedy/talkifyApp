@@ -153,13 +153,18 @@ class _UploadingPostTileState extends State<UploadingPostTile> {
                 ),
               ],
             )
-          else if (widget.post.isVideo)
+                      else if (widget.post.isVideo)
             Stack(
               alignment: Alignment.center,
               children: [
                 Container(
                   height: 250,
-                  color: Colors.grey.shade900,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? const Color(0xFF121212) 
+                        : Colors.grey.shade900,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -168,7 +173,7 @@ class _UploadingPostTileState extends State<UploadingPostTile> {
                         const SizedBox(height: 16),
                         const Text(
                           'Video uploading...',
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: Colors.white, fontSize: 14),
                         ),
                       ],
                     ),
@@ -228,14 +233,19 @@ class _UploadingPostTileState extends State<UploadingPostTile> {
               children: [
                 Container(
                   height: 200,
-                  color: Colors.grey.shade200,
+                  color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF1E1E1E) : Colors.grey.shade200,
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         VideoUploadIndicator(progress: widget.progress),
                         const SizedBox(height: 16),
-                        const Text('Uploading...'),
+                        Text(
+                          'Uploading...',
+                          style: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : null,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -247,8 +257,13 @@ class _UploadingPostTileState extends State<UploadingPostTile> {
                   right: 0,
                   child: LinearProgressIndicator(
                     value: widget.progress,
-                    backgroundColor: Colors.black.withOpacity(0.1),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.black),
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white.withOpacity(0.2) 
+                        : Colors.black.withOpacity(0.1),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white 
+                        : Colors.black),
                     minHeight: 3,
                   ),
                 ),

@@ -1000,6 +1000,8 @@ void addComment() async {
   }
   
   Widget _buildVideoPlayer() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return _isVideoInitialized && _videoController != null
           ? Stack(
               alignment: Alignment.center,
@@ -1079,29 +1081,49 @@ void addComment() async {
             ],
           )
         : Container(
-            color: Colors.grey.shade200,
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF121212) : Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            height: 350,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const CircularProgressIndicator(
-                  color: Colors.grey,
+                CircularProgressIndicator(
+                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
                 if (!_isVideoInitialized && widget.post.imageUrl.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Text(
                       "Unable to load video. Tap to retry.",
-                      style: TextStyle(color: Colors.grey),
-
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                        fontSize: 15,
+                      ),
                       textAlign: TextAlign.center,
-                      
                     ),
                   ),
                 if (!_isVideoInitialized && widget.post.imageUrl.isNotEmpty)
-                  TextButton(
-                    onPressed: _initializeVideoController,
-                    child: const Text("Retry" , style: TextStyle(color: Colors.grey),),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: ElevatedButton.icon(
+                      onPressed: _initializeVideoController,
+                      icon: Icon(Icons.refresh, color: isDarkMode ? Colors.white : Colors.black),
+                      label: Text(
+                        "Retry",
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+                        foregroundColor: isDarkMode ? Colors.white : Colors.black,
+                        elevation: 2,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      ),
+                    ),
                   )
               ],
             ),
@@ -1496,12 +1518,33 @@ void addComment() async {
           imageUrl: widget.post.imageUrl,
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
-            color: Colors.grey.shade200,
-            child: const Center(child: CircularProgressIndicator()),
+            color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF1E1E1E) : Colors.grey.shade200,
+            child: Center(child: CircularProgressIndicator(
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
+            )),
           ),
           errorWidget: (context, url, error) => Container(
-            color: Colors.grey.shade200,
-            child: const Icon(Icons.error),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF121212) : Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, 
+                  size: 40,
+                  color: Theme.of(context).brightness == Brightness.dark ? Colors.red[300] : Colors.red[700],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Failed to load image", 
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

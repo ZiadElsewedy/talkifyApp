@@ -223,18 +223,18 @@ class _SinglePostViewState extends State<SinglePostView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline, size: 60, color: Colors.grey),
+              Icon(Icons.error_outline, size: 60, color: isDarkMode ? Colors.grey[400] : Colors.grey),
               SizedBox(height: 16),
               Text(
                 'Error displaying post: ${e.toString()}',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade700),
+                style: TextStyle(color: isDarkMode ? Colors.grey[300] : Colors.grey.shade700),
               ),
               SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _loadPost,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
+                  backgroundColor: isDarkMode ? Colors.blue[700] : Colors.black,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),

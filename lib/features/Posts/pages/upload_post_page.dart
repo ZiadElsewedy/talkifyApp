@@ -544,23 +544,40 @@ class _UploadPostPageState extends State<UploadPostPage> {
         ],
       );
     } else if (kIsWeb) {
+      final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+      
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.videocam, size: 50, color: Colors.grey),
+            Icon(
+              Icons.videocam, 
+              size: 50, 
+              color: isDarkMode ? Colors.grey[400] : Colors.grey[600]
+            ),
             const SizedBox(height: 10),
-            const Text('Video preview not available on web'),
+            Text(
+              'Video preview not available on web',
+              style: TextStyle(
+                color: isDarkMode ? Colors.grey[300] : Colors.grey[800],
+              ),
+            ),
             const SizedBox(height: 5),
-            Text('Selected: ${pickedFile?.name ?? "Unknown"}',
-                style: TextStyle(color: Colors.grey[600])),
+            Text(
+              'Selected: ${pickedFile?.name ?? "Unknown"}',
+              style: TextStyle(
+                color: isDarkMode ? Colors.grey[500] : Colors.grey[600]
+              )
+            ),
           ],
         ),
       );
     } else {
-      return const Center(
+      final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+      
+      return Center(
         child: PercentCircleIndicator(
-          color: Colors.black,
+          color: isDarkMode ? Colors.white : Colors.black,
         ),
       );
     }
