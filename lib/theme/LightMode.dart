@@ -64,7 +64,7 @@ ThemeData lightmode = ThemeData(
     selectedItemColor: Colors.grey.shade900,
     unselectedItemColor: Colors.grey.shade400,
   ),
-  cardTheme: CardThemeData(
+  cardTheme: CardTheme(
     color: Colors.white,
     elevation: 0,
     shape: RoundedRectangleBorder(
@@ -72,7 +72,7 @@ ThemeData lightmode = ThemeData(
       side: BorderSide(color: Colors.grey.shade200, width: 1),
     ),
   ),
-  tabBarTheme: TabBarThemeData(
+  tabBarTheme: TabBarTheme(
     labelColor: Colors.grey.shade900,
     unselectedLabelColor: Colors.grey.shade400,
     indicatorColor: Colors.grey.shade900,

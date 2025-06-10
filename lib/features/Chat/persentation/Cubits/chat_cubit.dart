@@ -218,7 +218,7 @@ class ChatCubit extends Cubit<ChatState> {
         // Update metadata with file type info
         metadata ??= {};
         metadata['fileExtension'] = extension;
-        metadata['documentType'] = MessageTypeHelper.getFileIconName(finalType, extension);
+          metadata['documentType'] = MessageTypeHelper.getFileIconName(finalType, extension);
       }
 
       // If the file path is already a URL (starting with http/https), don't upload again

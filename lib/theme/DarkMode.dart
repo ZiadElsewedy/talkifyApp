@@ -63,7 +63,7 @@ ThemeData darkmode = ThemeData(
     selectedItemColor: Colors.white,
     unselectedItemColor: Colors.grey.shade600,
   ),
-  cardTheme: CardThemeData(
+  cardTheme: CardTheme(
     color: Color(0xFF1E1E1E),
     elevation: 0,
     shape: RoundedRectangleBorder(
@@ -71,7 +71,7 @@ ThemeData darkmode = ThemeData(
       side: BorderSide(color: Colors.grey.shade800, width: 1),
     ),
   ),
-  tabBarTheme: TabBarThemeData(
+  tabBarTheme: TabBarTheme(
     labelColor: Colors.white,
     unselectedLabelColor: Colors.grey.shade600,
     indicatorColor: Colors.white,

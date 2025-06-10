@@ -61,11 +61,11 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
       // For PDF files, download and open internally
       try {
         // Clean up URL
-        String cleanUrl = widget.documentUrl;
-        if (cleanUrl.contains('?')) {
-          cleanUrl = cleanUrl.split('?')[0];
-        }
-        
+      String cleanUrl = widget.documentUrl;
+      if (cleanUrl.contains('?')) {
+        cleanUrl = cleanUrl.split('?')[0];
+      }
+      
         // Download with simplified error handling
         final response = await http.get(Uri.parse(cleanUrl)).timeout(
           const Duration(seconds: 30),
@@ -146,7 +146,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
       print("Opening document in external app: $url");
       
       // Show a loading indicator
-      if (mounted) {
+        if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Row(
@@ -207,7 +207,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
           
           // If successfully launched, close the viewer
           if (success && mounted) {
-            Navigator.pop(context);
+          Navigator.pop(context);
           } else if (mounted) {
             _showDownloadOnlyOption(url);
           }
@@ -305,11 +305,11 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
           overflow: TextOverflow.ellipsis,
         ),
         actions: [
-          IconButton(
+            IconButton(
             icon: const Icon(Icons.file_download),
             onPressed: _downloadDocument,
             tooltip: 'Download',
-          ),
+            ),
           IconButton(
             icon: const Icon(Icons.open_in_new),
             onPressed: () => _openInExternalApp(widget.documentUrl),
@@ -343,54 +343,54 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
       return Container(
         color: isDarkMode ? const Color(0xFF121212) : Colors.white,
         child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 64,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
                   color: isDarkMode ? Colors.redAccent : Colors.red,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Failed to load document',
-                  style: TextStyle(
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Failed to load document',
+                style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.bold,
                     color: isDarkMode ? Colors.white : Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(
+              Text(
                   'This file cannot be previewed in the app',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
+                textAlign: TextAlign.center,
+                style: TextStyle(
                     fontSize: 16,
                     color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
-                  ),
                 ),
+              ),
                 const SizedBox(height: 32),
                 SizedBox(
                   width: 200,
                   height: 48,
                   child: ElevatedButton(
                     onPressed: () => _openInExternalApp(widget.documentUrl),
-                    style: ElevatedButton.styleFrom(
+                style: ElevatedButton.styleFrom(
                       backgroundColor: isDarkMode ? Colors.blueAccent : colorScheme.primary,
-                      foregroundColor: Colors.white,
+                  foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
                       elevation: isDarkMode ? 2 : 4,
-                    ),
+                ),
                     child: const Text(
                       'Open in External App',
                       style: TextStyle(fontSize: 16),
                     ),
                   ),
-                ),
+              ),
                 const SizedBox(height: 16),
                 TextButton.icon(
                   onPressed: _loadDocument,
@@ -399,8 +399,8 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
                   style: TextButton.styleFrom(
                     foregroundColor: isDarkMode ? Colors.lightBlueAccent : colorScheme.primary,
                   ),
-                ),
-              ],
+              ),
+            ],
             ),
           ),
         ),
@@ -454,55 +454,55 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
     return Container(
       color: isDarkMode ? const Color(0xFF121212) : Colors.white,
       child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.insert_drive_file,
-              size: 64,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.insert_drive_file,
+            size: 64,
               color: isDarkMode ? Colors.blueGrey[300] : Colors.grey[400],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'This document type cannot be previewed',
-              style: TextStyle(
-                fontSize: 16,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'This document type cannot be previewed',
+            style: TextStyle(
+              fontSize: 16,
                 color: isDarkMode ? Colors.white : Colors.grey[800],
-              ),
             ),
-            const SizedBox(height: 24),
+          ),
+          const SizedBox(height: 24),
             SizedBox(
               width: 200,
               child: ElevatedButton(
-                onPressed: () => _openInExternalApp(widget.documentUrl),
-                style: ElevatedButton.styleFrom(
+            onPressed: () => _openInExternalApp(widget.documentUrl),
+            style: ElevatedButton.styleFrom(
                   backgroundColor: isDarkMode ? Colors.blueAccent : colorScheme.primary,
-                  foregroundColor: Colors.white,
+              foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-                child: const Text('Open in External App'),
-              ),
             ),
-            const SizedBox(height: 16),
+            child: const Text('Open in External App'),
+              ),
+          ),
+          const SizedBox(height: 16),
             SizedBox(
               width: 200,
               child: ElevatedButton(
-                onPressed: _downloadDocument,
-                style: ElevatedButton.styleFrom(
+            onPressed: _downloadDocument,
+            style: ElevatedButton.styleFrom(
                   backgroundColor: isDarkMode ? Colors.grey[800] : colorScheme.secondary,
                   foregroundColor: isDarkMode ? Colors.white : colorScheme.onSecondary,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-                child: const Text('Download Document'),
-              ),
             ),
-          ],
+            child: const Text('Download Document'),
+              ),
+          ),
+        ],
         ),
       ),
     );
@@ -534,9 +534,9 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
             decoration: BoxDecoration(
               color: isDarkMode ? Colors.blueAccent.withOpacity(0.3) : Colors.black.withOpacity(0.5),
               borderRadius: BorderRadius.circular(16),
-            ),
+          ),
             child: Text(
-              'Page ${_currentPage + 1} of $_totalPages',
+            'Page ${_currentPage + 1} of $_totalPages',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w500,

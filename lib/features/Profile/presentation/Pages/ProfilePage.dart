@@ -23,6 +23,7 @@ import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/chat_room_page.dart';
 import 'package:talkifyapp/features/Profile/domain/entites/ProfileUser.dart';
+import 'package:talkifyapp/features/Posts/pages/upload_post_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, this.userId});
@@ -573,12 +574,6 @@ class ProfilePageState extends State<ProfilePage> {
                         icon: const Icon(Icons.refresh, color: Colors.white),
                         onPressed: refreshProfile,
                       ),
-                      if (isOwner)
-                        IconButton(
-                          icon: const Icon(Icons.people, color: Colors.white),
-                          onPressed: _manuallyLoadSuggestions,
-                          tooltip: 'Load suggestions',
-                        ),
                       if (isOwner)
                         IconButton(
                           icon: const Icon(Icons.settings, color: Colors.white),
@@ -1263,11 +1258,11 @@ class ProfilePageState extends State<ProfilePage> {
               if (isOwner)
                 OutlinedButton(
                   onPressed: () {
-                    // Navigate to create post
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Create post feature coming soon!'),
-                        backgroundColor: Colors.black,
+                    // Navigate to create post page instead of showing a snackbar
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const UploadPostPage(),
                       ),
                     );
                   },
