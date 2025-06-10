@@ -237,7 +237,7 @@ class _NotificationItemState extends State<NotificationItem> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      timeago.format(widget.notification.timestamp),
+                      '${_formatDateTime(widget.notification.timestamp)} · ${timeago.format(widget.notification.timestamp)}',
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).brightness == Brightness.dark 
@@ -456,6 +456,35 @@ class _NotificationItemState extends State<NotificationItem> {
       return isDarkMode 
           ? Colors.black  // Dark mode: black background
           : Colors.white;  // Light mode: white background
+    }
+  }
+  
+  // Format the date and time in a readable format
+  String _formatDateTime(DateTime dateTime) {
+    // Format time as HH:MM AM/PM
+    final hour = dateTime.hour > 12 ? dateTime.hour - 12 : (dateTime.hour == 0 ? 12 : dateTime.hour);
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    final period = dateTime.hour >= 12 ? 'PM' : 'AM';
+    
+    // Format date as Month Day, Year for older dates
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final notificationDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+    
+    if (notificationDate == today) {
+      // If today, just show the time
+      return '$hour:$minute $period';
+    } else if (notificationDate == today.subtract(const Duration(days: 1))) {
+      // If yesterday, show "Yesterday, HH:MM AM/PM"
+      return 'Yesterday, $hour:$minute $period';
+    } else {
+      // For older dates, show full date and time
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final month = months[dateTime.month - 1];
+      final day = dateTime.day;
+      final year = dateTime.year != now.year ? ', ${dateTime.year}' : '';
+      
+      return '$month $day$year, $hour:$minute $period';
     }
   }
 } 
