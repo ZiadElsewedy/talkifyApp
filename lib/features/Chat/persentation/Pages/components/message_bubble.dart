@@ -863,92 +863,107 @@ class _MessageBubbleState extends State<MessageBubble> {
       }
     }
     
-    return GestureDetector(
-      onTap: () {
-        if (widget.message.fileUrl != null) {
+    void handleDocumentTap() {
+      if (widget.message.fileUrl != null) {
+        print("Tapped document: ${widget.message.fileName}");
+        // Adding a small delay to make tap feedback visible
+        Future.delayed(Duration(milliseconds: 50), () {
           _openFile(widget.message.fileUrl!);
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isDarkMode 
-              ? colorScheme.surfaceVariant.withOpacity(0.5)
-              : Colors.grey.withOpacity(0.2),
+        });
+      }
+    }
+    
+    return GestureDetector(
+      onTap: handleDocumentTap,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: handleDocumentTap,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDarkMode 
-                ? colorScheme.primary.withOpacity(0.1) 
-                : Colors.grey.withOpacity(0.3),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 3,
-              offset: Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // File icon with colored background
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+          splashColor: colorScheme.primary.withOpacity(0.2),
+          highlightColor: colorScheme.primary.withOpacity(0.1),
+          child: Ink(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDarkMode 
+                  ? Colors.grey[850]
+                  : Colors.grey.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDarkMode 
+                    ? colorScheme.primary.withOpacity(0.3) 
+                    : Colors.grey.withOpacity(0.3),
+                width: 1.5,
               ),
-              child: Icon(
-                fileIcon,
-                color: iconColor,
-                size: 32,
-              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.message.fileName ?? 'File',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: textColor,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // File icon with colored background
+                Container(
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: iconColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(height: 4),
-                  if (widget.message.fileSize != null)
-                    Text(
-                      _formatFileSize(widget.message.fileSize!),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDarkMode 
-                            ? Colors.grey[400] 
-                            : Colors.grey[600],
+                  child: Icon(
+                    fileIcon,
+                    color: iconColor,
+                    size: 36,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.message.fileName ?? 'File',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                ],
-              ),
+                      const SizedBox(height: 4),
+                      if (widget.message.fileSize != null)
+                        Text(
+                          _formatFileSize(widget.message.fileSize!),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDarkMode 
+                                ? Colors.grey[400] 
+                                : Colors.grey[600],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.open_in_new,
+                    size: 20,
+                    color: colorScheme.primary,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: colorScheme.primary.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.file_download_outlined,
-                size: 16,
-                color: colorScheme.primary,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -1008,75 +1023,119 @@ class _MessageBubbleState extends State<MessageBubble> {
 
   Future<void> _openFile(String fileUrl) async {
     try {
-      final Uri url = Uri.parse(fileUrl);
-      
       // Show loading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
                 ),
-              ),
-              SizedBox(width: 16),
-              Text('Opening file...'),
-            ],
+                SizedBox(width: 16),
+                Text('Opening document...'),
+              ],
+            ),
+            duration: Duration(seconds: 2),
           ),
-          duration: Duration(seconds: 2),
-        ),
-      );
+        );
+      }
 
-      // Check file extension from fileName
+      // Get file extension
       String extension = '';
       if (widget.message.fileName != null && widget.message.fileName!.contains('.')) {
         extension = widget.message.fileName!.split('.').last.toLowerCase();
       }
+
+      // Get document metadata
+      final String? fileExtension = widget.message.metadata?['fileExtension'] as String?;
+      final bool isDocumentType = widget.message.type == MessageType.document;
+      final bool isPdf = extension == 'pdf' || fileExtension == 'pdf';
       
-      // Specifically handle PDFs and documents
-      if ((extension == 'pdf' || widget.message.type == MessageType.document) && 
-          widget.message.fileName != null) {
+      print("Opening file: ${widget.message.fileName}, URL: $fileUrl");
+      print("Extension: $extension, FileExtension: $fileExtension, isDocumentType: $isDocumentType, isPdf: $isPdf");
+      
+      // For documents, PDFs, and all files with names, use the document viewer
+      if (widget.message.fileName != null) {
+        // Force a short delay for UI feedback
+        await Future.delayed(const Duration(milliseconds: 200));
         
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DocumentViewerPage(
-              documentUrl: fileUrl,
-              fileName: widget.message.fileName!,
+        try {
+          // Open the document viewer
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              fullscreenDialog: true,
+              builder: (context) => DocumentViewerPage(
+                documentUrl: fileUrl,
+                fileName: widget.message.fileName!,
+              ),
             ),
-          ),
-        );
-        return;
+          );
+          return;
+        } catch (e) {
+          print("Error opening document viewer: $e");
+          // Fall through to external app opening if the document viewer fails
+        }
       }
       
-      // For other files, try to open with external app
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        // If can't launch directly, show error message with download option
-        if (!mounted) return;
-        
+      // Try external app opening as fallback
+      final Uri url = Uri.parse(fileUrl);
+      bool launched = false;
+      
+      try {
+        // Try to open directly in external app
+        if (await canLaunchUrl(url)) {
+          launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+        }
+      } catch (e) {
+        print("Error launching in external app: $e");
+      }
+      
+      // If that fails, try other launch modes
+      if (!launched) {
+        try {
+          launched = await launchUrl(url, mode: LaunchMode.externalNonBrowserApplication);
+        } catch (e) {
+          print("Error launching in non-browser mode: $e");
+        }
+      }
+      
+      if (!launched) {
+        try {
+          launched = await launchUrl(url);
+        } catch (e) {
+          print("Error launching with default mode: $e");
+        }
+      }
+      
+      // If all attempts fail, show download option
+      if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Cannot open this file type directly'),
+            content: const Text('Could not open document directly. Try downloading it.'),
             action: SnackBarAction(
               label: 'DOWNLOAD',
-              onPressed: () => _downloadFile(fileUrl, widget.message.fileName ?? 'download'),
+              onPressed: () => _downloadFile(fileUrl, widget.message.fileName ?? 'document'),
             ),
+            duration: const Duration(seconds: 5),
           ),
         );
       }
     } catch (e) {
-      // Handle errors
-      if (!mounted) return;
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error opening file: $e')),
-      );
+      print("Error in _openFile: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening document: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
   

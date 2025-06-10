@@ -47,15 +47,13 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
     });
 
     try {
+      print("Loading document: ${widget.fileName}, URL: ${widget.documentUrl}");
+      
       // Check file extension
       final fileExtension = _getFileExtension(widget.fileName).toLowerCase();
       _isPdf = fileExtension == 'pdf';
       
-      // If not PDF, open in external app
-      if (!_isPdf) {
-        _openInExternalApp(widget.documentUrl);
-        return;
-      }
+      print("Document file extension: $fileExtension, isPdf: $_isPdf");
       
       // Clean up URL (remove any query parameters)
       String cleanUrl = widget.documentUrl;
@@ -63,15 +61,66 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         cleanUrl = cleanUrl.split('?')[0];
       }
       
-      // Download the file with retry mechanism
-      await _downloadWithRetry(cleanUrl);
+      // Always try to download the file first
+      bool downloadSuccess = false;
+      try {
+        // Download the file with retry mechanism
+        await _downloadWithRetry(cleanUrl);
+        downloadSuccess = _localFilePath != null;
+        print("Document download ${downloadSuccess ? 'successful' : 'failed'}: $_localFilePath");
+      } catch (e) {
+        print("Error downloading document: $e");
+        downloadSuccess = false;
+      }
+      
+      // If download failed or for non-PDF files, try external app
+      if (!downloadSuccess || !_isPdf) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          
+          // Show option to open in external app for non-PDFs
+          if (!_isPdf) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('This document type works better in external apps'),
+                action: SnackBarAction(
+                  label: 'OPEN',
+                  onPressed: () => _openInExternalApp(widget.documentUrl),
+                ),
+                duration: Duration(seconds: 5),
+              ),
+            );
+          }
+          
+          // For failed downloads, try external app immediately
+          if (!downloadSuccess) {
+            await Future.delayed(Duration(milliseconds: 500));
+            _openInExternalApp(widget.documentUrl);
+          }
+        }
+      }
       
     } catch (e) {
+      print("Error loading document: $e");
       if (mounted) {
         setState(() {
           _errorMessage = 'Error loading document: $e';
           _isLoading = false;
         });
+        
+        // If there's an error, still try external app
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error viewing document internally. Try external app.'),
+            action: SnackBarAction(
+              label: 'OPEN',
+              onPressed: () => _openInExternalApp(widget.documentUrl),
+            ),
+            duration: Duration(seconds: 5),
+          ),
+        );
       }
     }
   }
@@ -142,22 +191,44 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
   
   Future<void> _openInExternalApp(String url) async {
     try {
+      print("Attempting to open URL in external app: $url");
       final uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        // Go back after launching external app
-        if (mounted) {
-          Navigator.pop(context);
+      
+      // First try to open in external application mode
+      bool launched = false;
+      try {
+        if (await canLaunchUrl(uri)) {
+          launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
         }
-      } else {
-        if (mounted) {
-          setState(() {
-            _errorMessage = 'Could not open this file type. No app available to handle it.';
-            _isLoading = false;
-          });
+      } catch (e) {
+        print("Error opening in external application mode: $e");
+      }
+      
+      // If that failed, try to open in external non-browser app
+      if (!launched) {
+        try {
+          launched = await launchUrl(uri, mode: LaunchMode.externalNonBrowserApplication);
+        } catch (e) {
+          print("Error opening in external non-browser mode: $e");
         }
       }
+      
+      // If that failed too, try platform default
+      if (!launched) {
+        launched = await launchUrl(uri);
+      }
+      
+      // Go back after launching external app if successful
+      if (mounted && launched) {
+        Navigator.pop(context);
+      } else if (mounted) {
+        setState(() {
+          _errorMessage = 'Could not open this file. Try downloading it instead.';
+          _isLoading = false;
+        });
+      }
     } catch (e) {
+      print("Error opening document: $e");
       if (mounted) {
         setState(() {
           _errorMessage = 'Error opening document: $e';
@@ -288,34 +359,37 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    
     return Scaffold(
       appBar: AppBar(
         title: Text(
           widget.fileName,
-          style: const TextStyle(fontSize: 16),
+          style: TextStyle(fontSize: 16),
           overflow: TextOverflow.ellipsis,
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: isDarkMode ? colorScheme.surface : Colors.white,
+        foregroundColor: isDarkMode ? colorScheme.onSurface : Colors.black,
         elevation: 1,
         actions: [
           if (!_isLoading && _localFilePath != null)
             IconButton(
               icon: _isDownloading 
-                ? const SizedBox(
+                ? SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                      valueColor: AlwaysStoppedAnimation<Color>(isDarkMode ? Colors.white : Colors.black),
                     ),
                   )
-                : const Icon(Icons.download),
+                : Icon(Icons.download),
               onPressed: _isDownloading ? null : _downloadDocument,
               tooltip: 'Download document',
             ),
           IconButton(
-            icon: const Icon(Icons.open_in_new),
+            icon: Icon(Icons.open_in_new),
             onPressed: () => _openInExternalApp(widget.documentUrl),
             tooltip: 'Open in external app',
           ),
@@ -341,6 +415,9 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
     }
 
     if (_errorMessage != null) {
+      final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+      final ColorScheme colorScheme = Theme.of(context).colorScheme;
+      
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -350,7 +427,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
               Icon(
                 Icons.error_outline,
                 size: 64,
-                color: Colors.red[300],
+                color: colorScheme.error,
               ),
               const SizedBox(height: 16),
               Text(
@@ -358,7 +435,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
+                  color: isDarkMode ? colorScheme.onSurface : Colors.grey[800],
                 ),
               ),
               const SizedBox(height: 8),
@@ -366,22 +443,24 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
                 _errorMessage!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: isDarkMode ? colorScheme.onSurfaceVariant : Colors.grey[600],
                 ),
               ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _loadDocument,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
                 ),
                 child: const Text('Try Again'),
               ),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => _openInExternalApp(widget.documentUrl),
-                child: const Text('Open in External App'),
+                child: Text('Open in External App', 
+                  style: TextStyle(color: colorScheme.primary),
+                ),
               ),
             ],
           ),
@@ -430,6 +509,9 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
     }
 
     // Fallback for non-PDF files
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -437,22 +519,22 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
           Icon(
             Icons.insert_drive_file,
             size: 64,
-            color: Colors.grey[400],
+            color: isDarkMode ? colorScheme.onSurfaceVariant : Colors.grey[400],
           ),
           const SizedBox(height: 16),
           Text(
             'This document type cannot be previewed',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey[800],
+              color: isDarkMode ? colorScheme.onSurface : Colors.grey[800],
             ),
           ),
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () => _openInExternalApp(widget.documentUrl),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
             ),
             child: const Text('Open in External App'),
           ),
@@ -460,8 +542,8 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
           ElevatedButton(
             onPressed: _downloadDocument,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.secondary,
+              foregroundColor: colorScheme.onSecondary,
             ),
             child: const Text('Download Document'),
           ),
@@ -475,9 +557,12 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
       return SizedBox.shrink();
     }
     
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    
     return Container(
       height: 50,
-      color: Colors.black,
+      color: isDarkMode ? colorScheme.primary : Colors.black,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -486,6 +571,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
             onPressed: _currentPage > 0 
                 ? () => _jumpToPage(_currentPage - 1) 
                 : null,
+            disabledColor: Colors.white.withOpacity(0.3),
           ),
           Text(
             'Page ${_currentPage + 1} of $_totalPages',
@@ -496,6 +582,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
             onPressed: _currentPage < _totalPages - 1 
                 ? () => _jumpToPage(_currentPage + 1) 
                 : null,
+            disabledColor: Colors.white.withOpacity(0.3),
           ),
         ],
       ),

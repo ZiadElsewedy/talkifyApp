@@ -242,6 +242,14 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
   
   Future<void> _pickAndSendDocument() async {
     try {
+      // Show selection in progress
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selecting document...'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'csv'],
@@ -254,26 +262,52 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
         
         if (currentUser == null) return;
 
-        // Always use document type for these file extensions
-        context.read<ChatCubit>().sendMediaMessage(
+        // Show upload starting
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Uploading document: ${file.name}'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        // Use document type and add more detailed metadata
+        String extension = '';
+        if (file.extension != null) {
+          extension = file.extension!.toLowerCase();
+        }
+
+        await context.read<ChatCubit>().sendMediaMessage(
           chatRoomId: widget.chatRoom.id,
           senderId: currentUser.id,
           senderName: currentUser.name,
           senderAvatar: currentUser.profilePictureUrl,
           filePath: file.path!,
           fileName: file.name,
-          type: MessageType.document,
+          type: MessageType.document, // Force document type
+          content: "Document: ${file.name}", // Add content
           metadata: {
             'fileSize': file.size,
-            'fileExtension': file.extension,
+            'fileExtension': extension,
+            'documentType': 'document',
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
           },
+        );
+
+        // Show success
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Document sent successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
         );
       }
     } catch (e) {
+      print("Error picking document: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to pick document: $e'), 
-          backgroundColor: Colors.black,
+          backgroundColor: Colors.red,
         ),
       );
     }
@@ -940,21 +974,41 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                       ),
                       Expanded(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: inputFieldBackgroundColor,
-                            borderRadius: BorderRadius.circular(30),
+                            color: Colors.transparent, // Completely transparent background
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey[800]!
+                                : Colors.grey[300]!, // Lighter border
+                              width: 0.5, // Thinner border
+                            ),
                           ),
                           child: TextField(
                             controller: _messageController,
                             maxLines: null,
                             keyboardType: TextInputType.multiline,
                             textCapitalization: TextCapitalization.sentences,
-                            style: TextStyle(color: colorScheme.onSurface),
+                            style: TextStyle(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black87,
+                              fontSize: 16,
+                            ),
                             decoration: InputDecoration(
                               hintText: 'Type a message...',
-                              hintStyle: TextStyle(color: inputFieldHintTextColor),
+                              hintStyle: TextStyle(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
+                                fontSize: 16,
+                              ),
                               border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                              filled: false,
+                              fillColor: Colors.transparent,
                             ),
                           ),
                         ),

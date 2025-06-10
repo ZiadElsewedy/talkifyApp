@@ -199,16 +199,26 @@ class ChatCubit extends Cubit<ChatState> {
     try {
       // Check if we need to determine the file type based on extension
       MessageType finalType = type;
-      if (type == MessageType.file && fileName.contains('.')) {
-        final extension = fileName.split('.').last;
+      if ((type == MessageType.file || type == MessageType.document) && fileName.contains('.')) {
+        final extension = fileName.split('.').last.toLowerCase();
         finalType = MessageTypeHelper.getTypeFromFileExtension(extension);
+        
+        // Force document type for PDFs and documents
+        if (extension == 'pdf' || 
+            extension == 'doc' || 
+            extension == 'docx' || 
+            extension == 'txt' || 
+            extension == 'ppt' || 
+            extension == 'pptx' || 
+            extension == 'xls' || 
+            extension == 'xlsx') {
+          finalType = MessageType.document;
+        }
         
         // Update metadata with file type info
         metadata ??= {};
         metadata['fileExtension'] = extension;
-        if (finalType == MessageType.document) {
-          metadata['documentType'] = MessageTypeHelper.getFileIconName(finalType, extension);
-        }
+        metadata['documentType'] = MessageTypeHelper.getFileIconName(finalType, extension);
       }
 
       // If the file path is already a URL (starting with http/https), don't upload again
