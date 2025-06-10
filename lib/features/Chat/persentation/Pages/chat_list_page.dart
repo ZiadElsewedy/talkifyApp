@@ -325,12 +325,12 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                       isScrollable: true,
                       labelStyle: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 15,
                         letterSpacing: 0.2,
                       ),
                       unselectedLabelStyle: const TextStyle(
                         fontWeight: FontWeight.w500,
-                        fontSize: 16,
+                        fontSize: 15,
                         letterSpacing: 0.2,
                       ),
                       tabs: [
@@ -508,7 +508,7 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                             backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
                         child: ListView.builder(
                           itemCount: _filteredChatRooms.length,
-                              padding: const EdgeInsets.only(top: 12, bottom: 80),
+                              padding: const EdgeInsets.only(top: 4, bottom: 80),
                               physics: const AlwaysScrollableScrollPhysics(),
                           itemBuilder: (context, index) {
                             final chatRoom = _filteredChatRooms[index];
@@ -610,10 +610,10 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 48;
+  double get maxExtent => 42;
 
   @override
-  double get minExtent => 48;
+  double get minExtent => 42;
 
   @override
   bool shouldRebuild(covariant _SliverAppBarDelegate oldDelegate) {

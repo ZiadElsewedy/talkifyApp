@@ -60,6 +60,7 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
         imageUrl: post.imageUrl,
         timestamp: post.timestamp,
         likes: post.likes,
+        dislikes: post.dislikes,
         comments: post.comments,
         savedBy: post.savedBy,
         isVideo: post.isVideo,
@@ -364,6 +365,73 @@ final CollectionReference postsCollection = FirebaseFirestore.instance.collectio
     } catch (e) {
       print('Error in toggleLikePost: $e');
       throw Exception("Error toggling like: $e");
+    }
+  }
+
+  @override
+  Future<void> toggleDislikePost(String postId, String userId) async {
+    try {
+      // Validate parameters
+      if (postId.isEmpty || userId.isEmpty) {
+        throw Exception("Invalid parameters: postId or userId is empty");
+      }
+      
+      // Get the post document from firestore
+      final postDoc = await postsCollection.doc(postId).get();
+      if (postDoc.exists) {
+        final data = postDoc.data() as Map<String, dynamic>;
+        
+        // Ensure 'dislikes' field exists and is a List
+        List<String> dislikes = [];
+        if (data.containsKey('dislikes')) {
+          // Convert all items to String to avoid type issues
+          dislikes = (data['dislikes'] as List?)
+              ?.map((item) => item?.toString() ?? "")
+              .where((item) => item.isNotEmpty)
+              .toList() ?? [];
+        }
+        
+        // Ensure 'likes' field exists and is a List
+        List<String> likes = [];
+        if (data.containsKey('likes')) {
+          // Convert all items to String to avoid type issues
+          likes = (data['likes'] as List?)
+              ?.map((item) => item?.toString() ?? "")
+              .where((item) => item.isNotEmpty)
+              .toList() ?? [];
+        }
+        
+        // Check if user has already disliked this post
+        final hasDisliked = dislikes.contains(userId);
+        final postOwnerId = data['UserId'] as String;
+        
+        // Update the dislikes list
+        if (hasDisliked) {
+          // User is removing their dislike
+          dislikes.remove(userId);
+        } else {
+          // User is disliking the post
+          dislikes.add(userId);
+          
+          // Remove from likes if user had liked the post (can't like and dislike at the same time)
+          if (likes.contains(userId)) {
+            likes.remove(userId);
+          }
+        }
+        
+        // Update the post document with the new dislikes and likes lists
+        await postsCollection.doc(postId).update({
+          'dislikes': dislikes,
+          'likes': likes,
+        });
+        
+        print('Updated post $postId: User $userId toggled dislike');
+      } else {
+        throw Exception("Post not found");
+      }
+    } catch (e) {
+      print('Error in toggleDislikePost: $e');
+      throw Exception("Error toggling dislike: $e");
     }
   }
 

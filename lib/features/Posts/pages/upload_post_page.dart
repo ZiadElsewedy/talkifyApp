@@ -209,6 +209,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
         likes: [],
         comments: [],
         savedBy: [],
+        dislikes: [],
         isVideo: isVideo,
         localFilePath: localFilePath,
     );

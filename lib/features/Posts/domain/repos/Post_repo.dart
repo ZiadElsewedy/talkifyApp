@@ -11,6 +11,7 @@ abstract class PostRepo {
   // fetch posts by category (trending, latest, etc.)
   Future <List<Post>> fetchPostsByCategory(String category, {int limit = 20});
   Future <void> toggleLikePost(String postId, String userId);
+  Future <void> toggleDislikePost(String postId, String userId);
   Future <void> addComment(String postId, String userId, String userName, String profilePicture, String content);
   Future <void> deleteComment(String postId, String commentId);
   Future<void> updatePostCaption(String postId, String newCaption);

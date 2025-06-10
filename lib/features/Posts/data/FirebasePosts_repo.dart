@@ -95,6 +95,68 @@ class FirebasePosts_repo implements PostRepo {
     }
   }
   
+  @override
+  Future<bool> toggleDislikePost(String postId, String userId) async {
+    try {
+      DocumentReference postRef = firestore.collection('posts').doc(postId);
+
+      return await firestore.runTransaction((transaction) async {
+        DocumentSnapshot postSnapshot = await transaction.get(postRef);
+
+        if (!postSnapshot.exists) {
+          throw Exception('Post does not exist');
+        }
+
+        Map<String, dynamic>? postData = postSnapshot.data() as Map<String, dynamic>?;
+        List<String> dislikes = List<String>.from(postData?['dislikes'] ?? []);
+        List<String> likes = List<String>.from(postData?['likes'] ?? []);
+        bool isDisliked = dislikes.contains(userId);
+        bool didDislike = false;
+
+        if (isDisliked) {
+          // Remove dislike
+          dislikes.remove(userId);
+          didDislike = false;
+        } else {
+          // Add dislike and remove like if exists (can't like and dislike at the same time)
+          dislikes.add(userId);
+          didDislike = true;
+          
+          // Remove from likes if present
+          if (likes.contains(userId)) {
+            likes.remove(userId);
+            
+            // Try to remove like notification if it exists
+            try {
+              String postOwnerId = postData?['UserId'] ?? '';
+              if (postOwnerId.isNotEmpty) {
+                await _notificationService.removeLikeNotification(
+                  likerId: userId,
+                  postOwnerId: postOwnerId,
+                  postId: postId
+                );
+              }
+            } catch (e) {
+              print('Error removing like notification: $e');
+              // Continue with dislike operation even if notification removal fails
+            }
+          }
+        }
+
+        // Update the post document with new dislikes and likes arrays
+        transaction.update(postRef, {
+          'dislikes': dislikes,
+          'likes': likes
+        });
+        
+        return didDislike; // Return true if now disliked, false if now un-disliked
+      });
+    } catch (e) {
+      print('Error toggling dislike on post: $e');
+      rethrow;
+    }
+  }
+  
   // Implement other required methods from PostRepo interface
   @override
   Future<List<Post>> fetechAllPosts() {

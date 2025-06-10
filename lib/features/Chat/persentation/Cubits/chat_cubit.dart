@@ -402,11 +402,9 @@ class ChatCubit extends Cubit<ChatState> {
       // Emit the updated message list with the deleted message removed
       emit(MessageDeleted(currentMessages));
       
-      // If chat is now empty, ensure we keep the MessagesLoaded state with an empty list
-      // This prevents the UI from disappearing
-      if (currentMessages.isEmpty) {
-        emit(MessagesLoaded([]));
-      }
+      // Always emit MessagesLoaded state after deletion to ensure UI consistency
+      // This will handle both empty and non-empty lists properly
+      emit(MessagesLoaded(currentMessages));
       
       // Get the audio handler and clean up after message deletion is complete
       // Use microtask to ensure this happens after the current execution
@@ -496,7 +494,6 @@ class ChatCubit extends Cubit<ChatState> {
     required String userId,
   }) async {
     if (isClosed) return; // Don't proceed if cubit is closed
-    emit(ChatLoading());
     
     try {
       await chatRepo.hideChatAndDeleteHistoryForUser(

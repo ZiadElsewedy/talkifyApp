@@ -395,6 +395,67 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
     );
   }
   
+  // Send system message
+  void _sendSystemMessage() {
+    // Implementation
+  }
+  
+  // Helper method to check if we need to show a date header
+  bool _shouldShowDateHeader(int index) {
+    if (index == 0) return true;
+    
+    final currentMessageDate = _messages[index].timestamp;
+    final previousMessageDate = _messages[index - 1].timestamp;
+    
+    return !_isSameDay(currentMessageDate, previousMessageDate);
+  }
+  
+  // Helper method to check if two dates are the same day
+  bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year && 
+           date1.month == date2.month && 
+           date1.day == date2.day;
+  }
+  
+  // Build a date header widget
+  Widget _buildDateHeader(DateTime date) {
+    final now = DateTime.now();
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    
+    String dateText;
+    if (_isSameDay(date, now)) {
+      dateText = 'Today';
+    } else if (_isSameDay(date, yesterday)) {
+      dateText = 'Yesterday';
+    } else {
+      dateText = '${date.day}/${date.month}/${date.year}';
+    }
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      alignment: Alignment.center,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey[800]
+              : Colors.grey[200],
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        child: Text(
+          dateText,
+          style: TextStyle(
+            fontSize: 12.0,
+            fontWeight: FontWeight.w500,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white70
+                : Colors.black54,
+          ),
+        ),
+      ),
+    );
+  }
+  
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -474,7 +535,9 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
             context.read<ChatCubit>().loadMessages(_chatRoom!.id);
           } else if (state is MessagesLoaded) {
             setState(() {
-              _messages = state.messages;
+              // Sort messages by timestamp to ensure chronological order
+              _messages = List.from(state.messages)
+                ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
               _isLoading = false;
             });
             // Scroll to bottom after messages are loaded
@@ -544,12 +607,23 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
                           final currentUser = context.read<AuthCubit>().GetCurrentUser();
                           final bool isMe = currentUser?.id == message.senderId;
                           
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: MessageBubble(
-                              message: message,
-                              isFromCurrentUser: isMe,
-                            ),
+                          // Add date header if this is a new day or first message
+                          Widget? dateHeader;
+                          if (index == 0 || _shouldShowDateHeader(index)) {
+                            dateHeader = _buildDateHeader(message.timestamp);
+                          }
+                          
+                          return Column(
+                            children: [
+                              if (dateHeader != null) dateHeader,
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8.0),
+                                child: MessageBubble(
+                                  message: message,
+                                  isFromCurrentUser: isMe,
+                                ),
+                              ),
+                            ],
                           );
                         },
                       ),

@@ -48,6 +48,13 @@ class _PostTileState extends State<PostTile> with TickerProviderStateMixin {
   late AnimationController _scaleAnimationController;
   late Animation<double> _scaleAnimation;
   
+  // Triple tap love feature
+  int _tapCount = 0;
+  DateTime? _lastTapTime;
+  static const _tapTimeThreshold = Duration(milliseconds: 500); // Time window for counting taps
+  late AnimationController _loveAnimationController;
+  bool _showLoveAnimation = false;
+  
   // Video player controller
   VideoPlayerController? _videoController;
   bool _isVideoInitialized = false;
@@ -84,6 +91,12 @@ class _PostTileState extends State<PostTile> with TickerProviderStateMixin {
       parent: _scaleAnimationController,
       curve: Curves.easeInOut,
     ));
+    
+    // Initialize love animation controller
+    _loveAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
     
     // Initialize video controller if needed
     if (widget.post.isVideo && widget.post.imageUrl.isNotEmpty) {
@@ -169,6 +182,12 @@ void toggleLikePost(){
     }
     else{
       widget.post.likes.add(currentUser!.id); // liked
+      
+      // If the post was disliked, remove the dislike
+      if (widget.post.dislikes.contains(currentUser!.id)) {
+        widget.post.dislikes.remove(currentUser!.id);
+      }
+      
       _likeAnimationController.forward().then((_) {
         _likeAnimationController.reverse();
       });
@@ -194,6 +213,107 @@ void toggleLikePost(){
       SnackBar(content: Text('Failed to update like: ${error.toString()}'))
     );
   });
+}
+
+// user tapped dislike button 
+void toggleDislikePost(){
+  // Check if user is logged in
+  if (currentUser == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please log in to dislike posts'))
+    );
+    return;
+  }
+
+  // current dislike status 
+  final isDisliked = widget.post.dislikes.contains(currentUser!.id);
+
+  // optimistically dislike & update UI 
+  setState(() {
+    if (isDisliked){
+      widget.post.dislikes.remove(currentUser!.id); // un-disliked
+    }
+    else{
+      widget.post.dislikes.add(currentUser!.id); // disliked
+      
+      // If the post was liked, remove the like
+      if (widget.post.likes.contains(currentUser!.id)) {
+        widget.post.likes.remove(currentUser!.id);
+      }
+    }
+  });
+
+  // update dislike in database
+  postCubit.toggleDislikePost(widget.post.id, currentUser!.id).catchError((error){
+    print('Error toggling dislike: $error');
+    
+    // if there's an error, revert back to original values
+    setState(() {
+      if (isDisliked){
+        widget.post.dislikes.add(currentUser!.id); // revert un-dislike 
+      }
+      else{
+        widget.post.dislikes.remove(currentUser!.id); // revert dislike 
+      }
+    });
+    
+    // Show error to user
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to update dislike: ${error.toString()}'))
+    );
+  });
+}
+
+// Handle triple tap for love animation
+void handlePostTap() {
+  if (currentUser == null) return;
+  
+  final now = DateTime.now();
+  
+  // Check if this is a new tap sequence or continuing an existing one
+  if (_lastTapTime == null || now.difference(_lastTapTime!) > _tapTimeThreshold) {
+    _tapCount = 1;
+  } else {
+    _tapCount++;
+  }
+  
+  _lastTapTime = now;
+  
+  // If it's the third tap, trigger the love animation and like
+  if (_tapCount == 3) {
+    setState(() {
+      _showLoveAnimation = true;
+      
+      // Like the post if not already liked
+      if (!widget.post.likes.contains(currentUser!.id)) {
+        // Remove from dislikes if it was disliked
+        if (widget.post.dislikes.contains(currentUser!.id)) {
+          widget.post.dislikes.remove(currentUser!.id);
+        }
+        
+        // Add to likes
+        widget.post.likes.add(currentUser!.id);
+        
+        // Update in database
+        postCubit.toggleLikePost(widget.post.id, currentUser!.id);
+      }
+    });
+    
+    // Play the animation and hide it after completion
+    _loveAnimationController.forward().then((_) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          setState(() {
+            _showLoveAnimation = false;
+          });
+          _loveAnimationController.reset();
+        }
+      });
+    });
+    
+    // Reset tap count
+    _tapCount = 0;
+  }
 }
 
 /*
@@ -495,6 +615,7 @@ void addComment() async {
     commentController.dispose();
     _likeAnimationController.dispose();
     _scaleAnimationController.dispose();
+    _loveAnimationController.dispose();
     _videoController?.dispose();
     _hideControlsTimer?.cancel();
     
@@ -681,23 +802,64 @@ void addComment() async {
               return Transform.scale(
                 scale: _scaleAnimation.value,
                 child: GestureDetector(
-                  onTapDown: _onTapDown,
-                  onTapUp: _onTapUp,
-                  onTapCancel: _onTapCancel,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  onTap: handlePostTap,
+                  child: Stack(
                     children: [
-                      _buildHeader(),
-                      if (widget.post.Text.isNotEmpty) _buildTextContent(),
-                      if (widget.post.imageUrl.isNotEmpty) 
-                        widget.post.isVideo ? _buildVideoContent() : _buildImageContent(),
+                      Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildHeader(),
+                            if (widget.post.Text.isNotEmpty) _buildTextContent(),
+                            if (widget.post.imageUrl.isNotEmpty) 
+                              widget.post.isVideo ? _buildVideoContent() : _buildImageContent(),
+                            _buildActionBar(),
+                          ],
+                        ),
+                      ),
+                      
+                      // Love animation overlay
+                      if (_showLoveAnimation)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: FadeTransition(
+                              opacity: _loveAnimationController,
+                              child: Center(
+                                child: ScaleTransition(
+                                  scale: Tween<double>(begin: 0.5, end: 2.0).animate(
+                                    CurvedAnimation(
+                                      parent: _loveAnimationController, 
+                                      curve: Curves.elasticOut
+                                    )
+                                  ),
+                                  child: const Icon(
+                                    Icons.favorite,
+                                    color: Colors.red,
+                                    size: 100,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
               );
             },
           ),
-          _buildActionBar(),
         ],
       ),
     );
@@ -1553,6 +1715,7 @@ void addComment() async {
 
   Widget _buildActionBar() {
     final isLiked = widget.post.likes.contains(currentUser?.id);
+    final isDisliked = widget.post.dislikes.contains(currentUser?.id);
     final isSaved = widget.post.savedBy.contains(currentUser?.id);
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final Color savedBg = isDarkMode ? Colors.blue[900]! : Colors.blue.shade50;
@@ -1573,7 +1736,15 @@ void addComment() async {
             onTap: toggleLikePost,
             isAnimated: true,
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 16),
+          _buildActionButton(
+            icon: isDisliked ? Icons.thumb_down : Icons.thumb_down_outlined,
+            color: isDisliked ? Colors.blue : Colors.grey.shade600,
+            count: widget.post.dislikes.length,
+            onTap: toggleDislikePost,
+            isAnimated: false,
+          ),
+          const SizedBox(width: 16),
           _buildActionButton(
             icon: CupertinoIcons.chat_bubble,
             color: Colors.grey.shade600,
@@ -1592,7 +1763,7 @@ void addComment() async {
               );
             },
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 16),
           _buildActionButton(
             icon: CupertinoIcons.share,
             color: Colors.grey.shade600,

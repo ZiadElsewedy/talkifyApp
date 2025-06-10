@@ -181,6 +181,19 @@ class PostCubit extends Cubit<PostState> {
     }
   }
 
+  // toggle dislike in a post 
+  Future<void> toggleDislikePost(String postId, String userId) async {
+    try {
+      // Update the dislike status in the database
+      await _postRepo.toggleDislikePost(postId, userId);
+      
+      // No need to refresh all posts, the UI can handle the update
+    } catch (e) {
+      print('Error toggling dislike: $e');
+      throw Exception('Failed to toggle dislike: $e');
+    }
+  }
+
   // add a comment to a post without refreshing the entire page
   Future<void> addCommentLocal(String postId, String userId, String userName, String profilePicture, String content) async {
     try {

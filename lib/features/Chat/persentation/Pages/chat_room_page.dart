@@ -755,30 +755,17 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
                     });
                     _scrollToBottomOnNewMessages();
                   } else if (state is MessageDeleted) {
-                    // Find and remove deleted messages from local list
-                    if (mounted) {
-                      setState(() {
-                        // Filter out deleted messages from our local list
-                        // The state now provides the updated message list
-                        _messages
-                          ..clear()
-                          ..addAll(state.messages);
-                      });
+                    // Show a snackbar for successful message deletion
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Message deleted', style: TextStyle(color: snackBarTextColor)),
+                        backgroundColor: snackBarBackgroundColor,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
                     
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Message deleted permanently', style: TextStyle(color: snackBarTextColor)),
-                          backgroundColor: snackBarBackgroundColor,
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                      
-                      // If we deleted the last message, ensure the UI stays in a valid state
-                      if (_messages.isEmpty) {
-                        // Load messages again to ensure proper state
-                        context.read<ChatCubit>().loadMessages(widget.chatRoom.id);
-                      }
-                    }
+                    // Note: We don't need to update _messages here, as MessagesLoaded
+                    // will be emitted right after MessageDeleted state
                   } else if (state is SendMessageError) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(

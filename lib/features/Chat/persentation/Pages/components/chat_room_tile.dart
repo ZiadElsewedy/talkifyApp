@@ -157,7 +157,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
       child: SlideTransition(
         position: _slideAnimation,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
           child: Material(
             color: Colors.transparent,
             borderRadius: BorderRadius.circular(12),
