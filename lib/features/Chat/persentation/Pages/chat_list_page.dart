@@ -229,10 +229,21 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
               backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.white,
               title: _isSearching
                   ? Container(
+                      width: screenWidth * 0.85,
                       margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                       decoration: BoxDecoration(
-                        color: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF8F9FA),
+                        gradient: isDarkMode 
+                          ? LinearGradient(
+                              colors: [const Color(0xFF1E1E1E), const Color(0xFF252525)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : LinearGradient(
+                              colors: [Colors.white, const Color(0xFFF8F9FA)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
                         borderRadius: BorderRadius.circular(30),
                         border: Border.all(
                           color: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFE5E7EB),
@@ -240,8 +251,9 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.04),
-                            blurRadius: 8,
+                            color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.06),
+                            blurRadius: 10,
+                            spreadRadius: 0,
                             offset: const Offset(0, 2),
                           ),
                         ],
@@ -251,17 +263,31 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                         decoration: InputDecoration(
                           hintText: 'Search conversations...',
                           hintStyle: TextStyle(
-                            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                            color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
                             fontSize: 15,
                             fontWeight: FontWeight.w400,
                           ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(25),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(25),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(25),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: isDarkMode ? const Color(0xFF252525) : Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                           prefixIcon: Container(
                             padding: const EdgeInsets.all(8),
+                            margin: const EdgeInsets.only(left: 4),
                             child: Icon(
                               Icons.search_rounded,
-                              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                              color: isDarkMode ? Colors.grey[400] : const Color(0xFF6B7280),
                               size: 20,
                             ),
                           ),
@@ -273,15 +299,18 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                                   },
                                   child: Container(
                                     padding: const EdgeInsets.all(8),
+                                    margin: const EdgeInsets.only(right: 4),
                                     child: Container(
                                       decoration: BoxDecoration(
-                                        color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                                        color: isDarkMode 
+                                          ? const Color(0xFF3A3A3A)
+                                          : const Color(0xFFE5E7EB),
                                         shape: BoxShape.circle,
                                       ),
                                       padding: const EdgeInsets.all(4),
                                       child: Icon(
                                         Icons.close,
-                                        color: isDarkMode ? Colors.black : Colors.white,
+                                        color: isDarkMode ? Colors.white : Colors.black87,
                                         size: 14,
                                       ),
                                     ),
@@ -312,42 +341,76 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                       ],
                     ),
               actions: [
-                if (!_isSearching)
+                if (_isSearching)
                   Container(
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
-                      color: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF8F9FA),
-                      borderRadius: BorderRadius.circular(12),
+                      gradient: isDarkMode 
+                        ? LinearGradient(
+                            colors: [const Color(0xFF1E1E1E), const Color(0xFF252525)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : LinearGradient(
+                            colors: [Colors.white, const Color(0xFFF8F9FA)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFE5E7EB),
                         width: 1,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.06),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: IconButton(
                       onPressed: _toggleSearch,
                       icon: Icon(
-                        Icons.search_rounded,
+                        Icons.close_rounded,
                         color: isDarkMode ? Colors.white : Colors.black,
                         size: 20,
                       ),
                       splashRadius: 18,
                     ),
                   ),
-                if (_isSearching)
+                if (!_isSearching)
                   Container(
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
-                      color: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF8F9FA),
-                      borderRadius: BorderRadius.circular(12),
+                      gradient: isDarkMode 
+                        ? LinearGradient(
+                            colors: [const Color(0xFF1E1E1E), const Color(0xFF252525)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : LinearGradient(
+                            colors: [Colors.white, const Color(0xFFF8F9FA)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFE5E7EB),
                         width: 1,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.06),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: IconButton(
                       onPressed: _toggleSearch,
                       icon: Icon(
-                        Icons.close_rounded,
+                        Icons.search_rounded,
                         color: isDarkMode ? Colors.white : Colors.black,
                         size: 20,
                       ),
