@@ -17,6 +17,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/document_viewer_page.dart';
+import 'package:talkifyapp/features/Chat/persentation/Pages/components/audio_message_player.dart';
 
 class MessageBubble extends StatefulWidget {
   final Message message;
@@ -781,6 +782,15 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 
   Widget _buildAudioMessage(BuildContext context, Color textColor) {
+    // Check if audio URL is available
+    if (widget.message.fileUrl != null) {
+      return AudioMessagePlayer(
+        message: widget.message,
+        isCurrentUser: widget.isFromCurrentUser,
+      );
+    }
+    
+    // Fallback if no audio URL is available
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(

@@ -16,10 +16,12 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   late SearchCubit _searchCubit;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  bool _isFocused = false;
 
   // Define color constants
   static const Color primaryBlack = Color(0xFF1A1A1A);
@@ -34,7 +36,7 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
     
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 400),
     );
     
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -50,14 +52,21 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
     ).animate(
       CurvedAnimation(
         parent: _animationController,
-        curve: Curves.easeOut,
+        curve: Curves.easeOutCubic,
       ),
     );
+    
+    _searchFocusNode.addListener(() {
+      setState(() {
+        _isFocused = _searchFocusNode.hasFocus;
+      });
+    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -79,10 +88,14 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
     final appBarBg = isDarkMode ? colorScheme.surface : Colors.white;
     final appBarText = colorScheme.inversePrimary;
     final searchBg = isDarkMode ? Colors.grey[900]! : lightGrey;
-    final searchBorder = isDarkMode ? Colors.grey[800]! : mediumGrey;
+    final searchBorder = _isFocused 
+        ? (isDarkMode ? colorScheme.primary.withOpacity(0.7) : colorScheme.primary.withOpacity(0.5))
+        : (isDarkMode ? Colors.grey[800]! : mediumGrey);
     final searchText = isDarkMode ? Colors.white : primaryBlack;
     final searchHint = isDarkMode ? Colors.grey[500]! : darkGrey;
-    final searchIcon = isDarkMode ? Colors.grey[400]! : darkGrey;
+    final searchIcon = _isFocused
+        ? (isDarkMode ? colorScheme.primary.withOpacity(0.9) : colorScheme.primary)
+        : (isDarkMode ? Colors.grey[400]! : darkGrey);
     final cardBg = isDarkMode ? Colors.grey[900]! : Colors.white;
     final cardBorder = isDarkMode ? Colors.grey[800]! : mediumGrey;
     final avatarBg = isDarkMode ? Colors.grey[800]! : lightGrey;
@@ -95,51 +108,121 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
     return Scaffold(
       backgroundColor: scaffoldBg,
       appBar: AppBar(
-        backgroundColor: appBarBg,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Container(
-          height: 45,
-          decoration: BoxDecoration(
-            color: searchBg,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: searchBorder, width: 1),
-          ),
-          child: TextField(
-            controller: _searchController,
-            style: TextStyle(
-              color: searchText,
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
+        titleSpacing: 0,
+        leading: BackButton(color: colorScheme.inversePrimary),
+        title: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: 48,
+            decoration: BoxDecoration(
+              color: searchBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: searchBorder, width: _isFocused ? 1.5 : 1),
+              boxShadow: [
+                BoxShadow(
+                  color: _isFocused 
+                      ? colorScheme.primary.withOpacity(0.15)
+                      : Colors.black.withOpacity(0.08),
+                  blurRadius: _isFocused ? 8 : 6,
+                  offset: const Offset(0, 3),
+                  spreadRadius: _isFocused ? 2 : 1,
+                ),
+              ],
             ),
-            decoration: InputDecoration(
-              hintText: 'Search users...',
-              hintStyle: TextStyle(
-                color: searchHint,
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
+            clipBehavior: Clip.antiAlias,
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(24),
+              child: TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                style: TextStyle(
+                  color: searchText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.2,
+                ),
+                textAlignVertical: TextAlignVertical.center,
+                cursorColor: colorScheme.primary,
+                cursorWidth: 1.5,
+                cursorRadius: const Radius.circular(4),
+                decoration: InputDecoration(
+                  hintText: 'Search users...',
+                  hintStyle: TextStyle(
+                    color: searchHint,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  prefixIcon: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Icon(
+                      _isFocused ? Icons.search : Icons.search_outlined,
+                      color: searchIcon,
+                      size: _isFocused ? 26 : 24,
+                    ),
+                  ),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: _isFocused
+                                ? (isDarkMode ? Colors.grey[700] : Colors.grey[300])
+                                : (isDarkMode ? Colors.grey[800] : Colors.grey[200]),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            shape: const CircleBorder(),
+                            clipBehavior: Clip.hardEdge,
+                            child: InkWell(
+                              onTap: () {
+                                _searchController.clear();
+                                _performSearch('');
+                                _searchFocusNode.unfocus();
+                              },
+                              splashColor: colorScheme.primary.withOpacity(0.1),
+                              highlightColor: colorScheme.primary.withOpacity(0.05),
+                              child: Icon(
+                                Icons.clear,
+                                color: searchIcon,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  fillColor: searchBg,
+                  filled: true,
+                ),
+                onTap: () {
+                  if (_searchController.text.isNotEmpty) {
+                    _searchFocusNode.requestFocus();
+                  }
+                },
+                onChanged: (value) {
+                  _performSearch(value);
+                  setState(() {}); // Rebuild to update clear button visibility
+                },
               ),
-              prefixIcon: Icon(
-                Icons.search,
-                color: searchIcon,
-                size: 22,
-              ),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: Icon(
-                        Icons.clear,
-                        color: searchIcon,
-                        size: 22,
-                      ),
-                      onPressed: () {
-                        _searchController.clear();
-                        _performSearch('');
-                      },
-                    )
-                  : null,
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
-            onChanged: _performSearch,
           ),
         ),
         iconTheme: IconThemeData(color: appBarText),
@@ -180,18 +263,38 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.search_off,
-                        size: 56,
-                        color: iconColor,
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.search_off,
+                          size: 40,
+                          color: iconColor,
+                        ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       Text(
                         'No results found',
                         style: TextStyle(
                           color: infoText,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        child: Text(
+                          'Try a different search term or check your spelling',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                            fontSize: 15,
+                          ),
                         ),
                       ),
                     ],
@@ -202,7 +305,7 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
             return FadeTransition(
               opacity: _fadeAnimation,
               child: ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
                 itemCount: state.users.length,
                 itemBuilder: (context, index) {
                   final user = state.users[index];
@@ -240,21 +343,37 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(
-                  width: 350,
-                  height: 350,
+                Container(
+                  width: 220,
+                  height: 220,
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
+                    shape: BoxShape.circle,
+                  ),
                   child: Lottie.asset(
                     'lib/assets/Search.json',
                     fit: BoxFit.contain,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 Text(
-                  'Enter a name to search',
+                  'Search for people',
                   style: TextStyle(
                     color: infoText,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Text(
+                    'Find friends, family, or interesting profiles',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ],
@@ -266,88 +385,112 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
   }
 
   Widget _buildUserCard(ProfileUser user, Color cardBg, Color cardBorder, Color avatarBg, Color nameText, Color descText, Color divider) {
-    return Container(
-      decoration: BoxDecoration(
-        color: cardBg,
-        border: Border(
-          bottom: BorderSide(
-            color: divider,
-            width: 0.5,
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: cardBorder,
+            width: 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ProfilePage(userId: user.id),
-              ),
-            ).then((_) {
-              if (_searchController.text.isNotEmpty) {
-                _performSearch(_searchController.text);
-              }
-            });
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Row(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: cardBorder, width: 1),
-                  ),
-                  child: CircleAvatar(
-                    radius: 28,
-                    backgroundColor: avatarBg,
-                    backgroundImage: user.profilePictureUrl.isNotEmpty
-                        ? CachedNetworkImageProvider(user.profilePictureUrl)
-                        : null,
-                    child: user.profilePictureUrl.isEmpty
-                        ? Text(
-                            user.name[0].toUpperCase(),
-                            style: TextStyle(
-                              color: nameText,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          )
-                        : null,
-                  ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProfilePage(userId: user.id),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.name,
-                        style: TextStyle(
-                          color: nameText,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
-                      ),
-                      if (user.HintDescription.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          user.HintDescription,
-                          style: TextStyle(
-                            color: descText,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+              ).then((_) {
+                if (_searchController.text.isNotEmpty) {
+                  _performSearch(_searchController.text);
+                }
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
                         ),
                       ],
-                    ],
+                    ),
+                    child: CircleAvatar(
+                      radius: 28,
+                      backgroundColor: avatarBg,
+                      backgroundImage: user.profilePictureUrl.isNotEmpty
+                          ? CachedNetworkImageProvider(user.profilePictureUrl)
+                          : null,
+                      child: user.profilePictureUrl.isEmpty
+                          ? Text(
+                              user.name[0].toUpperCase(),
+                              style: TextStyle(
+                                color: nameText,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            )
+                          : null,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.name,
+                          style: TextStyle(
+                            color: nameText,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                        if (user.HintDescription.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            user.HintDescription,
+                            style: TextStyle(
+                              color: descText,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                ],
+              ),
             ),
           ),
         ),

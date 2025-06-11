@@ -7,7 +7,7 @@ import 'package:talkifyapp/features/Chat/domain/entite/chat_room.dart';
 import 'package:talkifyapp/features/Chat/domain/entite/message.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_states.dart';
-import 'package:talkifyapp/features/Chat/persentation/Pages/components/message_bubble.dart';
+import 'package:talkifyapp/features/Communities/presentation/screens/components/message_bubble.dart';
 import 'package:talkifyapp/features/Profile/presentation/Pages/components/WhiteCircleIndicator.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
 import 'package:talkifyapp/features/Chat/Utils/message_type_helper.dart';
@@ -20,6 +20,7 @@ import 'package:talkifyapp/features/Communities/domain/Entites/community.dart';
 import 'package:talkifyapp/features/Communities/presentation/cubit/community_cubit.dart';
 import 'package:talkifyapp/features/Communities/presentation/cubit/community_state.dart';
 import 'community_details_page.dart';
+import 'package:talkifyapp/features/Communities/presentation/screens/components/voice_note_recorder_community.dart';
 
 class CommunityChatPage extends StatefulWidget {
   final String communityId;
@@ -41,7 +42,7 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
   ChatRoom? _chatRoom;
   Community? _community;
   bool _isLoading = true;
-  bool _isRecordingVoice = false;
+  bool _isRecording = false;
   List<Message> _messages = [];
   
   @override
@@ -456,6 +457,20 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
     );
   }
   
+  // Add voice recording methods
+  void _startVoiceRecording() {
+    if (_chatRoom == null) return;
+    setState(() {
+      _isRecording = true;
+    });
+  }
+  
+  void _cancelVoiceRecording() {
+    setState(() {
+      _isRecording = false;
+    });
+  }
+  
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -629,73 +644,113 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
                       ),
               ),
               
-              // Message input area
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-                decoration: BoxDecoration(
-                  color: theme.cardColor,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 5,
-                      offset: const Offset(0, -3),
-                    ),
-                  ],
-                ),
-                child: SafeArea(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Attachment button
-                      IconButton(
-                        icon: Icon(
-                          Icons.add_circle_outline,
-                          color: theme.colorScheme.primary,
-                        ),
-                        onPressed: () => _showAttachmentOptions(isDark),
-                      ),
-                      
-                      // Text field
-                      Expanded(
-                        child: Container(
-                          constraints: const BoxConstraints(maxHeight: 120),
-                          decoration: BoxDecoration(
-                            color: isDark ? Color(0xFF2C2C2C) : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(24.0),
-                          ),
-                          child: TextField(
-                            controller: _messageController,
-                            textCapitalization: TextCapitalization.sentences,
-                            maxLines: null,
-                            style: theme.textTheme.bodyMedium,
-                            decoration: InputDecoration(
-                              hintText: 'Type a message...',
-                              hintStyle: TextStyle(
-                                color: theme.colorScheme.onSurface.withOpacity(0.6),
-              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16.0,
-                                vertical: 10.0,
-                              ),
-                              border: InputBorder.none,
-                            ),
-                          ),
-                        ),
-                      ),
-                      
-                      // Send button
-                      IconButton(
-                        icon: Icon(
-                          Icons.send_rounded,
-                          color: theme.colorScheme.primary,
-                        ),
-                        onPressed: _sendMessage,
+              // Show voice recorder or message input area
+              if (_isRecording)
+                CommunityVoiceNoteRecorder(
+                  chatRoomId: _chatRoom!.id,
+                  onCancelRecording: _cancelVoiceRecording,
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                  decoration: BoxDecoration(
+                    color: theme.cardColor,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 5,
+                        offset: const Offset(0, -3),
                       ),
                     ],
                   ),
+                  child: SafeArea(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        // Attachment button
+                        IconButton(
+                          icon: Icon(
+                            Icons.add_circle_outline,
+                            color: theme.colorScheme.primary,
+                          ),
+                          onPressed: () => _showAttachmentOptions(isDark),
+                        ),
+                        
+                        // Voice recording button
+                        IconButton(
+                          icon: Icon(
+                            Icons.mic,
+                            color: theme.colorScheme.primary,
+                          ),
+                          onPressed: _startVoiceRecording,
+                        ),
+                        
+                        // Text field
+                        Expanded(
+                          child: Container(
+                            constraints: const BoxConstraints(maxHeight: 120),
+                            decoration: BoxDecoration(
+                              color: isDark ? Color(0xFF2C2C2C) : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(24.0),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.03),
+                                  blurRadius: 3,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: TextField(
+                              controller: _messageController,
+                              textCapitalization: TextCapitalization.sentences,
+                              maxLines: null,
+                              style: theme.textTheme.bodyMedium,
+                              decoration: InputDecoration(
+                                hintText: 'Type a message...',
+                                hintStyle: TextStyle(
+                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                  vertical: 12.0,
+                                ),
+                                border: InputBorder.none,
+                                suffixIcon: _messageController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: Icon(
+                                        Icons.clear,
+                                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                        size: 20,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _messageController.clear();
+                                        });
+                                      },
+                                    )
+                                  : null,
+                              ),
+                              onChanged: (value) {
+                                // Force rebuild to show/hide clear button
+                                setState(() {});
+                              },
+                            ),
+                          ),
+                        ),
+                        
+                        // Send button
+                        IconButton(
+                          icon: Icon(
+                            Icons.send_rounded,
+                            color: theme.colorScheme.primary,
+                          ),
+                          onPressed: _sendMessage,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
             ],
           );
         },

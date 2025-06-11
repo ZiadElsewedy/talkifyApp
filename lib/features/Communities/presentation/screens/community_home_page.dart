@@ -47,22 +47,76 @@ class _CommunityHomePageState extends State<CommunityHomePage> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final searchBg = isDark ? Colors.grey[900] : Colors.grey[100];
+    final searchBorder = isDark ? Colors.grey[800] : Colors.grey[300];
+    final searchText = isDark ? Colors.white : Colors.black87;
+    final searchHint = isDark ? Colors.grey[500] : Colors.grey[600];
+    final searchIcon = isDark ? Colors.grey[400] : Colors.grey[700];
+    
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         title: _isSearching 
-          ? TextField(
-              controller: _searchController,
-              autofocus: true,
-              style: TextStyle(color: Theme.of(context).colorScheme.inversePrimary),
-              decoration: InputDecoration(
-                hintText: 'Search communities...',
-                hintStyle: TextStyle(color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.6)),
-                border: InputBorder.none,
+          ? Container(
+              height: 45,
+              decoration: BoxDecoration(
+                color: searchBg,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: searchBorder!, width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              onChanged: _searchCommunities,
+              child: TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: TextStyle(
+                  color: searchText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Search communities...',
+                  hintStyle: TextStyle(
+                    color: searchHint,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: searchIcon,
+                    size: 24,
+                  ),
+                  suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear,
+                          color: searchIcon,
+                          size: 22,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          _searchCommunities('');
+                        },
+                      )
+                    : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                onChanged: (value) {
+                  _searchCommunities(value);
+                  // Force rebuild to show/hide clear button
+                  setState(() {});
+                },
+              ),
             )
           : Text(
               'Communities',
