@@ -27,75 +27,98 @@ class ChatCubit extends Cubit<ChatState> {
     return super.close();
   }
 
+  // Safe emit method that checks if cubit is closed
+  void safeEmit(ChatState state) {
+    if (!isClosed) {
+      emit(state);
+    }
+  }
+
   // Load user's chat rooms
   Future<void> loadUserChatRooms(String userId) async {
-    emit(ChatRoomsLoading());
+    if (isClosed) return;
+    safeEmit(ChatRoomsLoading());
     try {
       _chatRoomsSubscription?.cancel();
       _chatRoomsSubscription = chatRepo.getUserChatRooms(userId).listen(
         (chatRooms) {
+          if (isClosed) return;
           print('ChatCubit: received ${chatRooms.length} chat rooms for user $userId');
           for (var cr in chatRooms) {
             print('  chatRoom ${cr.id} participants=${cr.participants} lastMessage=${cr.lastMessage}');
           }
-          emit(ChatRoomsLoaded(chatRooms));
+          safeEmit(ChatRoomsLoaded(chatRooms));
         },
         onError: (error) {
-          emit(ChatRoomsError('Failed to load chat rooms: $error'));
+          if (isClosed) return;
+          safeEmit(ChatRoomsError('Failed to load chat rooms: $error'));
         },
       );
     } catch (e) {
-      emit(ChatRoomsError('Failed to load chat rooms: $e'));
+      if (isClosed) return;
+      safeEmit(ChatRoomsError('Failed to load chat rooms: $e'));
     }
   }
 
   // Clean up duplicate chat rooms for a user
   Future<void> cleanupDuplicateChatRooms(String userId) async {
+    if (isClosed) return;
     try {
       print('ChatCubit: Starting cleanup of duplicate chat rooms for user: $userId');
       await chatRepo.cleanupDuplicateChatRooms(userId);
       print('ChatCubit: Cleanup completed successfully');
       
       // Reload chat rooms after cleanup
-      await loadUserChatRooms(userId);
+      if (!isClosed) {
+        await loadUserChatRooms(userId);
+      }
     } catch (e) {
+      if (isClosed) return;
       print('ChatCubit: Error during cleanup: $e');
-      emit(ChatError('Failed to cleanup duplicate chats: $e'));
+      safeEmit(ChatError('Failed to cleanup duplicate chats: $e'));
     }
   }
 
   // Load messages for a specific chat room
   Future<void> loadMessages(String chatRoomId) async {
+    if (isClosed) return;
     emit(MessagesLoading());
     try {
       _messagesSubscription?.cancel();
       _messagesSubscription = chatRepo.getChatMessages(chatRoomId).listen(
         (messages) {
+          if (isClosed) return;
           emit(MessagesLoaded(messages));
         },
         onError: (error) {
+          if (isClosed) return;
           emit(MessagesError('Failed to load messages: $error'));
         },
       );
     } catch (e) {
+      if (isClosed) return;
       emit(MessagesError('Failed to load messages: $e'));
     }
   }
 
   // Load messages for a specific chat room for a specific user (excludes deleted messages)
   Future<void> loadChatMessagesForUser(String chatRoomId, String userId) async {
+    if (isClosed) return;
     emit(MessagesLoading());
     try {
       _messagesSubscription?.cancel();
       _messagesSubscription = chatRepo.getChatMessagesForUser(chatRoomId, userId).listen(
         (messages) {
+          if (isClosed) return;
           emit(MessagesLoaded(messages));
         },
         onError: (error) {
+          if (isClosed) return;
           emit(MessagesError('Failed to load messages: $error'));
         },
       );
     } catch (e) {
+      if (isClosed) return;
       emit(MessagesError('Failed to load messages: $e'));
     }
   }
@@ -107,6 +130,7 @@ class ChatCubit extends Cubit<ChatState> {
     required Map<String, String> participantAvatars,
     List<String>? adminIds,
   }) async {
+    if (isClosed) return;
     emit(ChatLoading());
     try {
       final chatRoom = await chatRepo.createChatRoom(
@@ -115,8 +139,10 @@ class ChatCubit extends Cubit<ChatState> {
         participantAvatars: participantAvatars,
         adminIds: adminIds,
       );
+      if (isClosed) return;
       emit(ChatRoomCreated(chatRoom));
     } catch (e) {
+      if (isClosed) return;
       emit(ChatError('Failed to create chat room: $e'));
     }
   }
@@ -156,7 +182,9 @@ class ChatCubit extends Cubit<ChatState> {
       return chatRoom;
     } catch (e) {
       print('ChatCubit: Error in findOrCreateChatRoom: $e');
-      emit(ChatError('Failed to find or create chat room: $e'));
+      if (!isClosed) {
+        emit(ChatError('Failed to find or create chat room: $e'));
+      }
       return null;
     }
   }
@@ -172,6 +200,7 @@ class ChatCubit extends Cubit<ChatState> {
     String? fileName,
     String? replyToMessageId,
   }) async {
+    if (isClosed) return;
     try {
       // Get current messages if any
       List<Message> currentMessages = [];
@@ -197,6 +226,7 @@ class ChatCubit extends Cubit<ChatState> {
       
       // The real-time listener will update the UI with the actual message
     } catch (e) {
+      if (isClosed) return;
       emit(SendMessageError('Failed to send message: $e'));
     }
   }
@@ -214,6 +244,7 @@ class ChatCubit extends Cubit<ChatState> {
     String? replyToMessageId,
     Map<String, dynamic>? metadata,
   }) async {
+    if (isClosed) return;
     emit(UploadingMedia());
     
     // Generate a temporary message ID to track this upload
@@ -248,13 +279,13 @@ class ChatCubit extends Cubit<ChatState> {
       String fileUrl;
       if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
         fileUrl = filePath;
-        emit(MediaUploaded(fileUrl, fileName, temporaryMessageId));
+        safeEmit(MediaUploaded(fileUrl, fileName, temporaryMessageId));
       } else {
         // For video files specifically, show progress during upload
         if (finalType == MessageType.video) {
           // Set up a listener for upload progress
           final progressSubscription = chatRepo.uploadProgressStream.listen((progress) {
-            emit(UploadingMediaProgress(
+            safeEmit(UploadingMediaProgress(
               progress: progress,
               localFilePath: filePath,
               messageId: temporaryMessageId,
@@ -276,7 +307,7 @@ class ChatCubit extends Cubit<ChatState> {
             await progressSubscription.cancel();
             
             // Emit final success state
-            emit(MediaUploaded(fileUrl, fileName, temporaryMessageId));
+            safeEmit(MediaUploaded(fileUrl, fileName, temporaryMessageId));
           } catch (e) {
             await progressSubscription.cancel();
             throw e;
@@ -288,12 +319,13 @@ class ChatCubit extends Cubit<ChatState> {
             chatRoomId: chatRoomId,
             fileName: fileName,
           );
-          emit(MediaUploaded(fileUrl, fileName, temporaryMessageId));
+          safeEmit(MediaUploaded(fileUrl, fileName, temporaryMessageId));
         }
       }
 
       // Then send message with media URL
-      emit(SendingMessage());
+      if (isClosed) return;
+      safeEmit(SendingMessage());
       final message = await chatRepo.sendMessage(
         chatRoomId: chatRoomId,
         senderId: senderId,
@@ -308,9 +340,9 @@ class ChatCubit extends Cubit<ChatState> {
         metadata: metadata,
       );
       print('ChatCubit: Message sent: ${message.id}');  
-      emit(MessageSent([message]));
+      safeEmit(MessageSent([message]));
     } catch (e) {
-      emit(MediaUploadError('Failed to send media: $e', temporaryMessageId, filePath));
+      safeEmit(MediaUploadError('Failed to send media: $e', temporaryMessageId, filePath));
     }
   }
 
@@ -327,7 +359,8 @@ class ChatCubit extends Cubit<ChatState> {
     String? replyToMessageId,
     Map<String, dynamic>? metadata,
   }) async {
-    emit(SendingMessage());
+    if (isClosed) return;
+    safeEmit(SendingMessage());
     try {
       final message = await chatRepo.sendMessage(
         chatRoomId: chatRoomId,
@@ -342,9 +375,9 @@ class ChatCubit extends Cubit<ChatState> {
         metadata: metadata,
       );
       print('ChatCubit: Media URL message sent: ${message.id}');
-      emit(MessageSent([message]));
+      safeEmit(MessageSent([message]));
     } catch (e) {
-      emit(SendMessageError('Failed to send media message: $e'));
+      safeEmit(SendMessageError('Failed to send media message: $e'));
     }
   }
 
