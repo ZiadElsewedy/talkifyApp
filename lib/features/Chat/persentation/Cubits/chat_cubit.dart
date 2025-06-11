@@ -49,6 +49,21 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
+  // Clean up duplicate chat rooms for a user
+  Future<void> cleanupDuplicateChatRooms(String userId) async {
+    try {
+      print('ChatCubit: Starting cleanup of duplicate chat rooms for user: $userId');
+      await chatRepo.cleanupDuplicateChatRooms(userId);
+      print('ChatCubit: Cleanup completed successfully');
+      
+      // Reload chat rooms after cleanup
+      await loadUserChatRooms(userId);
+    } catch (e) {
+      print('ChatCubit: Error during cleanup: $e');
+      emit(ChatError('Failed to cleanup duplicate chats: $e'));
+    }
+  }
+
   // Load messages for a specific chat room
   Future<void> loadMessages(String chatRoomId) async {
     emit(MessagesLoading());
@@ -118,12 +133,15 @@ class ChatCubit extends Cubit<ChatState> {
       final bool hasCustomGroupName = participantNames.containsKey('groupName') && 
                                      participantNames['groupName']!.isNotEmpty;
       
-      // For 1-on-1 chats or group chats without custom names, try to find existing ones
-      if (!isGroupChat || (isGroupChat && !hasCustomGroupName)) {
+      // Always try to find existing chat rooms first (except for custom named groups)
+      if (!hasCustomGroupName) {
+        print('ChatCubit: Looking for existing chat room between users: $participantIds');
         final existingChatRoom = await chatRepo.findChatRoomBetweenUsers(participantIds);
         if (existingChatRoom != null) {
+          print('ChatCubit: Found existing chat room: ${existingChatRoom.id}');
           return existingChatRoom;
         }
+        print('ChatCubit: No existing chat room found, creating new one');
       }
 
       // If no existing chat room found, or if it's a group chat with a custom name,
@@ -134,8 +152,10 @@ class ChatCubit extends Cubit<ChatState> {
         participantAvatars: participantAvatars,
         adminIds: adminIds,
       );
+      print('ChatCubit: Created new chat room: ${chatRoom.id}');
       return chatRoom;
     } catch (e) {
+      print('ChatCubit: Error in findOrCreateChatRoom: $e');
       emit(ChatError('Failed to find or create chat room: $e'));
       return null;
     }

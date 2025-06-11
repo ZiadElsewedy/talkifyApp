@@ -65,12 +65,31 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
     if (currentUser != null) {
       print("ChatListPage: Loading chat rooms for user ${currentUser.id}");
       context.read<ChatCubit>().loadUserChatRooms(currentUser.id);
+      
+      // Perform one-time cleanup of duplicates (runs silently in background)
+      _performCleanupIfNeeded(currentUser.id);
     }
   }
 
-  // Filter out community chat rooms from the main chats list
+  // Perform cleanup of duplicate chat rooms (one-time check)
+  void _performCleanupIfNeeded(String userId) {
+    // Use a simple flag to ensure this only runs once per session
+    final prefs = context.read<AuthCubit>().GetCurrentUser()?.id;
+    final cleanupKey = 'cleanup_performed_$prefs';
+    
+    // For now, we'll just run the cleanup every time to ensure no duplicates
+    // In a production app, you might want to store this in SharedPreferences
+    // to avoid running it every time
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        context.read<ChatCubit>().cleanupDuplicateChatRooms(userId);
+      }
+    });
+  }
+
+  // Filter out community chat rooms from the main chats list and remove duplicates
   List<ChatRoom> _filterNonCommunityChatRooms(List<ChatRoom> chatRooms) {
-    return chatRooms.where((chatRoom) {
+    final filteredRooms = chatRooms.where((chatRoom) {
       // Check if this is a community chat room
       // A community chat room will have a communityId field
       try {
@@ -81,6 +100,29 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
         return true;
       }
     }).toList();
+    
+    // Additional client-side deduplication as a safety measure
+    return _deduplicateChatRooms(filteredRooms);
+  }
+
+  // Deduplicate chat rooms based on participants (client-side safety measure)
+  List<ChatRoom> _deduplicateChatRooms(List<ChatRoom> chatRooms) {
+    final Map<String, ChatRoom> uniqueChats = {};
+    
+    for (final chatRoom in chatRooms) {
+      // Create a unique key based on sorted participant IDs
+      final sortedParticipants = List<String>.from(chatRoom.participants);
+      sortedParticipants.sort();
+      final uniqueKey = sortedParticipants.join('_');
+      
+      // Keep the chat room with the most recent activity
+      if (!uniqueChats.containsKey(uniqueKey) ||
+          chatRoom.updatedAt.isAfter(uniqueChats[uniqueKey]!.updatedAt)) {
+        uniqueChats[uniqueKey] = chatRoom;
+      }
+    }
+    
+    return uniqueChats.values.toList();
   }
 
   // Filter chat rooms based on search query

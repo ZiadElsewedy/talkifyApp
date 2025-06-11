@@ -155,4 +155,7 @@ abstract class ChatRepo {
     required String chatRoomId,
     required String query,
   });
+  
+  // Cleanup duplicate chat rooms
+  Future<void> cleanupDuplicateChatRooms(String userId);
 } 

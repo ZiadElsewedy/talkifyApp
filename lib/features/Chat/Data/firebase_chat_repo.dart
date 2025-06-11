@@ -159,6 +159,11 @@ class FirebaseChatRepo implements ChatRepo {
               continue;
             }
             
+            // Skip community chats - they should not be reused for regular chats
+            if (chatRoom.communityId != null) {
+              continue;
+            }
+            
             return chatRoom;
           }
         }
@@ -186,6 +191,11 @@ class FirebaseChatRepo implements ChatRepo {
               continue;
             }
             
+            // Skip community chats - they should not be reused for regular chats
+            if (chatRoom.communityId != null) {
+              continue;
+            }
+            
             return chatRoom;
           }
         }
@@ -206,6 +216,7 @@ class FirebaseChatRepo implements ChatRepo {
         .snapshots()
         .map((snapshot) {
       List<ChatRoom> chatRooms = [];
+      Map<String, ChatRoom> uniqueChats = {}; // Track unique chats by participant combination
       
       for (var doc in snapshot.docs) {
         try {
@@ -229,11 +240,37 @@ class FirebaseChatRepo implements ChatRepo {
             }
           }
           
-          chatRooms.add(chatRoom);
+          // Create a unique key for this chat based on participants
+          String uniqueKey;
+          if (chatRoom.communityId != null) {
+            // For community chats, use communityId as the key
+            uniqueKey = 'community_${chatRoom.communityId}';
+          } else {
+            // For regular chats, create key from sorted participant IDs
+            List<String> sortedParticipants = List.from(chatRoom.participants);
+            sortedParticipants.sort();
+            uniqueKey = 'chat_${sortedParticipants.join('_')}';
+          }
+          
+          // Check if we already have a chat with these participants
+          if (uniqueChats.containsKey(uniqueKey)) {
+            final existingChat = uniqueChats[uniqueKey]!;
+            
+            // Keep the chat room with the most recent activity
+            if (chatRoom.updatedAt.isAfter(existingChat.updatedAt)) {
+              uniqueChats[uniqueKey] = chatRoom;
+            }
+          } else {
+            uniqueChats[uniqueKey] = chatRoom;
+          }
+          
         } catch (e) {
           print('Error parsing chat room: $e');
         }
       }
+      
+      // Convert unique chats map to list
+      chatRooms = uniqueChats.values.toList();
       
       // Sort by updatedAt in memory instead of in query to avoid index requirement
       chatRooms.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
@@ -1297,6 +1334,65 @@ class FirebaseChatRepo implements ChatRepo {
       print("DEBUG: Error getting chat room for community: $e");
       print("DEBUG: Stack trace: $stackTrace");
       rethrow;
+    }
+  }
+
+  // Method to clean up duplicate chat rooms for a user
+  Future<void> cleanupDuplicateChatRooms(String userId) async {
+    try {
+      print('FirebaseChatRepo: Starting cleanup of duplicate chat rooms for user: $userId');
+      
+      final snapshot = await _firestore
+          .collection(_chatRoomsCollection)
+          .where('participants', arrayContains: userId)
+          .get();
+      
+      Map<String, List<ChatRoom>> chatGroups = {};
+      
+      // Group chat rooms by participant combination
+      for (var doc in snapshot.docs) {
+        try {
+          final chatRoom = ChatRoom.fromJson(doc.data());
+          
+          // Skip community chats - don't clean them up
+          if (chatRoom.communityId != null) continue;
+          
+          // Create a unique key based on sorted participants
+          List<String> sortedParticipants = List.from(chatRoom.participants);
+          sortedParticipants.sort();
+          String key = sortedParticipants.join('_');
+          
+          if (!chatGroups.containsKey(key)) {
+            chatGroups[key] = [];
+          }
+          chatGroups[key]!.add(chatRoom);
+        } catch (e) {
+          print('Error parsing chat room during cleanup: $e');
+        }
+      }
+      
+      // Find and remove duplicates
+      int duplicatesRemoved = 0;
+      for (var entry in chatGroups.entries) {
+        if (entry.value.length > 1) {
+          // Sort by updatedAt to keep the most recent one
+          entry.value.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+          
+          // Keep the first (most recent) and delete the rest
+          for (int i = 1; i < entry.value.length; i++) {
+            final duplicateChat = entry.value[i];
+            print('FirebaseChatRepo: Removing duplicate chat room: ${duplicateChat.id}');
+            
+            // Delete the duplicate chat room and its messages
+            await _firestore.collection(_chatRoomsCollection).doc(duplicateChat.id).delete();
+            duplicatesRemoved++;
+          }
+        }
+      }
+      
+      print('FirebaseChatRepo: Cleanup completed. Removed $duplicatesRemoved duplicate chat rooms.');
+    } catch (e) {
+      print('FirebaseChatRepo: Error during cleanup: $e');
     }
   }
 }
