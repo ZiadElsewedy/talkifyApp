@@ -577,7 +577,7 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                                       ],
                                     ),
                                     backgroundColor: Colors.orange,
-                                    duration: const Duration(seconds: 10), // Longer duration for deletion
+                                    duration: const Duration(seconds: 3), // Reasonable duration - will be dismissed automatically when deletion completes
                                   ),
                                 );
                               }

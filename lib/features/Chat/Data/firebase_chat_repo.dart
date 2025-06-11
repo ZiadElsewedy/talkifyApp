@@ -662,15 +662,13 @@ class FirebaseChatRepo implements ChatRepo {
       
       final chatRoom = ChatRoom.fromJson(chatRoomDoc.data()!);
       
-      // For community chats or group chats with more than 2 users, we handle differently
-      if (chatRoom.isCommunityChat || chatRoom.participants.length > 2) {
-        // In this case, we don't actually delete the chat room
-        // Instead, we mark the current user as having left
-        // This is handled by hideChatForUser
-        throw Exception('Use hideChatForUser for group or community chats');
+      // For community chats, we don't allow deletion via this method
+      if (chatRoom.isCommunityChat) {
+        throw Exception('Community chats cannot be deleted via this method');
       }
       
-      // For individual chats, proceed with complete deletion
+      // For ALL chats (including group chats), proceed with complete deletion
+      // This will remove the group from all members' chat lists
       
       // Get all messages in the chat room
       final messagesSnapshot = await chatRoomRef.collection(_messagesCollection).get();
@@ -716,7 +714,7 @@ class FirebaseChatRepo implements ChatRepo {
       // Execute the batch
       await batch.commit();
       
-      print('Successfully deleted chat room: $chatRoomId');
+      print('Successfully deleted chat room for everyone: $chatRoomId');
     } catch (e) {
       print('Error deleting chat room: $e');
       throw Exception('Failed to delete chat room: $e');
@@ -959,28 +957,48 @@ class FirebaseChatRepo implements ChatRepo {
       // Prepare all updates
       Map<String, dynamic> updates = {};
       
-      // Update the leftParticipants map
-      Map<String, bool> leftParticipants = Map<String, bool>.from(chatRoom.leftParticipants);
-      leftParticipants[userId] = true;
-      updates['leftParticipants'] = leftParticipants;
+      // Remove user from participants list completely
+      List<String> updatedParticipants = List<String>.from(chatRoom.participants);
+      updatedParticipants.remove(userId);
+      updates['participants'] = updatedParticipants;
       
-      // If user is an admin and the only admin, assign admin role to oldest member
+      // Remove user from participant names map
+      Map<String, String> updatedParticipantNames = Map<String, String>.from(chatRoom.participantNames);
+      updatedParticipantNames.remove(userId);
+      updates['participantNames'] = updatedParticipantNames;
+      
+      // Remove user from participant avatars map
+      Map<String, String> updatedParticipantAvatars = Map<String, String>.from(chatRoom.participantAvatars);
+      updatedParticipantAvatars.remove(userId);
+      updates['participantAvatars'] = updatedParticipantAvatars;
+      
+      // Remove user from unread count map
+      Map<String, int> updatedUnreadCount = Map<String, int>.from(chatRoom.unreadCount);
+      updatedUnreadCount.remove(userId);
+      updates['unreadCount'] = updatedUnreadCount;
+      
+      // If user is an admin and the only admin, assign admin role to oldest remaining member
       List<String> admins = List<String>.from(chatRoom.admins);
       
       if (chatRoom.isUserAdmin(userId) && admins.length == 1) {
-        // Find the oldest member who hasn't left
-        final remainingParticipants = chatRoom.participants
-            .where((id) => id != userId && !(chatRoom.leftParticipants[id] ?? false))
-            .toList();
-            
-        if (remainingParticipants.isNotEmpty) {
-          admins.add(remainingParticipants.first);
+        // Find the oldest remaining member
+        if (updatedParticipants.isNotEmpty) {
+          admins.add(updatedParticipants.first);
         }
       }
       
       // Remove user from admins if they are an admin
       admins.remove(userId);
       updates['admins'] = admins;
+      
+      // Clean up leftParticipants and messageHistoryDeletedAt maps
+      Map<String, bool> updatedLeftParticipants = Map<String, bool>.from(chatRoom.leftParticipants);
+      updatedLeftParticipants.remove(userId);
+      updates['leftParticipants'] = updatedLeftParticipants;
+      
+      Map<String, dynamic> updatedMessageHistoryDeletedAt = Map<String, dynamic>.from(chatRoom.messageHistoryDeletedAt);
+      updatedMessageHistoryDeletedAt.remove(userId);
+      updates['messageHistoryDeletedAt'] = updatedMessageHistoryDeletedAt;
       
       // Update the chat room document
       await chatRoomRef.update(updates);
@@ -996,7 +1014,7 @@ class FirebaseChatRepo implements ChatRepo {
         print('Error sending system message when leaving group: $e');
       });
       
-      print('User $userId (${userName}) left group chat: $chatRoomId');
+      print('User $userId (${userName}) completely removed from group chat: $chatRoomId');
     } catch (e) {
       print('Error leaving group chat: $e');
       throw Exception('Failed to leave group chat: $e');

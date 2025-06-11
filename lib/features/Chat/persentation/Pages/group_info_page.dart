@@ -6,6 +6,7 @@ import 'package:talkifyapp/features/Chat/domain/entite/chat_room.dart';
 import 'package:talkifyapp/features/auth/domain/entities/AppUser.dart';
 import 'package:talkifyapp/features/Chat/persentation/Pages/user_profile_page.dart';
 import 'package:talkifyapp/features/auth/Presentation/Cubits/auth_cubit.dart';
+import 'package:talkifyapp/features/Chat/persentation/Cubits/chat_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkifyapp/features/Chat/Utils/chat_styles.dart';
 import 'package:talkifyapp/features/Chat/Utils/page_transitions.dart';
@@ -172,7 +173,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
                           );
                         },
                         child: Hero(
-                          tag: 'group_${widget.chatRoom.id}',
+                          tag: 'group_info_avatar_${widget.chatRoom.id}',
                           child: CircleAvatar(
                             radius: 60,
                             backgroundColor: Colors.grey[200],
@@ -508,20 +509,17 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
       final currentUserId = _currentUserId;
       if (currentUserId.isEmpty) return;
       
-      // Get the updated list of participants
-      List<String> updatedParticipants = 
-          List.from(widget.chatRoom.participants)
-            ..remove(currentUserId);
+      final String userName = widget.chatRoom.participantNames[currentUserId] ?? 'User';
       
       // Run leave animation
       _fadeInController.reverse().then((_) async {
-        // Remove user from participants
-        await FirebaseFirestore.instance
-            .collection('chatRooms')
-            .doc(widget.chatRoom.id)
-            .update({
-          'participants': updatedParticipants,
-        });
+        // Use the ChatCubit to properly leave the group
+        // This will remove the user from participants and all related maps
+        context.read<ChatCubit>().leaveGroupChat(
+          chatRoomId: widget.chatRoom.id,
+          userId: currentUserId,
+          userName: userName,
+        );
         
         if (mounted) {
           Navigator.of(context).popUntil((route) => route.isFirst);
@@ -553,7 +551,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
         leading: GestureDetector(
           onTap: () => _openUserProfile(user),
           child: Hero(
-            tag: 'profile_${user.id}',
+            tag: 'group_participant_${user.id}_${widget.chatRoom.id}',
             child: Stack(
               children: [
                 CircleAvatar(
@@ -660,6 +658,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> with TickerProviderStateM
           userId: user.id,
           userName: user.name,
           initialAvatarUrl: user.profilePictureUrl,
+          heroTag: 'group_participant_${user.id}_${widget.chatRoom.id}',
         ),
       ),
     );
