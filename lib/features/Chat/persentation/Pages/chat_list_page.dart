@@ -83,6 +83,39 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
     }).toList();
   }
 
+  // Filter chat rooms based on search query
+  List<ChatRoom> _searchChatRooms(List<ChatRoom> rooms, String query) {
+    if (query.isEmpty) {
+      return rooms;
+    }
+    
+    return rooms.where((chatRoom) {
+      // Search in chat name (group name or participant name)
+      String chatName = '';
+      if (chatRoom.isGroupChat) {
+        // For group chats, use the group name if available
+        chatName = chatRoom.participantNames['groupName'] ?? '';
+        if (chatName.isEmpty) {
+          // Fallback to participant names
+          chatName = chatRoom.participantNames.values.join(", ");
+        }
+      } else {
+        // For direct chats, find the other participant's name
+        final currentUserId = context.read<AuthCubit>().GetCurrentUser()?.id ?? '';
+        chatName = chatRoom.participantNames.entries
+            .where((entry) => entry.key != currentUserId)
+            .map((entry) => entry.value)
+            .join(", ");
+      }
+      
+      // Search in last message
+      final String lastMessageContent = chatRoom.lastMessage ?? '';
+      
+      return chatName.toLowerCase().contains(query.toLowerCase()) ||
+             lastMessageContent.toLowerCase().contains(query.toLowerCase());
+    }).toList();
+  }
+
   void _filterChatRooms(String query) {
     // Fix: Store the query first, then schedule the setState for next frame
     _searchQuery = query;
@@ -90,36 +123,12 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
     // Use post-frame callback to avoid setState during build
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-    setState(() {
+        setState(() {
           if (_searchQuery.isEmpty) {
-        // Apply the community filter here too
-        _filteredChatRooms = _filterNonCommunityChatRooms(_chatRooms);
-      } else {
-        _filteredChatRooms = _filterNonCommunityChatRooms(_chatRooms).where((chatRoom) {
-          // Search in chat name (group name or participant name)
-          String chatName = '';
-          if (chatRoom.isGroupChat) {
-            // For group chats, use the first participant's name as a fallback
-            // Since there's no explicit "groupName" field in the model
-            chatName = chatRoom.participants.length > 2 
-                ? "Group: ${chatRoom.participantNames.values.join(", ").substring(0, 
-                    min(chatRoom.participantNames.values.join(", ").length, 20))}..."
-                : "";
+            // Apply the community filter here too
+            _filteredChatRooms = _filterNonCommunityChatRooms(_chatRooms);
           } else {
-            // For direct chats, find the other participant's name
-            final currentUserName = context.read<AuthCubit>().GetCurrentUser()?.name ?? '';
-            chatName = chatRoom.participantNames.entries
-                .where((entry) => entry.value != currentUserName)
-                .map((entry) => entry.value)
-                .join(", ");
-          }
-          
-          // Search in last message
-          final String lastMessageContent = chatRoom.lastMessage ?? '';
-          
-              return chatName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                     lastMessageContent.toLowerCase().contains(_searchQuery.toLowerCase());
-        }).toList();
+            _filteredChatRooms = _searchChatRooms(_filterNonCommunityChatRooms(_chatRooms), _searchQuery);
           }
         });
       }
@@ -367,17 +376,63 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                           // Use post-frame callback to avoid setState during build
                           SchedulerBinding.instance.addPostFrameCallback((_) {
                             if (mounted) {
-                        setState(() {
-                            // Filter out community chat rooms from the main list
-                            _chatRooms = _filterNonCommunityChatRooms(state.chatRooms);
-                            _filteredChatRooms = _chatRooms;
+                              setState(() {
+                                // Filter out community chat rooms from the main list
+                                _chatRooms = _filterNonCommunityChatRooms(state.chatRooms);
+                                _filteredChatRooms = _chatRooms;
                               });
                             }
+                          });
+                      } else if (state is ChatRoomDeleted) {
+                        // When a chat is deleted, remove it from the local list immediately
+                        SchedulerBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) {
+                            setState(() {
+                              // Remove the deleted chat from both lists
+                              _chatRooms.removeWhere((room) => room.id == state.chatRoomId);
+                              _filteredChatRooms = _searchChatRooms(_chatRooms, _searchQuery);
+                            });
+                            
+                            // Hide any existing snackbars first
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            
+                            // Show success message
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('Chat deleted successfully'),
+                                backgroundColor: Colors.green,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
                         });
-                      } else if (state is ChatRoomDeleted || state is GroupChatLeft || 
-                                state is ChatHiddenForUser || state is ChatHistoryDeletedForUser || 
+                      } else if (state is ChatHiddenForUser) {
+                        // When a chat is hidden, remove it from the local list immediately
+                        SchedulerBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) {
+                            setState(() {
+                              // Remove the hidden chat from both lists
+                              _chatRooms.removeWhere((room) => room.id == state.chatRoomId);
+                              _filteredChatRooms = _searchChatRooms(_chatRooms, _searchQuery);
+                            });
+                            
+                            // Hide any existing snackbars first
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            
+                            // Show success message
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('Chat hidden successfully'),
+                                backgroundColor: Colors.green,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        });
+                      } else if (state is GroupChatLeft || 
+                                state is ChatHistoryDeletedForUser || 
                                 state is ChatRoomUpdated) {
-                        // When a chat is deleted/left/hidden/updated, reload the chat rooms
+                        // When a chat is left/updated, reload the chat rooms
                         SchedulerBinding.instance.addPostFrameCallback((_) {
                           if (mounted) {
                             final currentUser = context.read<AuthCubit>().GetCurrentUser();
@@ -386,10 +441,57 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                             }
                           }
                         });
+                      } else if (state is DeletingChatRoom) {
+                        // Show deleting progress
+                        SchedulerBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) {
+                            // Dismiss any existing snackbars first
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Text('Deleting chat...'),
+                                  ],
+                                ),
+                                backgroundColor: Colors.orange,
+                                duration: const Duration(seconds: 10), // Longer duration for deletion
+                              ),
+                            );
+                          }
+                        });
+                      } else if (state is ChatError) {
+                        // Show error message
+                        SchedulerBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) {
+                            // Dismiss any existing snackbars first
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(state.message),
+                                backgroundColor: Colors.red,
+                                duration: const Duration(seconds: 3),
+                              ),
+                            );
+                          }
+                        });
                       }
                     },
                     builder: (context, state) {
-                        if (state is ChatRoomsLoading) {
+                        // Check for any loading states
+                        if ((state is ChatRoomsLoading || state is ChatLoading) && _chatRooms.isEmpty) {
+                          // Only show loading indicator if we don't have any cached data
                           return Center(
                             child: CircularProgressIndicator(
                               color: isDarkMode ? Colors.white : Colors.black,

@@ -8,6 +8,7 @@ import 'package:talkifyapp/features/Chat/Data/firebase_chat_repo.dart';
 import 'package:talkifyapp/features/Chat/Utils/audio_handler.dart';
 import 'package:talkifyapp/features/Chat/Utils/message_type_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ChatCubit extends Cubit<ChatState> {
   final ChatRepo chatRepo;
@@ -420,19 +421,114 @@ class ChatCubit extends Cubit<ChatState> {
   // Delete chat room
   Future<void> deleteChatRoom(String chatRoomId) async {
     if (isClosed) return; // Don't proceed if cubit is closed
-    emit(ChatLoading());
+    
+    // Emit deleting state to show progress
+    emit(DeletingChatRoom(chatRoomId));
     
     try {
-      await chatRepo.deleteChatRoom(chatRoomId);
-      
-      // Emit the deleted state after successful deletion
-      if (!isClosed) {
-        emit(ChatRoomDeleted(chatRoomId));
+      // Get current user ID from auth
+      final currentUserId = await _getCurrentUserId();
+      if (currentUserId == null) {
+        emit(ChatError('Unable to identify current user'));
+        return;
       }
+      
+      // Get the chat room details
+      final currentChatRoom = getChatRoomById(chatRoomId);
+      
+      if (currentChatRoom == null) {
+        // If we can't find the chat room locally, try to fetch it from the repository
+        try {
+          final chatRoom = await chatRepo.getChatRoom(chatRoomId);
+          if (chatRoom == null) {
+            emit(ChatError('Chat room not found'));
+            return;
+          }
+          
+          // Use the fetched chat room for deletion logic
+          await _performChatDeletion(chatRoom, currentUserId);
+        } catch (e) {
+          emit(ChatError('Failed to fetch chat room details: $e'));
+        }
+        return;
+      }
+      
+      // Perform deletion with the current chat room
+      await _performChatDeletion(currentChatRoom, currentUserId);
+      
     } catch (e) {
       if (!isClosed) {
         emit(ChatError('Failed to delete chat room: $e'));
       }
+    }
+  }
+  
+  // Helper method to perform the actual chat deletion logic
+  Future<void> _performChatDeletion(ChatRoom chatRoom, String currentUserId) async {
+    try {
+      // For group chats or community chats, use hideChatForUser instead
+      if (chatRoom.isCommunityChat || chatRoom.participants.length > 2) {
+        await chatRepo.hideChatForUser(
+          chatRoomId: chatRoom.id,
+          userId: currentUserId,
+        );
+        
+        // Emit the hidden chat state after successful hiding
+        if (!isClosed) {
+          emit(ChatHiddenForUser(chatRoom.id));
+        }
+      } else {
+        // For individual chats, actually delete the chat room
+        await chatRepo.deleteChatRoom(chatRoom.id);
+        
+        // Emit the deleted state after successful deletion
+        if (!isClosed) {
+          emit(ChatRoomDeleted(chatRoom.id));
+        }
+      }
+    } catch (e) {
+      if (!isClosed) {
+        // If the error suggests using hideChatForUser, do that instead
+        if (e.toString().contains('Use hideChatForUser')) {
+          await chatRepo.hideChatForUser(
+            chatRoomId: chatRoom.id,
+            userId: currentUserId,
+          );
+          
+          if (!isClosed) {
+            emit(ChatHiddenForUser(chatRoom.id));
+          }
+        } else {
+          emit(ChatError('Failed to delete chat room: $e'));
+        }
+      }
+    }
+  }
+  
+  // Helper method to get current user ID
+  Future<String?> _getCurrentUserId() async {
+    try {
+      // Try to get from Firebase Auth first
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        return user.uid;
+      }
+      
+      // Fallback: Try to get from current state
+      if (state is ChatRoomsLoaded) {
+        final chatRoomsState = state as ChatRoomsLoaded;
+        if (chatRoomsState.chatRooms.isNotEmpty) {
+          // Get user ID from the first chat room's participants
+          final firstRoom = chatRoomsState.chatRooms.first;
+          // Return the first participant as a fallback
+          return firstRoom.participants.first;
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      print('Error getting current user ID: $e');
+      return null;
     }
   }
   
@@ -443,7 +539,9 @@ class ChatCubit extends Cubit<ChatState> {
     required String userName,
   }) async {
     if (isClosed) return; // Don't proceed if cubit is closed
-    emit(ChatLoading());
+    
+    // Emit deleting state to show progress
+    emit(DeletingChatRoom(chatRoomId));
     
     try {
       await chatRepo.leaveGroupChat(
@@ -469,7 +567,9 @@ class ChatCubit extends Cubit<ChatState> {
     required String userId,
   }) async {
     if (isClosed) return; // Don't proceed if cubit is closed
-    emit(ChatLoading());
+    
+    // Emit deleting state to show progress
+    emit(DeletingChatRoom(chatRoomId));
     
     try {
       await chatRepo.hideChatForUser(
@@ -494,6 +594,9 @@ class ChatCubit extends Cubit<ChatState> {
     required String userId,
   }) async {
     if (isClosed) return; // Don't proceed if cubit is closed
+    
+    // Emit deleting state to show progress
+    emit(DeletingChatRoom(chatRoomId));
     
     try {
       await chatRepo.hideChatAndDeleteHistoryForUser(

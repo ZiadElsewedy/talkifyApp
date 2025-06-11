@@ -18,6 +18,14 @@ class ChatLoading extends ChatState {}
 class ChatRoomsLoading extends ChatState {}
 class MessagesLoading extends ChatState {}
 class SendingMessage extends ChatState {}
+class DeletingChatRoom extends ChatState {
+  final String chatRoomId;
+  
+  const DeletingChatRoom(this.chatRoomId);
+
+  @override
+  List<Object?> get props => [chatRoomId];
+}
 
 // Success states
 class ChatRoomsLoaded extends ChatState {

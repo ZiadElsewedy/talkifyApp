@@ -218,6 +218,17 @@ class FirebaseChatRepo implements ChatRepo {
             continue;
           }
           
+          // Additional check: Skip empty chats (that might be remnants from failed deletions)
+          if (chatRoom.lastMessage == null || chatRoom.lastMessage!.isEmpty) {
+            // Check if this is a new chat (created in the last hour)
+            final bool isRecentlyCreated = DateTime.now().difference(chatRoom.createdAt).inHours < 1;
+            
+            if (!isRecentlyCreated) {
+              // This is an old chat with no messages, skip it
+              continue;
+            }
+          }
+          
           chatRooms.add(chatRoom);
         } catch (e) {
           print('Error parsing chat room: $e');
@@ -611,6 +622,18 @@ class FirebaseChatRepo implements ChatRepo {
       if (!chatRoomDoc.exists) {
         throw Exception('Chat room does not exist');
       }
+      
+      final chatRoom = ChatRoom.fromJson(chatRoomDoc.data()!);
+      
+      // For community chats or group chats with more than 2 users, we handle differently
+      if (chatRoom.isCommunityChat || chatRoom.participants.length > 2) {
+        // In this case, we don't actually delete the chat room
+        // Instead, we mark the current user as having left
+        // This is handled by hideChatForUser
+        throw Exception('Use hideChatForUser for group or community chats');
+      }
+      
+      // For individual chats, proceed with complete deletion
       
       // Get all messages in the chat room
       final messagesSnapshot = await chatRoomRef.collection(_messagesCollection).get();

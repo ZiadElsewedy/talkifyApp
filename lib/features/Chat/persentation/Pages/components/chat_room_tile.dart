@@ -697,102 +697,20 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
   void _deleteGroupForEveryone() {
     final chatCubit = context.read<ChatCubit>();
     
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-    
-    chatCubit.deleteChatRoom(widget.chatRoom.id).then((_) {
-      // Always check if mounted before using context
-      if (!mounted) return;
-      
-      // Close loading indicator
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-      
-      // Show success snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Group deleted for everyone'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }).catchError((error) {
-      // Always check if mounted before using context
-      if (!mounted) return;
-      
-      // Close loading indicator
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-      
-      // Show error snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to delete group: $error'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.red,
-        ),
-      );
-    });
+    // Directly delete the chat room without showing a local loading dialog
+    // The chat_list_page will handle the loading state with its BlocConsumer
+    chatCubit.deleteChatRoom(widget.chatRoom.id);
   }
 
   void _hideChatAndDeleteHistory() {
     final chatCubit = context.read<ChatCubit>();
     
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-    
+    // Directly delete the chat history without showing a local loading dialog
+    // The chat_list_page will handle the loading state with its BlocConsumer
     chatCubit.hideChatAndDeleteHistoryForUser(
       chatRoomId: widget.chatRoom.id,
       userId: widget.currentUserId,
-    ).then((_) {
-      // Always check if mounted before using context
-      if (!mounted) return;
-      
-      // Close loading indicator
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-      
-      // Show success snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Chat deleted for you'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      
-      // Don't navigate away, just let the UI refresh on its own
-    }).catchError((error) {
-      // Always check if mounted before using context
-      if (!mounted) return;
-      
-      // Close loading indicator
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-      
-      // Show error snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to delete chat: $error'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.red,
-        ),
-      );
-    });
+    );
   }
 
   void _showLeaveGroupConfirmation() {
@@ -848,56 +766,13 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
     final chatCubit = context.read<ChatCubit>();
     final String userName = widget.chatRoom.participantNames[widget.currentUserId] ?? 'User';
     
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-    
+    // Directly leave the group chat without showing a local loading dialog
+    // The chat_list_page will handle the loading state with its BlocConsumer
     chatCubit.leaveGroupChat(
       chatRoomId: widget.chatRoom.id,
       userId: widget.currentUserId,
       userName: userName,
-    ).then((_) {
-      // Always check if mounted before using context
-      if (!mounted) return;
-      
-      // Close loading indicator
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-      
-      // Show success snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You left the group'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      
-      // Don't navigate away, just go back to chat list
-      // Stay on the current page (we're already on chat list page)
-    }).catchError((error) {
-      // Always check if mounted before using context
-      if (!mounted) return;
-      
-      // Close loading indicator
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-      
-      // Show error snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to leave group: $error'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.red,
-        ),
-      );
-    });
+    );
   }
 
   // Add this method to show a dialog for editing the group

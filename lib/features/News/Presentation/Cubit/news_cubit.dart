@@ -30,9 +30,29 @@ class NewsCubit extends Cubit<NewsState> {
     try {
       safeEmit(NewsLoading());
       final articles = await newsRepository.fetchTopHeadlines();
+      
+      if (articles.isEmpty) {
+        print('NewsCubit: No articles returned for top headlines');
+        // Handle empty articles with a friendly error message
+        safeEmit(NewsError('We\'re having trouble loading the latest news. Please try again later.'));
+        return;
+      }
+      
+      // Cache the results for quick access
+      _articlesByCategory['general'] = articles;
+      
       safeEmit(NewsLoaded(articles, category: 'general'));
     } catch (e) {
-      safeEmit(NewsError('Failed to fetch top headlines: $e'));
+      print('NewsCubit: Error in fetchTopHeadlines: $e');
+      
+      // Check if we already have cached general news
+      if (_articlesByCategory.containsKey('general') && 
+          _articlesByCategory['general']!.isNotEmpty) {
+        print('NewsCubit: Using cached general news');
+        safeEmit(NewsLoaded(_articlesByCategory['general']!, category: 'general'));
+      } else {
+        safeEmit(NewsError('Unable to load news at this time. Please check your internet connection and try again.'));
+      }
     }
   }
   
@@ -160,31 +180,42 @@ class NewsCubit extends Cubit<NewsState> {
   Future<void> refreshNews() async {
     final currentState = state;
     
-    if (currentState is NewsLoaded) {
-      if (currentState.category.startsWith('egyptian_source:')) {
-        // Extract the source ID from the category
-        final sourceId = currentState.category.split(':')[1];
-        await fetchNewsFromEgyptianSource(sourceId);
-      } else {
-        switch (currentState.category) {
-          case 'general':
-            await fetchTopHeadlines();
-            break;
-          case 'breaking':
-            await fetchBreakingNews();
-            break;
-          case 'politics':
-            await fetchPoliticsNews();
-            break;
-          default:
-            await fetchNewsByCategory(currentState.category);
-            break;
+    try {
+      if (currentState is NewsLoaded) {
+        if (currentState.category.startsWith('egyptian_source:')) {
+          // Extract the source ID from the category
+          final sourceId = currentState.category.split(':')[1];
+          await fetchNewsFromEgyptianSource(sourceId);
+        } else {
+          switch (currentState.category) {
+            case 'general':
+              await fetchTopHeadlines();
+              break;
+            case 'breaking':
+              await fetchBreakingNews();
+              break;
+            case 'politics':
+              await fetchPoliticsNews();
+              break;
+            default:
+              await fetchNewsByCategory(currentState.category);
+              break;
+          }
         }
+      } else if (currentState is NewsCategoriesLoaded) {
+        await loadAllCategories();
+      } else if (currentState is NewsError) {
+        // If we're in an error state, try to load general news
+        await fetchTopHeadlines();
+      } else {
+        await fetchTopHeadlines();
       }
-    } else if (currentState is NewsCategoriesLoaded) {
-      await loadAllCategories();
-    } else {
-      await fetchTopHeadlines();
+    } catch (e) {
+      print('Error refreshing news: $e');
+      // Even if refresh fails, don't change the state if we already have data
+      if (!(state is NewsLoaded || state is NewsCategoriesLoaded)) {
+        safeEmit(NewsError('Failed to refresh news. Please try again later.'));
+      }
     }
   }
 } 
