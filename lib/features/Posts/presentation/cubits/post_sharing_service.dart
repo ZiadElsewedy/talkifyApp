@@ -202,496 +202,543 @@ class _EnhancedShareSheetState extends State<_EnhancedShareSheet> with SingleTic
   
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+    final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 50;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     
-    // Calculate appropriate height for the bottom sheet
-    final sheetHeight = keyboardVisible 
-        ? screenHeight * 0.65  // Reduced height when keyboard is visible
-        : screenHeight * 0.7;
+    // Dark mode support
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = isDarkMode ? Color(0xFF1E1E1E) : Colors.white;
+    final cardColor = isDarkMode ? Color(0xFF2C2C2C) : Colors.grey.shade50;
+    final textColor = isDarkMode ? Colors.grey[200]! : Colors.black;
+    final subTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final iconColor = isDarkMode ? Colors.grey[300]! : Colors.black;
+    final borderColor = isDarkMode ? Color(0xFF3C3C3C) : Colors.grey[300]!;
+    final searchFieldColor = isDarkMode ? Color(0xFF3C3C3C) : Colors.white;
+    final placeholderColor = isDarkMode ? Color(0xFF3C3C3C) : Colors.grey[300]!;
     
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      // Use constraints instead of fixed height to allow content to determine size
-      constraints: BoxConstraints(
-        maxHeight: sheetHeight,
-        minHeight: screenHeight * 0.3, // Ensure minimum height
-      ),
-      child: SafeArea(
-        // Only apply bottom padding
-        top: false,
-        child: Stack(
-          children: [
-            // Main content
-            Column(
-              mainAxisSize: MainAxisSize.min, // Use minimum space required
-              children: [
-                // Drag handle
-                Container(
-                  margin: EdgeInsets.only(top: 8),
-                  width: 40,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-                
-                // Header
-                Container(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border(
-                      bottom: BorderSide(color: Colors.grey.shade200),
+    return BlocBuilder<ChatCubit, ChatState>(
+      builder: (context, state) {
+        if (state is ChatRoomsLoaded) {
+          return Stack(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -4),
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Share Post',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Select where to share this post',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: Colors.black),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-                
-                // Main scrollable content
-                Flexible(
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: [
-                      // Post preview
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Profile picture
-                            CircleAvatar(
-                              radius: 18,
-                              backgroundImage: widget.post.UserProfilePic.isNotEmpty
-                                  ? CachedNetworkImageProvider(widget.post.UserProfilePic)
-                                  : null,
-                              backgroundColor: Colors.grey.shade300,
-                              child: widget.post.UserProfilePic.isEmpty
-                                  ? Text(
-                                      widget.post.UserName[0].toUpperCase(),
-                                      style: TextStyle(
-                                        color: Colors.black87,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            SizedBox(width: 12),
-                            // Post details
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    widget.post.UserName,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.9,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 16, 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Share Post',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
                                   ),
-                                  SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.access_time,
-                                        size: 12,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        timeago.format(widget.post.timestamp),
-                                        style: TextStyle(
-                                          color: Colors.grey.shade600,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8),
-                                  if (widget.post.Text.isNotEmpty)
-                                    Text(
-                                      widget.post.Text,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(fontSize: 13),
-                                    ),
-                                  if (widget.post.imageUrl.isNotEmpty) ...[
-                                    SizedBox(height: 8),
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Container(
-                                        height: 160, // Increased height from 80 to 160
-                                        width: double.infinity,
-                                        color: Colors.grey.shade200,
-                                        child: Stack(
-                                          alignment: Alignment.center,
-                                          children: [
-                                            CachedNetworkImage(
-                                              imageUrl: widget.post.imageUrl,
-                                              fit: BoxFit.cover,
-                                              placeholder: (context, url) => Center(
-                                                child: CircularProgressIndicator(
-                                                  color: Colors.black,
-                                                  strokeWidth: 2,
-                                                ),
-                                              ),
-                                              errorWidget: (context, url, error) => Icon(
-                                                Icons.error_outline,
-                                                color: Colors.grey.shade500,
-                                              ),
-                                            ),
-                                            if (widget.post.isVideo)
-                                              Container(
-                                                width: 50,
-                                                height: 50,
-                                                decoration: BoxDecoration(
-                                                  color: Colors.black.withOpacity(0.5),
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: Icon(
-                                                  Icons.play_arrow,
-                                                  color: Colors.white,
-                                                  size: 30,
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      // Custom message input
-                      Container(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: messageController,
-                                decoration: InputDecoration(
-                                  hintText: 'Add a message...',
-                                  hintStyle: TextStyle(color: Colors.grey.shade400),
-                                  filled: true,
-                                  fillColor: Colors.grey.shade100,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  prefixIcon: Icon(Icons.message_outlined, color: Colors.grey.shade600),
                                 ),
-                                maxLines: 1,
-                                style: TextStyle(fontSize: 14),
-                              ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Select where to share this post',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: subTextColor,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                      
-                      // Tab bar for filters
-                      TabBar(
-                        controller: _tabController,
-                        labelColor: Colors.black,
-                        unselectedLabelColor: Colors.grey.shade600,
-                        indicatorColor: Colors.black,
-                        indicatorWeight: 2,
-                        labelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                        tabs: [
-                          Tab(text: 'All Chats'),
-                          Tab(text: 'Recent'),
-                          Tab(text: 'Groups'),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.close, color: iconColor),
+                            onPressed: () => Navigator.pop(context),
+                          ),
                         ],
                       ),
-                      
-                      // Search bar
-                      AnimatedContainer(
-                        duration: Duration(milliseconds: 200),
-                        margin: EdgeInsets.fromLTRB(16, 8, 16, 8),
-                        height: 46,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: TextField(
-                          controller: searchController,
-                          onChanged: (value) {
-                            setState(() {
-                              searchQuery = value.trim().toLowerCase();
-                              isSearching = searchQuery.isNotEmpty;
-                            });
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Search...',
-                            hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-                            border: InputBorder.none,
-                            prefixIcon: Icon(Icons.search, color: Colors.grey.shade600, size: 20),
-                            suffixIcon: isSearching
-                                ? IconButton(
-                                    icon: Icon(Icons.clear, color: Colors.grey.shade600, size: 18),
-                                    onPressed: () {
-                                      searchController.clear();
-                                      setState(() {
-                                        searchQuery = '';
-                                        isSearching = false;
-                                      });
-                                      // Hide keyboard when clearing search
-                                      FocusScope.of(context).unfocus();
-                                    },
-                                  )
-                                : null,
-                            contentPadding: EdgeInsets.symmetric(vertical: 10),
-                          ),
-                        ),
-                      ),
-                      
-                      // Chat list container - FIXED HEIGHT to prevent overflow
-                      Container(
-                        height: keyboardVisible ? 180 : 250, // Fixed height when keyboard is showing
-                        child: TabBarView(
-                          controller: _tabController,
-                          physics: AlwaysScrollableScrollPhysics(),
-                          children: [
-                            // All chats tab
-                            _buildChatList(context, (chatRooms) => chatRooms),
-                            
-                            // Recent tab
-                            _buildChatList(
-                              context, 
-                              (chatRooms) => chatRooms
-                                  .where((room) => recentRecipientIds.contains(room.id))
-                                  .toList(),
+                    ),
+                    
+                    // Main scrollable content
+                    Flexible(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: [
+                          // Post preview
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: cardColor,
                             ),
-                            
-                            // Groups tab
-                            _buildChatList(
-                              context, 
-                              (chatRooms) => chatRooms
-                                  .where((room) => room.isGroupChat)
-                                  .toList(),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Action buttons - This stays outside the scroll view
-                AnimatedContainer(
-                  duration: Duration(milliseconds: 200),
-                  padding: EdgeInsets.only(
-                    left: 16, 
-                    right: 16, 
-                    top: 16,
-                    bottom: keyboardVisible ? 8 : 16 + bottomPadding
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, -4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Cancel button
-                      TextButton.icon(
-                        onPressed: () {
-                          // Hide keyboard before closing
-                          FocusScope.of(context).unfocus();
-                          Navigator.pop(context);
-                        },
-                        icon: Icon(Icons.close, size: 18),
-                        label: Text('Cancel'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.grey.shade700,
-                        ),
-                      ),
-                      
-                      // Share button
-                      ElevatedButton.icon(
-                        onPressed: selectedChatRoomId == null || isSending
-                            ? null
-                            : () async {
-                                // Hide keyboard first
-                                FocusScope.of(context).unfocus();
-                                
-                                setState(() {
-                                  isSending = true;
-                                });
-                                
-                                try {
-                                  await PostSharingService.sharePostToChat(
-                                    context: context,
-                                    post: widget.post,
-                                    chatRoomId: selectedChatRoomId!,
-                                    currentUser: widget.currentUser,
-                                    customMessage: messageController.text.trim(),
-                                  );
-                                  
-                                  Navigator.pop(context);
-                                  
-                                  // Show success indicator
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Row(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Profile picture
+                                CircleAvatar(
+                                  radius: 18,
+                                  backgroundImage: widget.post.UserProfilePic.isNotEmpty
+                                      ? CachedNetworkImageProvider(widget.post.UserProfilePic)
+                                      : null,
+                                  backgroundColor: placeholderColor,
+                                  child: widget.post.UserProfilePic.isEmpty
+                                      ? Text(
+                                          widget.post.UserName[0].toUpperCase(),
+                                          style: TextStyle(
+                                            color: textColor,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                SizedBox(width: 12),
+                                // Post details
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        widget.post.UserName,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Row(
                                         children: [
-                                          Icon(Icons.check_circle, color: Colors.white),
-                                          SizedBox(width: 12),
-                                          Text('Post shared successfully'),
+                                          Icon(
+                                            Icons.access_time,
+                                            size: 12,
+                                            color: subTextColor,
+                                          ),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            timeago.format(widget.post.timestamp),
+                                            style: TextStyle(
+                                              color: subTextColor,
+                                              fontSize: 12,
+                                            ),
+                                          ),
                                         ],
                                       ),
-                                      backgroundColor: Colors.black,
-                                      duration: Duration(seconds: 2),
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  );
-                                } catch (e) {
-                                  setState(() {
-                                    isSending = false;
-                                  });
-                                  
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Failed to share post: $e'),
-                                      backgroundColor: Colors.red.shade600,
-                                      duration: Duration(seconds: 3),
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
-                        icon: isSending
-                            ? SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      SizedBox(height: 8),
+                                      if (widget.post.Text.isNotEmpty)
+                                        Text(
+                                          widget.post.Text,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                      if (widget.post.imageUrl.isNotEmpty) ...[
+                                        SizedBox(height: 8),
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Container(
+                                            height: 160, // Increased height from 80 to 160
+                                            width: double.infinity,
+                                            color: placeholderColor,
+                                            child: Stack(
+                                              alignment: Alignment.center,
+                                              children: [
+                                                CachedNetworkImage(
+                                                  imageUrl: widget.post.imageUrl,
+                                                  fit: BoxFit.cover,
+                                                  placeholder: (context, url) => Center(
+                                                    child: CircularProgressIndicator(
+                                                      color: isDarkMode ? Colors.white70 : Colors.black,
+                                                      strokeWidth: 2,
+                                                    ),
+                                                  ),
+                                                  errorWidget: (context, url, error) => Icon(
+                                                    Icons.error_outline,
+                                                    color: subTextColor,
+                                                  ),
+                                                ),
+                                                if (widget.post.isVideo)
+                                                  Container(
+                                                    width: 50,
+                                                    height: 50,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.black.withOpacity(0.5),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.play_arrow,
+                                                      color: Colors.white,
+                                                      size: 30,
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                 ),
-                              )
-                            : Icon(Icons.send, size: 18),
-                        label: Text(isSending ? 'Sharing...' : 'Share Post'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: Colors.grey.shade300,
-                          disabledForegroundColor: Colors.grey.shade500,
-                          elevation: 0,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16, 
-                            vertical: keyboardVisible ? 8 : 12
+                              ],
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+                          
+                          // Custom message input
+                          Container(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: messageController,
+                                    decoration: InputDecoration(
+                                      hintText: 'Add a message...',
+                                      hintStyle: TextStyle(
+                                        color: subTextColor,
+                                        fontSize: 14,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(color: borderColor),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(color: borderColor),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                          color: isDarkMode ? Theme.of(context).colorScheme.primary : Colors.black,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      prefixIcon: Icon(Icons.message_outlined, color: subTextColor),
+                                      fillColor: searchFieldColor,
+                                      filled: true,
+                                    ),
+                                    maxLines: 1,
+                                    style: TextStyle(fontSize: 14, color: textColor),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            
-            // Loading overlay
-            if (isSending)
-              Positioned.fill(
-                child: Container(
-                  color: Colors.black.withOpacity(0.1),
-                  child: Center(
-                    child: Container(
-                      padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
+                          
+                          // Tab bar for filters
+                          TabBar(
+                            controller: _tabController,
+                            labelColor: isDarkMode ? Colors.white : Colors.black,
+                            unselectedLabelColor: subTextColor,
+                            indicatorColor: isDarkMode ? Theme.of(context).colorScheme.primary : Colors.black,
+                            indicatorWeight: 2,
+                            labelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                            tabs: [
+                              Tab(text: 'All Chats'),
+                              Tab(text: 'Recent'),
+                              Tab(text: 'Groups'),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                          
+                          // Search field
+                          Container(
+                            margin: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: searchFieldColor,
+                              borderRadius: BorderRadius.circular(25),
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: TextField(
+                              controller: searchController,
+                              onChanged: (value) {
+                                setState(() {
+                                  searchQuery = value.trim().toLowerCase();
+                                  isSearching = searchQuery.isNotEmpty;
+                                });
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'Search...',
+                                hintStyle: TextStyle(color: subTextColor, fontSize: 14),
+                                border: InputBorder.none,
+                                prefixIcon: Icon(Icons.search, color: subTextColor, size: 20),
+                                suffixIcon: isSearching
+                                    ? IconButton(
+                                        icon: Icon(Icons.clear, color: subTextColor, size: 18),
+                                        onPressed: () {
+                                          searchController.clear();
+                                          setState(() {
+                                            searchQuery = '';
+                                            isSearching = false;
+                                          });
+                                          // Hide keyboard when clearing search
+                                          FocusScope.of(context).unfocus();
+                                        },
+                                      )
+                                    : null,
+                                contentPadding: EdgeInsets.symmetric(vertical: 10),
+                              ),
+                              style: TextStyle(color: textColor),
+                            ),
                           ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Sharing post...',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
+                          
+                          // Chat list container - FIXED HEIGHT to prevent overflow
+                          Container(
+                            height: keyboardVisible ? 180 : 250, // Fixed height when keyboard is showing
+                            child: TabBarView(
+                              controller: _tabController,
+                              physics: AlwaysScrollableScrollPhysics(),
+                              children: [
+                                // All chats tab
+                                _buildChatList(context, (chatRooms) => chatRooms),
+                                
+                                // Recent tab
+                                _buildChatList(
+                                  context, 
+                                  (chatRooms) => chatRooms
+                                      .where((room) => recentRecipientIds.contains(room.id))
+                                      .toList(),
+                                ),
+                                
+                                // Groups tab
+                                _buildChatList(
+                                  context, 
+                                  (chatRooms) => chatRooms
+                                      .where((room) => room.isGroupChat)
+                                      .toList(),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
+                    
+                    // Action buttons - This stays outside the scroll view
+                    AnimatedContainer(
+                      duration: Duration(milliseconds: 200),
+                      padding: EdgeInsets.only(
+                        left: 16, 
+                        right: 16, 
+                        top: 16,
+                        bottom: keyboardVisible ? 8 : 16 + bottomPadding
+                      ),
+                      decoration: BoxDecoration(
+                        color: backgroundColor,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(isDarkMode ? 0.2 : 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, -4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Cancel button
+                          TextButton.icon(
+                            onPressed: () {
+                              // Hide keyboard before closing
+                              FocusScope.of(context).unfocus();
+                              Navigator.pop(context);
+                            },
+                            icon: Icon(Icons.close, size: 18),
+                            label: Text('Cancel'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: subTextColor,
+                            ),
+                          ),
+                          
+                          // Share button
+                          ElevatedButton.icon(
+                            onPressed: selectedChatRoomId == null || isSending
+                                ? null
+                                : () async {
+                                    // Hide keyboard first
+                                    FocusScope.of(context).unfocus();
+                                    
+                                    setState(() {
+                                      isSending = true;
+                                    });
+                                    
+                                    try {
+                                      await PostSharingService.sharePostToChat(
+                                        context: context,
+                                        post: widget.post,
+                                        chatRoomId: selectedChatRoomId!,
+                                        currentUser: widget.currentUser,
+                                        customMessage: messageController.text.trim(),
+                                      );
+                                      
+                                      Navigator.pop(context);
+                                      
+                                      // Show success indicator
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Row(
+                                            children: [
+                                              Icon(Icons.check_circle, color: Colors.white),
+                                              SizedBox(width: 12),
+                                              Text('Post shared successfully'),
+                                            ],
+                                          ),
+                                          backgroundColor: isDarkMode ? Colors.green[700] : Colors.black,
+                                          duration: Duration(seconds: 2),
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                      );
+                                    } catch (e) {
+                                      setState(() {
+                                        isSending = false;
+                                      });
+                                      
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Failed to share post: $e'),
+                                          backgroundColor: Colors.red.shade600,
+                                          duration: Duration(seconds: 3),
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                            icon: isSending
+                                ? SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : Icon(Icons.send, size: 18),
+                            label: Text(isSending ? 'Sharing...' : 'Share Post'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isDarkMode ? Theme.of(context).colorScheme.primary : Colors.black,
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: isDarkMode ? Colors.grey[800] : Colors.grey[300],
+                              disabledForegroundColor: isDarkMode ? Colors.grey[500] : Colors.grey[500],
+                              elevation: 0,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16, 
+                                vertical: keyboardVisible ? 8 : 12
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-          ],
-        ),
-      ),
+              
+              // Loading overlay
+              if (isSending)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withOpacity(0.1),
+                    child: Center(
+                      child: Container(
+                        padding: EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: backgroundColor,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                isDarkMode ? Theme.of(context).colorScheme.primary : Colors.black
+                              ),
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'Sharing post...',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: textColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          );
+        } else if (state is ChatRoomsLoading) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: CircularProgressIndicator(color: Colors.black),
+            ),
+          );
+        } else if (state is ChatRoomsError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: Colors.red.shade300,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Error: ${state.message}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.red.shade400),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: CircularProgressIndicator(color: Colors.black),
+          ),
+        );
+      },
     );
   }
   
@@ -699,13 +746,25 @@ class _EnhancedShareSheetState extends State<_EnhancedShareSheet> with SingleTic
     BuildContext context,
     List<ChatRoom> Function(List<ChatRoom>) filterFunction,
   ) {
+    // Get dark mode colors here for the chat list
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDarkMode ? Colors.grey[200]! : Colors.black87;
+    final subTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final selectedBgColor = isDarkMode ? Color(0xFF3C3C3C) : Colors.grey[200]!;
+    final placeholderColor = isDarkMode ? Color(0xFF3C3C3C) : Colors.grey[300]!;
+    final groupTagBgColor = isDarkMode ? Color(0xFF4C4C4C) : Colors.grey[200]!;
+    final groupTagTextColor = isDarkMode ? Colors.grey[300]! : Colors.grey[700]!;
+    final selectedColor = isDarkMode ? Theme.of(context).colorScheme.primary : Colors.black;
+    
     return BlocBuilder<ChatCubit, ChatState>(
       builder: (context, state) {
         if (state is ChatRoomsLoading) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
-              child: CircularProgressIndicator(color: Colors.black),
+              child: CircularProgressIndicator(
+                color: isDarkMode ? Theme.of(context).colorScheme.primary : Colors.black
+              ),
             ),
           );
         } else if (state is ChatRoomsLoaded) {
@@ -735,7 +794,7 @@ class _EnhancedShareSheetState extends State<_EnhancedShareSheet> with SingleTic
                   Icon(
                     isSearching ? Icons.search_off : Icons.chat_bubble_outline,
                     size: 48,
-                    color: Colors.grey.shade400,
+                    color: subTextColor,
                   ),
                   SizedBox(height: 16),
                   Text(
@@ -743,7 +802,7 @@ class _EnhancedShareSheetState extends State<_EnhancedShareSheet> with SingleTic
                         ? 'No chats match your search'
                         : 'No chats available',
                     style: TextStyle(
-                      color: Colors.grey.shade600,
+                      color: textColor,
                       fontSize: 16,
                     ),
                   ),
@@ -753,7 +812,7 @@ class _EnhancedShareSheetState extends State<_EnhancedShareSheet> with SingleTic
                         ? 'Try a different search term'
                         : 'Start a conversation first',
                     style: TextStyle(
-                      color: Colors.grey.shade500,
+                      color: subTextColor,
                       fontSize: 14,
                     ),
                   ),
@@ -792,7 +851,7 @@ class _EnhancedShareSheetState extends State<_EnhancedShareSheet> with SingleTic
                   duration: Duration(milliseconds: 200),
                   curve: Curves.easeInOut,
                   decoration: BoxDecoration(
-                    color: isSelected ? Colors.grey.shade200 : Colors.transparent,
+                    color: isSelected ? selectedBgColor : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: ListTile(
@@ -804,8 +863,8 @@ class _EnhancedShareSheetState extends State<_EnhancedShareSheet> with SingleTic
                         CircleAvatar(
                           radius: 22,
                           backgroundColor: isSelected 
-                              ? Colors.black 
-                              : Colors.grey.shade300,
+                              ? selectedColor 
+                              : placeholderColor,
                           backgroundImage: chatAvatar != null && chatAvatar.isNotEmpty
                               ? CachedNetworkImageProvider(chatAvatar)
                               : null,
@@ -814,7 +873,7 @@ class _EnhancedShareSheetState extends State<_EnhancedShareSheet> with SingleTic
                                   chatRoom.isGroupChat ? Icons.group : Icons.person,
                                   color: isSelected 
                                       ? Colors.white 
-                                      : Colors.grey.shade600,
+                                      : subTextColor,
                                   size: 18,
                                 )
                               : null,
@@ -826,13 +885,13 @@ class _EnhancedShareSheetState extends State<_EnhancedShareSheet> with SingleTic
                             child: Container(
                               padding: EdgeInsets.all(2),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 Icons.history,
                                 size: 12,
-                                color: Colors.black,
+                                color: selectedColor,
                               ),
                             ),
                           ),
@@ -847,7 +906,7 @@ class _EnhancedShareSheetState extends State<_EnhancedShareSheet> with SingleTic
                               fontWeight: isSelected 
                                   ? FontWeight.bold 
                                   : FontWeight.normal,
-                              color: Colors.black87,
+                              color: textColor,
                               fontSize: 15,
                             ),
                           ),
@@ -856,14 +915,14 @@ class _EnhancedShareSheetState extends State<_EnhancedShareSheet> with SingleTic
                           Container(
                             padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
+                              color: groupTagBgColor,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               'Group',
                               style: TextStyle(
                                 fontSize: 10,
-                                color: Colors.grey.shade700,
+                                color: groupTagTextColor,
                               ),
                             ),
                           ),
@@ -876,7 +935,7 @@ class _EnhancedShareSheetState extends State<_EnhancedShareSheet> with SingleTic
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey.shade600,
+                              color: subTextColor,
                             ),
                           )
                         : null,
@@ -885,7 +944,7 @@ class _EnhancedShareSheetState extends State<_EnhancedShareSheet> with SingleTic
                             width: 30,
                             height: 30,
                             decoration: BoxDecoration(
-                              color: Colors.black,
+                              color: selectedColor,
                               shape: BoxShape.circle,
                             ),
                             child: Center(
@@ -935,7 +994,9 @@ class _EnhancedShareSheetState extends State<_EnhancedShareSheet> with SingleTic
         return Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
-            child: CircularProgressIndicator(color: Colors.black),
+            child: CircularProgressIndicator(
+              color: isDarkMode ? Theme.of(context).colorScheme.primary : Colors.black
+            ),
           ),
         );
       },
