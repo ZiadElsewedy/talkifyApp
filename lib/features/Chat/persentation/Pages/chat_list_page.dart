@@ -208,10 +208,22 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
               backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.white,
               title: _isSearching
                   ? Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                       decoration: BoxDecoration(
-                        color: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(20),
+                        color: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF8F9FA),
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(
+                          color: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFE5E7EB),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: TextField(
                       controller: _searchController,
@@ -219,12 +231,18 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                         hintText: 'Search conversations...',
                         hintStyle: TextStyle(
                             color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                            fontSize: 16,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
                           ),
                           border: InputBorder.none,
-                          icon: Icon(
-                            Icons.search,
-                            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                          prefixIcon: Container(
+                            padding: const EdgeInsets.all(8),
+                            child: Icon(
+                              Icons.search_rounded,
+                              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                              size: 20,
+                            ),
                           ),
                           suffixIcon: _searchController.text.isNotEmpty
                               ? GestureDetector(
@@ -232,17 +250,28 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                                     _searchController.clear();
                                     _filterChatRooms('');
                                   },
-                                  child: Icon(
-                                    Icons.clear,
-                                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                                    size: 18,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                                        shape: BoxShape.circle,
+                                      ),
+                                      padding: const EdgeInsets.all(4),
+                                      child: Icon(
+                                        Icons.close,
+                                        color: isDarkMode ? Colors.black : Colors.white,
+                                        size: 14,
+                                      ),
+                                    ),
                                   ),
                                 )
                               : null,
                       ),
                       style: TextStyle(
                           color: isDarkMode ? Colors.white : Colors.black,
-                          fontSize: 16,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
                       ),
                       onChanged: _filterChatRooms,
                       autofocus: true,
@@ -263,25 +292,47 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
         ),
         actions: [
                 if (!_isSearching)
-          IconButton(
-                    onPressed: _toggleSearch,
-                  icon: Icon(
-                      Icons.search,
-                      color: isDarkMode ? Colors.white : Colors.black,
-                      size: 24,
+          Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF8F9FA),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFE5E7EB),
+                        width: 1,
+                      ),
                     ),
-                    splashRadius: 20,
+                    child: IconButton(
+                      onPressed: _toggleSearch,
+                      icon: Icon(
+                        Icons.search_rounded,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                        size: 20,
+                      ),
+                      splashRadius: 18,
+                    ),
                   ),
                 if (_isSearching)
-                  IconButton(
-                    onPressed: _toggleSearch,
-                    icon: Icon(
-                      Icons.close,
-                      color: isDarkMode ? Colors.white : Colors.black,
-                      size: 24,
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF8F9FA),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFE5E7EB),
+                        width: 1,
+                      ),
+                    ),
+                    child: IconButton(
+                      onPressed: _toggleSearch,
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                        size: 20,
+                      ),
+                      splashRadius: 18,
+                    ),
                   ),
-                    splashRadius: 20,
-          ),
                 if (!_isSearching)
                 PopupMenuButton<String>(
                   icon: Icon(
@@ -652,7 +703,7 @@ class _ChatListPageState extends State<ChatListPage> with TickerProviderStateMix
                             backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
                         child: ListView.builder(
                           itemCount: _filteredChatRooms.length,
-                              padding: const EdgeInsets.only(top: 4, bottom: 80),
+                              padding: const EdgeInsets.only(top: 8, bottom: 100, left: 0, right: 0),
                               physics: const AlwaysScrollableScrollPhysics(),
                           itemBuilder: (context, index) {
                             final chatRoom = _filteredChatRooms[index];

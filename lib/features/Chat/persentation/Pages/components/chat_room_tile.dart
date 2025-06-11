@@ -156,38 +156,50 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
       opacity: _fadeAnimation,
       child: SlideTransition(
         position: _slideAnimation,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+          decoration: BoxDecoration(
+            color: hasUnread 
+              ? (isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF8F9FA))
+              : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            border: hasUnread 
+              ? Border.all(
+                  color: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFE5E7EB),
+                  width: 1,
+                )
+              : null,
+          ),
           child: Material(
             color: Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(20),
             child: InkWell(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(20),
               onTap: widget.onTap,
               onLongPress: () => _showOptionsDialog(context),
               splashColor: isDarkMode 
-                ? Colors.white.withOpacity(0.06)
-                : Colors.black.withOpacity(0.06),
+                ? Colors.white.withOpacity(0.08)
+                : Colors.black.withOpacity(0.08),
               highlightColor: isDarkMode 
-                ? Colors.white.withOpacity(0.03)
-                : Colors.black.withOpacity(0.03),
+                ? Colors.white.withOpacity(0.04)
+                : Colors.black.withOpacity(0.04),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   children: [
                     _buildAvatar(otherParticipant, isDarkMode),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildTitle(context, otherParticipant, hasUnread, isDarkMode),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: 4),
                           _buildSubtitle(context, hasUnread, isDarkMode),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     _buildTrailing(context, hasUnread, unreadCount, isDarkMode),
                   ],
                 ),
@@ -215,51 +227,66 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
                 boxShadow: [
                   BoxShadow(
                     color: isDarkMode
-                        ? Colors.black.withOpacity(0.2)
-                        : Colors.black.withOpacity(0.05),
-                    blurRadius: 4,
+                        ? Colors.black.withOpacity(0.3)
+                        : Colors.black.withOpacity(0.08),
+                    blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
               child: CircleAvatar(
-                radius: 28,
-                backgroundColor: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFF7F7F7),
+                radius: 30,
+                backgroundColor: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFf1f3f4),
                 backgroundImage: avatarUrl.isNotEmpty 
                     ? CachedNetworkImageProvider(avatarUrl)
                     : null,
                 child: avatarUrl.isEmpty 
-                    ? Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isDarkMode ? Colors.white : Colors.black87,
+                    ? Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              isDarkMode ? const Color(0xFF4A5568) : const Color(0xFF6B73FF),
+                              isDarkMode ? const Color(0xFF2D3748) : const Color(0xFF9F7AEA),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       )
                     : null,
               ),
             ),
             
-            // Online status indicator
+            // Online status indicator with modern design
             if (_isOtherUserOnline)
             Positioned(
-                right: 0,
-              bottom: 0,
+                right: 2,
+              bottom: 2,
               child: Container(
-                  width: 14,
-                  height: 14,
+                  width: 16,
+                  height: 16,
                 decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50),
+                    color: const Color(0xFF10B981),
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: isDarkMode ? const Color(0xFF121212) : Colors.white,
-                      width: 2.5,
+                      width: 3,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 2,
+                        color: const Color(0xFF10B981).withOpacity(0.3),
+                        blurRadius: 4,
                         offset: const Offset(0, 1),
                     ),
                     ],
@@ -270,33 +297,48 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
         ),
       );
     } else {
-      // Group chat avatar
+      // Group chat avatar with modern design
       return Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
               color: isDarkMode
-                  ? Colors.black.withOpacity(0.2)
-                  : Colors.black.withOpacity(0.05),
-                blurRadius: 4,
+                  ? Colors.black.withOpacity(0.3)
+                  : Colors.black.withOpacity(0.08),
+                blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
             ],
           ),
           child: CircleAvatar(
-            radius: 28,
-            backgroundColor: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFF7F7F7),
+            radius: 30,
+            backgroundColor: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFf1f3f4),
             backgroundImage: widget.chatRoom.participantAvatars.containsKey('groupAvatar') && 
                             widget.chatRoom.participantAvatars['groupAvatar']!.isNotEmpty 
                 ? CachedNetworkImageProvider(widget.chatRoom.participantAvatars['groupAvatar']!)
                 : null,
             child: (widget.chatRoom.participantAvatars['groupAvatar'] == null ||
                     widget.chatRoom.participantAvatars['groupAvatar']!.isEmpty)
-                  ? Icon(
-                      Icons.group,
-                      size: 20,
-                      color: isDarkMode ? Colors.white : Colors.black87,
+                  ? Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [
+                            isDarkMode ? const Color(0xFF4A5568) : const Color(0xFF8B5CF6),
+                            isDarkMode ? const Color(0xFF2D3748) : const Color(0xFF06B6D4),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.group_rounded,
+                          size: 24,
+                          color: Colors.white,
+                        ),
+                      ),
                     )
                   : null,
           ),
@@ -332,12 +374,13 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
           child: Text(
             chatName,
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: hasUnread ? FontWeight.bold : FontWeight.w600,
-              letterSpacing: 0.1,
+              fontSize: 17,
+              fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w600,
+              letterSpacing: -0.2,
+              height: 1.2,
               color: isDarkMode 
-                  ? (hasUnread ? Colors.white : const Color(0xFFE0E0E0))
-                  : (hasUnread ? Colors.black : const Color(0xFF303030)),
+                  ? (hasUnread ? Colors.white : const Color(0xFFE8E8E8))
+                  : (hasUnread ? const Color(0xFF1F2937) : const Color(0xFF374151)),
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -377,11 +420,12 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
           child: Text(
             displayText,
       style: TextStyle(
-              fontSize: 13,
+              fontSize: 14,
               color: isDarkMode
-                  ? (hasUnread ? const Color(0xFFBDBDBD) : const Color(0xFF757575))
-                  : (hasUnread ? const Color(0xFF505050) : const Color(0xFF757575)),
-        fontWeight: hasUnread ? FontWeight.w500 : FontWeight.normal,
+                  ? (hasUnread ? const Color(0xFFB0BEC5) : const Color(0xFF78909C))
+                  : (hasUnread ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF)),
+        fontWeight: hasUnread ? FontWeight.w500 : FontWeight.w400,
+              height: 1.3,
       ),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
@@ -404,36 +448,44 @@ class _ChatRoomTileState extends State<ChatRoomTile> with SingleTickerProviderSt
           Text(
           timeText,
             style: TextStyle(
-            fontSize: 11,
+            fontSize: 12,
+              fontWeight: FontWeight.w500,
             color: isDarkMode
-                ? (hasUnread ? const Color(0xFFBDBDBD) : const Color(0xFF757575))
-                : (hasUnread ? const Color(0xFF505050) : const Color(0xFF757575)),
-            fontWeight: hasUnread ? FontWeight.w500 : FontWeight.normal,
+                ? (hasUnread ? const Color(0xFFB0BEC5) : const Color(0xFF78909C))
+                : (hasUnread ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF)),
             ),
           ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         if (hasUnread)
           Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
             decoration: BoxDecoration(
-              color: isDarkMode ? Colors.white : const Color(0xFF000000),
-              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: isDarkMode 
+                  ? [const Color(0xFF6366F1), const Color(0xFF8B5CF6)]
+                  : [const Color(0xFF3B82F6), const Color(0xFF1D4ED8)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: isDarkMode
-                      ? Colors.black.withOpacity(0.2)
-                      : Colors.black.withOpacity(0.05),
-                  blurRadius: 2,
-                  offset: const Offset(0, 1),
+                  color: (isDarkMode ? const Color(0xFF6366F1) : const Color(0xFF3B82F6)).withOpacity(0.3),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
-            child: Text(
-              unreadCount > 99 ? '99+' : unreadCount.toString(),
-              style: TextStyle(
-                color: isDarkMode ? Colors.black : Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
+            child: Center(
+              child: Text(
+                unreadCount > 99 ? '99+' : unreadCount.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  height: 1,
+                ),
               ),
             ),
           ),
