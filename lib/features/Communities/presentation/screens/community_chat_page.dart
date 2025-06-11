@@ -654,13 +654,14 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
                   decoration: BoxDecoration(
-                    color: theme.cardColor,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    color: isDark ? Color(0xFF1A1A1A) : theme.cardColor,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 5,
-                        offset: const Offset(0, -3),
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, -2),
+                        spreadRadius: 1,
                       ),
                     ],
                   ),
@@ -669,21 +670,55 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         // Attachment button
-                        IconButton(
-                          icon: Icon(
-                            Icons.add_circle_outline,
-                            color: theme.colorScheme.primary,
+                        Container(
+                          margin: const EdgeInsets.only(right: 4),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withOpacity(0.1),
+                            shape: BoxShape.circle,
                           ),
-                          onPressed: () => _showAttachmentOptions(isDark),
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(24),
+                            clipBehavior: Clip.antiAlias,
+                            child: IconButton(
+                              icon: Icon(
+                                Icons.add_circle_outline,
+                                color: theme.colorScheme.primary,
+                                size: 22,
+                              ),
+                              onPressed: () => _showAttachmentOptions(isDark),
+                              style: IconButton.styleFrom(
+                                padding: const EdgeInsets.all(12),
+                                shape: const CircleBorder(),
+                              ),
+                            ),
+                          ),
                         ),
                         
                         // Voice recording button
-                        IconButton(
-                          icon: Icon(
-                            Icons.mic,
-                            color: theme.colorScheme.primary,
+                        Container(
+                          margin: const EdgeInsets.only(right: 4),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withOpacity(0.1),
+                            shape: BoxShape.circle,
                           ),
-                          onPressed: _startVoiceRecording,
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(24),
+                            clipBehavior: Clip.antiAlias,
+                            child: IconButton(
+                              icon: Icon(
+                                Icons.mic,
+                                color: theme.colorScheme.primary,
+                                size: 22,
+                              ),
+                              onPressed: _startVoiceRecording,
+                              style: IconButton.styleFrom(
+                                padding: const EdgeInsets.all(12),
+                                shape: const CircleBorder(),
+                              ),
+                            ),
+                          ),
                         ),
                         
                         // Text field
@@ -695,57 +730,119 @@ class _CommunityChatPageState extends State<CommunityChatPage> {
                               borderRadius: BorderRadius.circular(24.0),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.03),
-                                  blurRadius: 3,
-                                  offset: const Offset(0, 1),
+                                  color: Colors.black.withOpacity(0.06),
+                                  blurRadius: 5,
+                                  offset: const Offset(0, 2),
+                                  spreadRadius: 1,
                                 ),
                               ],
                             ),
-                            child: TextField(
-                              controller: _messageController,
-                              textCapitalization: TextCapitalization.sentences,
-                              maxLines: null,
-                              style: theme.textTheme.bodyMedium,
-                              decoration: InputDecoration(
-                                hintText: 'Type a message...',
-                                hintStyle: TextStyle(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            clipBehavior: Clip.antiAlias,
+                            child: Material(
+                              color: Colors.transparent,
+                              borderRadius: BorderRadius.circular(24.0),
+                              child: TextField(
+                                controller: _messageController,
+                                textCapitalization: TextCapitalization.sentences,
+                                maxLines: null,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  letterSpacing: 0.2,
+                                  fontWeight: FontWeight.w400,
                                 ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0,
-                                  vertical: 12.0,
+                                textAlignVertical: TextAlignVertical.center,
+                                cursorColor: theme.colorScheme.primary,
+                                cursorWidth: 1.5,
+                                cursorRadius: const Radius.circular(4),
+                                decoration: InputDecoration(
+                                  hintText: 'Type a message...',
+                                  hintStyle: TextStyle(
+                                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0,
+                                    vertical: 12.0,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(24.0),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(24.0),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(24.0),
+                                    borderSide: BorderSide(
+                                      color: theme.colorScheme.primary.withOpacity(0.3),
+                                      width: 1.0,
+                                    ),
+                                  ),
+                                  fillColor: isDark ? Color(0xFF2C2C2C) : Colors.grey.shade100,
+                                  filled: true,
+                                  suffixIcon: _messageController.text.isNotEmpty
+                                    ? Container(
+                                        margin: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? Colors.grey[700] : Colors.grey[300],
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Material(
+                                          color: Colors.transparent,
+                                          shape: const CircleBorder(),
+                                          clipBehavior: Clip.hardEdge,
+                                          child: InkWell(
+                                            onTap: () {
+                                              setState(() {
+                                                _messageController.clear();
+                                              });
+                                            },
+                                            splashColor: theme.colorScheme.primary.withOpacity(0.1),
+                                            highlightColor: theme.colorScheme.primary.withOpacity(0.05),
+                                            child: Icon(
+                                              Icons.clear,
+                                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                              size: 18,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : null,
                                 ),
-                                border: InputBorder.none,
-                                suffixIcon: _messageController.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: Icon(
-                                        Icons.clear,
-                                        color: theme.colorScheme.onSurface.withOpacity(0.6),
-                                        size: 20,
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _messageController.clear();
-                                        });
-                                      },
-                                    )
-                                  : null,
+                                onChanged: (value) {
+                                  // Force rebuild to show/hide clear button
+                                  setState(() {});
+                                },
                               ),
-                              onChanged: (value) {
-                                // Force rebuild to show/hide clear button
-                                setState(() {});
-                              },
                             ),
                           ),
                         ),
                         
                         // Send button
-                        IconButton(
-                          icon: Icon(
-                            Icons.send_rounded,
-                            color: theme.colorScheme.primary,
+                        Container(
+                          margin: const EdgeInsets.only(left: 4),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withOpacity(0.1),
+                            shape: BoxShape.circle,
                           ),
-                          onPressed: _sendMessage,
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(24),
+                            clipBehavior: Clip.antiAlias,
+                            child: IconButton(
+                              icon: Icon(
+                                Icons.send_rounded,
+                                color: theme.colorScheme.primary,
+                                size: 22,
+                              ),
+                              onPressed: _sendMessage,
+                              style: IconButton.styleFrom(
+                                padding: const EdgeInsets.all(12),
+                                shape: const CircleBorder(),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),

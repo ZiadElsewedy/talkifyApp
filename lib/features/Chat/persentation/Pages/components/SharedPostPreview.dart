@@ -125,12 +125,22 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
   
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDarkMode ? Colors.grey[200]! : Colors.black87;
+    final subTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final cardColor = isDarkMode ? Color(0xFF1E1E1E) : Colors.white;
+    final borderColor = isDarkMode ? Color(0xFF2C2C2C) : Colors.grey[300]!;
+    final footerColor = isDarkMode ? Color(0xFF121212) : Colors.grey[100]!;
+    final footerBorderColor = isDarkMode ? Color(0xFF2C2C2C) : Colors.grey[200]!;
+    final iconColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final placeholderColor = isDarkMode ? Color(0xFF2C2C2C) : Colors.grey[200]!;
+
     if (isLoading) {
-      return _buildLoadingState();
+      return _buildLoadingState(isDarkMode, placeholderColor, subTextColor);
     }
     
     if (error != null || post == null) {
-      return _buildErrorState();
+      return _buildErrorState(isDarkMode, placeholderColor, subTextColor);
     }
     
     return AnimatedBuilder(
@@ -149,12 +159,12 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade300, width: 1),
+          border: Border.all(color: borderColor, width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withOpacity(isDarkMode ? 0.2 : 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -170,7 +180,7 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
             Container(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.black,
+                color: isDarkMode ? Theme.of(context).colorScheme.primary : Colors.black,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -209,12 +219,12 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
                         backgroundImage: post!.UserProfilePic.isNotEmpty
                             ? CachedNetworkImageProvider(post!.UserProfilePic)
                             : null,
-                        backgroundColor: Colors.grey.shade200,
+                        backgroundColor: placeholderColor,
                         child: post!.UserProfilePic.isEmpty
                             ? Text(
                                 post!.UserName[0].toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.black87,
+                                style: TextStyle(
+                                  color: textColor,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                 ),
@@ -233,7 +243,7 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
-                                color: Colors.black87,
+                                color: textColor,
                               ),
                             ),
                             SizedBox(height: 2),
@@ -241,7 +251,7 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
                               timeago.format(post!.timestamp),
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey.shade600,
+                                color: subTextColor,
                               ),
                             ),
                           ],
@@ -258,7 +268,7 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
                         post!.Text,
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.black87,
+                          color: textColor,
                           height: 1.3,
                         ),
                         maxLines: 3,
@@ -289,25 +299,25 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
                         imageUrl: post!.imageUrl,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(
-                          color: Colors.grey.shade200,
+                          color: placeholderColor,
                           child: Center(
                             child: SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.black45,
+                                color: isDarkMode ? Colors.white38 : Colors.black45,
                               ),
                             ),
                           ),
                         ),
                         errorWidget: (context, url, error) => Container(
-                          color: Colors.grey.shade200,
+                          color: placeholderColor,
                           child: Center(
                             child: Icon(
                               Icons.error_outline,
                               size: 24,
-                              color: Colors.grey.shade400,
+                              color: subTextColor,
                             ),
                           ),
                         ),
@@ -350,10 +360,10 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: footerColor,
                 border: Border(
                   top: BorderSide(
-                    color: Colors.grey.shade200,
+                    color: footerBorderColor,
                     width: 1,
                   ),
                 ),
@@ -372,7 +382,7 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade700,
+                      color: isDarkMode ? Colors.grey[300]! : Colors.grey[700]!,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -381,7 +391,7 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
                   Icon(
                     Icons.chat_bubble_outline,
                     size: 14,
-                    color: Colors.grey.shade600,
+                    color: iconColor,
                   ),
                   const SizedBox(width: 4),
                   Text(
@@ -389,7 +399,7 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade700,
+                      color: isDarkMode ? Colors.grey[300]! : Colors.grey[700]!,
                     ),
                   ),
                   
@@ -402,7 +412,7 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
                         'Tap to view',
                         style: TextStyle(
                           fontSize: 10,
-                          color: Colors.grey.shade700,
+                          color: isDarkMode ? Colors.grey[400]! : Colors.grey[700]!,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -410,7 +420,7 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
                       Icon(
                         Icons.arrow_forward_ios,
                         size: 10,
-                        color: Colors.grey.shade700,
+                        color: isDarkMode ? Colors.grey[400]! : Colors.grey[700]!,
                       ),
                     ],
                   ),
@@ -423,14 +433,17 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
     );
   }
   
-  Widget _buildLoadingState() {
+  Widget _buildLoadingState(bool isDarkMode, Color placeholderColor, Color textColor) {
     return Container(
       height: 180,
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: placeholderColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300, width: 1),
+        border: Border.all(
+          color: isDarkMode ? Color(0xFF2C2C2C) : Colors.grey[300]!,
+          width: 1
+        ),
       ),
       child: Center(
         child: Column(
@@ -441,14 +454,14 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
               height: 24,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: Colors.black,
+                color: isDarkMode ? Colors.white70 : Colors.black,
               ),
             ),
             SizedBox(height: 12),
             Text(
               'Loading post...',
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: textColor,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -459,14 +472,17 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
     );
   }
   
-  Widget _buildErrorState() {
+  Widget _buildErrorState(bool isDarkMode, Color placeholderColor, Color textColor) {
     return Container(
       height: 120,
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: placeholderColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300, width: 1),
+        border: Border.all(
+          color: isDarkMode ? Color(0xFF2C2C2C) : Colors.grey[300]!,
+          width: 1
+        ),
       ),
       child: Center(
         child: Column(
@@ -475,7 +491,7 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
             Icon(
               Icons.error_outline,
               size: 28,
-              color: Colors.grey.shade500,
+              color: textColor,
             ),
             SizedBox(height: 8),
             Padding(
@@ -484,7 +500,7 @@ class _SharedPostPreviewState extends State<SharedPostPreview> with SingleTicker
                 error ?? 'Post not available',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  color: textColor,
                   fontSize: 12,
                 ),
               ),

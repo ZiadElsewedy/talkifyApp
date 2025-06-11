@@ -850,10 +850,10 @@ class ProfilePageState extends State<ProfilePage> {
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                               margin: const EdgeInsets.only(top: 8, bottom: 16),
                               decoration: BoxDecoration(
-                                color: isDarkMode ? Colors.black : Colors.white,
+                                color: isDarkMode ? Colors.grey[850] : Colors.grey[200],
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: isDarkMode ? Colors.grey[800]! : Colors.grey[200]!,
+                                  color: isDarkMode ? const Color.fromARGB(255, 23, 23, 23)! : Colors.grey[300]!,
                                   width: 1,
                                 ),
                               ),
@@ -877,7 +877,7 @@ class ProfilePageState extends State<ProfilePage> {
                                           Text(
                                             'Suggested For You',
                                             style: TextStyle(
-                                              color: isDarkMode ? Colors.white : Colors.black,
+                                              color: isDarkMode ? Colors.white : Colors.black87,
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -890,7 +890,7 @@ class ProfilePageState extends State<ProfilePage> {
                                           IconButton(
                                             icon: Icon(
                                               Icons.refresh,
-                                              color: isDarkMode ? Colors.white : Colors.black,
+                                              color: isDarkMode ? Colors.white70 : Colors.black87,
                                               size: 18,
                                             ),
                                             onPressed: _manuallyLoadSuggestions,
@@ -902,7 +902,7 @@ class ProfilePageState extends State<ProfilePage> {
                                           IconButton(
                                             icon: Icon(
                                               Icons.close,
-                                              color: isDarkMode ? Colors.white : Colors.black,
+                                              color: isDarkMode ? Colors.white70 : Colors.black87,
                                               size: 18,
                                             ),
                                             onPressed: _toggleSuggestions,
@@ -938,7 +938,7 @@ class ProfilePageState extends State<ProfilePage> {
                                             Text(
                                               "No suggestions available",
                                               style: TextStyle(
-                                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                                color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
                                                 fontSize: 14,
                                               ),
                                             ),
@@ -946,8 +946,8 @@ class ProfilePageState extends State<ProfilePage> {
                                             ElevatedButton(
                                               onPressed: _manuallyLoadSuggestions,
                                               style: ElevatedButton.styleFrom(
-                                                backgroundColor: isDarkMode ? Colors.white : Colors.black,
-                                                foregroundColor: isDarkMode ? Colors.black : Colors.white,
+                                                backgroundColor: isDarkMode ? Colors.grey[700] : Colors.grey[800],
+                                                foregroundColor: Colors.white,
                                                 elevation: 0,
                                                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                                 minimumSize: Size(0, 0),
@@ -996,7 +996,7 @@ class ProfilePageState extends State<ProfilePage> {
                                                         color: isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
                                                         width: 1,
                                                       ),
-                                                      color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
+                                                      color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
                                                     ),
                                                     child: ClipRRect(
                                                       borderRadius: BorderRadius.circular(30),

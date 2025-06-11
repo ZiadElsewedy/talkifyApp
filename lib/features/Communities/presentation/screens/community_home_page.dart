@@ -69,53 +69,95 @@ class _CommunityHomePageState extends State<CommunityHomePage> with SingleTicker
                 border: Border.all(color: searchBorder!, width: 1),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                    spreadRadius: 1,
                   ),
                 ],
               ),
-              child: TextField(
-                controller: _searchController,
-                autofocus: true,
-                style: TextStyle(
-                  color: searchText,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Search communities...',
-                  hintStyle: TextStyle(
-                    color: searchHint,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
+              clipBehavior: Clip.antiAlias,
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(24),
+                child: TextField(
+                  controller: _searchController,
+                  autofocus: true,
+                  style: TextStyle(
+                    color: searchText,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
                   ),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: searchIcon,
-                    size: 24,
+                  textAlignVertical: TextAlignVertical.center,
+                  cursorColor: theme.colorScheme.primary,
+                  cursorWidth: 1.5,
+                  cursorRadius: const Radius.circular(4),
+                  decoration: InputDecoration(
+                    hintText: 'Search communities...',
+                    hintStyle: TextStyle(
+                      color: searchHint,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    prefixIcon: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Icon(
+                        Icons.search,
+                        color: searchIcon,
+                        size: 24,
+                      ),
+                    ),
+                    suffixIcon: _searchController.text.isNotEmpty
+                      ? Container(
+                          margin: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.grey[700] : Colors.grey[300],
+                            shape: BoxShape.circle,
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            shape: const CircleBorder(),
+                            clipBehavior: Clip.hardEdge,
+                            child: InkWell(
+                              onTap: () {
+                                _searchController.clear();
+                                _searchCommunities('');
+                              },
+                              splashColor: theme.colorScheme.primary.withOpacity(0.1),
+                              highlightColor: theme.colorScheme.primary.withOpacity(0.05),
+                              child: Icon(
+                                Icons.clear,
+                                color: searchIcon,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        )
+                      : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    fillColor: searchBg,
+                    filled: true,
                   ),
-                  suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(
-                          Icons.clear,
-                          color: searchIcon,
-                          size: 22,
-                        ),
-                        onPressed: () {
-                          _searchController.clear();
-                          _searchCommunities('');
-                        },
-                      )
-                    : null,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  onChanged: (value) {
+                    _searchCommunities(value);
+                    // Force rebuild to show/hide clear button
+                    setState(() {});
+                  },
                 ),
-                onChanged: (value) {
-                  _searchCommunities(value);
-                  // Force rebuild to show/hide clear button
-                  setState(() {});
-                },
               ),
             )
           : Text(
