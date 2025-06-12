@@ -86,57 +86,97 @@ Talkify is a cutting-edge social media and communication platform built with Flu
 ## 📱 Screenshots
 
 <div align="center">
+  
+  ### 🔐 Authentication & Onboarding
   <table>
     <tr>
-      <td align="center"><b>Welcome & Authentication</b></td>
-      <td align="center"><b>Registration & Verification</b></td>
+      <td align="center"><b>Welcome Screen</b></td>
+      <td align="center"><b>Sign Up</b></td>
+      <td align="center"><b>Password Requirements</b></td>
+      <td align="center"><b>Email Verification</b></td>
+    </tr>
+    <tr>
+      <td><img src="lib/assets/Screenshot_1749686542.png" width="180"/></td>
+      <td><img src="lib/assets/Screenshot_1749686548.png" width="180"/></td>
+      <td><img src="lib/assets/Screenshot_1749687096.png" width="180"/></td>
+      <td><img src="lib/assets/Screenshot_1749687099.png" width="180"/></td>
+    </tr>
+  </table>
+  
+  ### 📱 Main Features & Feed
+  <table>
+    <tr>
       <td align="center"><b>Main Feed</b></td>
+      <td align="center"><b>Social Posts</b></td>
+      <td align="center"><b>Content Sharing</b></td>
+      <td align="center"><b>User Interactions</b></td>
     </tr>
     <tr>
-      <td><img src="lib/assets/Screenshot_1749686542.png" width="200"/></td>
-      <td><img src="lib/assets/Screenshot_1749686548.png" width="200"/></td>
-      <td><img src="lib/assets/Screenshot_1749687001.png" width="200"/></td>
+      <td><img src="lib/assets/Screenshot_1749687001.png" width="180"/></td>
+      <td><img src="lib/assets/Screenshot_1749687037.png" width="180"/></td>
+      <td><img src="lib/assets/Screenshot_1749686997.png" width="180"/></td>
+      <td><img src="lib/assets/Screenshot_1749686989.png" width="180"/></td>
     </tr>
   </table>
   
+  ### 🏘️ Communities & Groups
   <table>
     <tr>
-      <td align="center"><b>Communities & Events</b></td>
-      <td align="center"><b>Real-time Chat</b></td>
-      <td align="center"><b>News Feed</b></td>
+      <td align="center"><b>Communities List</b></td>
+      <td align="center"><b>Community Details</b></td>
+      <td align="center"><b>Community Rules</b></td>
+      <td align="center"><b>Event Management</b></td>
     </tr>
     <tr>
-      <td><img src="lib/assets/Screenshot_1749686554.png" width="200"/></td>
-      <td><img src="lib/assets/Screenshot_1749687057.png" width="200"/></td>
-      <td><img src="lib/assets/Screenshot_1749687064.png" width="200"/></td>
+      <td><img src="lib/assets/Screenshot_1749686554.png" width="180"/></td>
+      <td><img src="lib/assets/Screenshot_1749687070.png" width="180"/></td>
+      <td><img src="lib/assets/Screenshot_1749687089.png" width="180"/></td>
+      <td><img src="lib/assets/Screenshot_1749687072.png" width="180"/></td>
     </tr>
   </table>
   
+  ### 💬 Chat & Messaging
+  <table>
+    <tr>
+      <td align="center"><b>Chat Interface</b></td>
+      <td align="center"><b>Group Chat</b></td>
+      <td align="center"><b>Media Sharing</b></td>
+    </tr>
+    <tr>
+      <td><img src="lib/assets/Screenshot_1749687057.png" width="180"/></td>
+      <td><img src="lib/assets/Screenshot_1749687109.png" width="180"/></td>
+      <td><img src="lib/assets/Screenshot_1749687908.png" width="180"/></td>
+    </tr>
+  </table>
+  
+  ### 📰 News & Information
+  <table>
+    <tr>
+      <td align="center"><b>News Feed</b></td>
+      <td align="center"><b>Breaking News</b></td>
+    </tr>
+    <tr>
+      <td><img src="lib/assets/Screenshot_1749687064.png" width="180"/></td>
+      <td><img src="lib/assets/Screenshot_1749687001.png" width="180"/></td>
+    </tr>
+  </table>
+  
+  ### 👤 Profile & Settings
   <table>
     <tr>
       <td align="center"><b>User Profile</b></td>
-      <td align="center"><b>Settings & Privacy</b></td>
-      <td align="center"><b>Password Management</b></td>
+      <td align="center"><b>Settings</b></td>
+      <td align="center"><b>Privacy Controls</b></td>
+      <td align="center"><b>Password Reset</b></td>
     </tr>
     <tr>
-      <td><img src="lib/assets/Screenshot_1749686590.png" width="200"/></td>
-      <td><img src="lib/assets/Screenshot_1749686558.png" width="200"/></td>
-      <td><img src="lib/assets/Screenshot_1749686589.png" width="200"/></td>
+      <td><img src="lib/assets/Screenshot_1749686590.png" width="180"/></td>
+      <td><img src="lib/assets/Screenshot_1749686558.png" width="180"/></td>
+      <td><img src="lib/assets/Screenshot_1749686589.png" width="180"/></td>
+      <td><img src="lib/assets/Screenshot_1749687001.png" width="180"/></td>
     </tr>
   </table>
   
-  <table>
-    <tr>
-      <td align="center"><b>Community Details</b></td>
-      <td align="center"><b>Event Management</b></td>
-      <td align="center"><b>Social Interaction</b></td>
-    </tr>
-    <tr>
-      <td><img src="lib/assets/Screenshot_1749687070.png" width="200"/></td>
-      <td><img src="lib/assets/Screenshot_1749687072.png" width="200"/></td>
-      <td><img src="lib/assets/Screenshot_1749687037.png" width="200"/></td>
-    </tr>
-  </table>
 </div>
 
 ## 🏗️ Architecture & Design
