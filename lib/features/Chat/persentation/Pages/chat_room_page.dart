@@ -418,6 +418,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
           userId: userId,
           userName: userName,
           initialAvatarUrl: avatarUrl,
+          heroTag: 'chat_page_avatar_${userId}_${widget.chatRoom.id}',
         ),
       ),
     );
@@ -1170,7 +1171,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
         avatarUrl: avatarUrl,
       ),
       child: Hero(
-        tag: 'avatar_$otherParticipantId',
+        tag: 'chat_page_avatar_${otherParticipantId}_${widget.chatRoom.id}',
         child: Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
@@ -1212,7 +1213,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> with TickerProviderStateMix
     final Color avatarShadowColor = colorScheme.shadow.withOpacity(0.1);
 
     return Hero(
-      tag: 'group_${widget.chatRoom.id}',
+      tag: 'chat_page_group_avatar_${widget.chatRoom.id}',
       child: Container(
         decoration: BoxDecoration(
           shape: BoxShape.circle,

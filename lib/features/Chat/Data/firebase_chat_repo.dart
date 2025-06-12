@@ -662,15 +662,29 @@ class FirebaseChatRepo implements ChatRepo {
       
       final chatRoom = ChatRoom.fromJson(chatRoomDoc.data()!);
       
-      // For community chats or group chats with more than 2 users, we handle differently
-      if (chatRoom.isCommunityChat || chatRoom.participants.length > 2) {
-        // In this case, we don't actually delete the chat room
-        // Instead, we mark the current user as having left
-        // This is handled by hideChatForUser
-        throw Exception('Use hideChatForUser for group or community chats');
+      // For community chats, we don't allow deletion via this method
+      if (chatRoom.isCommunityChat) {
+        throw Exception('Community chats cannot be deleted via this method');
       }
       
-      // For individual chats, proceed with complete deletion
+      // For group chats, send a system message before deletion
+      if (chatRoom.isGroupChat) {
+        try {
+          // Send system message to notify all members
+          await sendSystemMessage(
+            chatRoomId: chatRoomId,
+            content: 'This group has been deleted by the admin',
+          );
+          // Add a small delay to ensure the message is delivered
+          await Future.delayed(Duration(milliseconds: 500));
+        } catch (e) {
+          // Continue with deletion even if system message fails
+          print('Warning: Failed to send deletion notification: $e');
+        }
+      }
+      
+      // For ALL chats (including group chats), proceed with complete deletion
+      // This will remove the group from all members' chat lists
       
       // Get all messages in the chat room
       final messagesSnapshot = await chatRoomRef.collection(_messagesCollection).get();
@@ -716,7 +730,7 @@ class FirebaseChatRepo implements ChatRepo {
       // Execute the batch
       await batch.commit();
       
-      print('Successfully deleted chat room: $chatRoomId');
+      print('Successfully deleted chat room for everyone: $chatRoomId');
     } catch (e) {
       print('Error deleting chat room: $e');
       throw Exception('Failed to delete chat room: $e');
@@ -941,62 +955,111 @@ class FirebaseChatRepo implements ChatRepo {
     required String userName,
   }) async {
     try {
-      // Get reference to the chat room
-      final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc(chatRoomId);
-      final chatRoomDoc = await chatRoomRef.get();
-      
-      if (!chatRoomDoc.exists) {
-        throw Exception('Chat room does not exist');
-      }
-      
-      final chatRoom = ChatRoom.fromJson(chatRoomDoc.data()!);
-      
-      // Verify this is a group chat
-      if (chatRoom.participants.length <= 2) {
-        throw Exception('Cannot leave a one-on-one chat');
-      }
-      
-      // Prepare all updates
-      Map<String, dynamic> updates = {};
-      
-      // Update the leftParticipants map
-      Map<String, bool> leftParticipants = Map<String, bool>.from(chatRoom.leftParticipants);
-      leftParticipants[userId] = true;
-      updates['leftParticipants'] = leftParticipants;
-      
-      // If user is an admin and the only admin, assign admin role to oldest member
-      List<String> admins = List<String>.from(chatRoom.admins);
-      
-      if (chatRoom.isUserAdmin(userId) && admins.length == 1) {
-        // Find the oldest member who hasn't left
-        final remainingParticipants = chatRoom.participants
-            .where((id) => id != userId && !(chatRoom.leftParticipants[id] ?? false))
-            .toList();
-            
-        if (remainingParticipants.isNotEmpty) {
-          admins.add(remainingParticipants.first);
+      // Use a transaction to handle concurrent operations safely
+      await _firestore.runTransaction((transaction) async {
+        // Get reference to the chat room
+        final chatRoomRef = _firestore.collection(_chatRoomsCollection).doc(chatRoomId);
+        final chatRoomDoc = await transaction.get(chatRoomRef);
+        
+        if (!chatRoomDoc.exists) {
+          throw Exception('Chat room does not exist');
         }
-      }
-      
-      // Remove user from admins if they are an admin
-      admins.remove(userId);
-      updates['admins'] = admins;
-      
-      // Update the chat room document
-      await chatRoomRef.update(updates);
-      
-      // Send system message about user leaving - but don't await it
-      // This prevents it from blocking the UI and causing navigation issues
-      sendSystemMessage(
-        chatRoomId: chatRoomId,
-        content: '$userName left the group',
-        excludeUserId: userId,  // Exclude the leaving user from seeing this message
-      ).catchError((e) {
-        // Just log errors with system message, don't fail the whole operation
-        print('Error sending system message when leaving group: $e');
+        
+        final chatRoom = ChatRoom.fromJson(chatRoomDoc.data()!);
+        
+        // Verify this is a group chat
+        if (chatRoom.participants.length <= 2) {
+          throw Exception('Cannot leave a one-on-one chat');
+        }
+        
+        // Check if user is actually in the group
+        if (!chatRoom.participants.contains(userId)) {
+          throw Exception('User is not a member of this group');
+        }
+        
+        // If only 2 members left and one is leaving, mark for deletion
+        if (chatRoom.participants.length == 2) {
+          // Mark the transaction as needing to delete the room
+          // We'll handle this outside the transaction
+          return 'DELETE_ROOM';
+        }
+        
+        // Prepare all updates
+        Map<String, dynamic> updates = {};
+        
+        // Remove user from participants list completely
+        List<String> updatedParticipants = List<String>.from(chatRoom.participants);
+        updatedParticipants.remove(userId);
+        updates['participants'] = updatedParticipants;
+        
+        // Remove user from participant names map
+        Map<String, String> updatedParticipantNames = Map<String, String>.from(chatRoom.participantNames);
+        updatedParticipantNames.remove(userId);
+        updates['participantNames'] = updatedParticipantNames;
+        
+        // Remove user from participant avatars map
+        Map<String, String> updatedParticipantAvatars = Map<String, String>.from(chatRoom.participantAvatars);
+        updatedParticipantAvatars.remove(userId);
+        updates['participantAvatars'] = updatedParticipantAvatars;
+        
+        // Remove user from unread count map
+        Map<String, int> updatedUnreadCount = Map<String, int>.from(chatRoom.unreadCount);
+        updatedUnreadCount.remove(userId);
+        updates['unreadCount'] = updatedUnreadCount;
+        
+        // If user is an admin and the only admin, assign admin role to oldest remaining member
+        List<String> admins = List<String>.from(chatRoom.admins);
+        
+        if (chatRoom.isUserAdmin(userId) && admins.length == 1) {
+          // Find the oldest remaining member
+          if (updatedParticipants.isNotEmpty) {
+            admins.add(updatedParticipants.first);
+          }
+        }
+        
+        // Remove user from admins if they are an admin
+        admins.remove(userId);
+        updates['admins'] = admins;
+        
+        // Clean up leftParticipants and messageHistoryDeletedAt maps
+        Map<String, bool> updatedLeftParticipants = Map<String, bool>.from(chatRoom.leftParticipants);
+        updatedLeftParticipants.remove(userId);
+        updates['leftParticipants'] = updatedLeftParticipants;
+        
+        Map<String, dynamic> updatedMessageHistoryDeletedAt = Map<String, dynamic>.from(chatRoom.messageHistoryDeletedAt);
+        updatedMessageHistoryDeletedAt.remove(userId);
+        updates['messageHistoryDeletedAt'] = updatedMessageHistoryDeletedAt;
+        
+        // Update the chat room document
+        transaction.update(chatRoomRef, updates);
+        
+        return 'SUCCESS';
+      }).then((result) async {
+        // Handle post-transaction operations
+        if (result == 'DELETE_ROOM') {
+          // Send a system message before deletion
+          await sendSystemMessage(
+            chatRoomId: chatRoomId,
+            content: '$userName left the group. Group deleted as no members remain.',
+          );
+          
+          // Delete the entire chat room
+          await deleteChatRoom(chatRoomId);
+        } else {
+          // Send system message about user leaving - but don't await it
+          // This prevents it from blocking the UI and causing navigation issues
+          sendSystemMessage(
+            chatRoomId: chatRoomId,
+            content: '$userName left the group',
+            excludeUserId: userId,  // Exclude the leaving user from seeing this message
+          ).catchError((e) {
+            // Just log errors with system message, don't fail the whole operation
+            print('Error sending system message when leaving group: $e');
+          });
+        }
       });
       
-      print('User $userId (${userName}) left group chat: $chatRoomId');
+      print('User $userId (${userName}) successfully left group chat: $chatRoomId');
     } catch (e) {
       print('Error leaving group chat: $e');
       throw Exception('Failed to leave group chat: $e');

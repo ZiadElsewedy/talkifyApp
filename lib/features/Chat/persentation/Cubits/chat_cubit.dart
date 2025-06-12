@@ -519,8 +519,8 @@ class ChatCubit extends Cubit<ChatState> {
   // Helper method to perform the actual chat deletion logic
   Future<void> _performChatDeletion(ChatRoom chatRoom, String currentUserId) async {
     try {
-      // For group chats or community chats, use hideChatForUser instead
-      if (chatRoom.isCommunityChat || chatRoom.participants.length > 2) {
+      // For community chats, use hideChatForUser instead (communities are handled separately)
+      if (chatRoom.isCommunityChat) {
         await chatRepo.hideChatForUser(
           chatRoomId: chatRoom.id,
           userId: currentUserId,
@@ -531,7 +531,8 @@ class ChatCubit extends Cubit<ChatState> {
           emit(ChatHiddenForUser(chatRoom.id));
         }
       } else {
-        // For individual chats, actually delete the chat room
+        // For all other chats (individual and group chats), actually delete the chat room
+        // This now supports "Delete group for everyone" functionality
         await chatRepo.deleteChatRoom(chatRoom.id);
         
         // Emit the deleted state after successful deletion
