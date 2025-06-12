@@ -82,14 +82,35 @@ flutter:
   uses-material-design: true
 
   assets:
-    - lib\assets\Logo1.png
-    - lib\assets\logo_animation.json
-    - lib\assets\Register.json
-    - lib\assets\Verfiy.json
-    - lib\assets\Search.json
-    - lib\assets\profile.json
-    - lib\assets\Logo5.json
-    - lib\assets\WelcomPage.json
+    - lib/assets/Logo1.png
+    - lib/assets/logo_animation.json
+    - lib/assets/Register.json
+    - lib/assets/Verfiy.json
+    - lib/assets/Search.json
+    - lib/assets/profile.json
+    - lib/assets/Logo5.json
+    - lib/assets/WelcomPage.json
+    - lib/assets/notification.wav
+    # Screenshots
+    - lib/assets/Screenshot_1749687908.png
+    - lib/assets/Screenshot_1749687109.png
+    - lib/assets/Screenshot_1749687099.png
+    - lib/assets/Screenshot_1749687096.png
+    - lib/assets/Screenshot_1749687089.png
+    - lib/assets/Screenshot_1749687072.png
+    - lib/assets/Screenshot_1749687070.png
+    - lib/assets/Screenshot_1749687064.png
+    - lib/assets/Screenshot_1749687057.png
+    - lib/assets/Screenshot_1749687037.png
+    - lib/assets/Screenshot_1749687001.png
+    - lib/assets/Screenshot_1749686997.png
+    - lib/assets/Screenshot_1749686989.png
+    - lib/assets/Screenshot_1749686590.png
+    - lib/assets/Screenshot_1749686589.png
+    - lib/assets/Screenshot_1749686558.png
+    - lib/assets/Screenshot_1749686554.png
+    - lib/assets/Screenshot_1749686548.png
+    - lib/assets/Screenshot_1749686542.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
